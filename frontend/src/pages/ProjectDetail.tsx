@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/Navbar';
 import api from '../lib/axios';
+import { Edit, Settings } from 'lucide-react';
 // import { Project } from '../types/project';
 
 export default function ProjectDetail() {
@@ -84,6 +85,25 @@ export default function ProjectDetail() {
                 }`}>
                   {project.status.replace('_', ' ')}
                 </span>
+                
+                {/* Action Buttons */}
+                {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+                  <div className="flex items-center space-x-2">
+                    <Link
+                      to={`/projects/${id}/edit`}
+                      className="btn-secondary"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Link>
+                    <Link
+                      to={`/projects/${id}/settings`}
+                      className="btn-ghost"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -198,11 +218,22 @@ export default function ProjectDetail() {
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Project Info</h2>
                 <div className="space-y-3">
                   <div>
-                    <span className="text-sm text-gray-500">Student:</span>
-                    <p className="text-sm font-medium text-gray-900">
-                      {project.student.fullName}
-                    </p>
-                    <p className="text-xs text-gray-500">{project.student.email}</p>
+                    <span className="text-sm text-gray-500">Students:</span>
+                    <div className="space-y-2">
+                      {project.students?.map((ps: any) => (
+                        <div key={ps.student.id}>
+                          <p className="text-sm font-medium text-gray-900">
+                            {ps.student.fullName}
+                            {ps.role === 'LEAD' && (
+                              <span className="ml-2 text-xs bg-primary-100 text-primary-800 px-2 py-1 rounded-full">
+                                Lead
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-500">{ps.student.email}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <span className="text-sm text-gray-500">Lecturer:</span>

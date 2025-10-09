@@ -10,6 +10,9 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ProjectList from './pages/ProjectList';
 import ProjectDetail from './pages/ProjectDetail';
+import CreateProject from './pages/CreateProject';
+import EditProject from './pages/EditProject';
+import ProjectSettings from './pages/ProjectSettings';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -43,6 +46,30 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <ProjectList />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/new" 
+            element={
+              <ProtectedRoute>
+                <CreateProject />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/:id/edit" 
+            element={
+              <ProtectedRoute>
+                <EditProject />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/:id/settings" 
+            element={
+              <ProtectedRoute>
+                <ProjectSettings />
               </ProtectedRoute>
             } 
           />

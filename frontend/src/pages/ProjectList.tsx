@@ -9,11 +9,10 @@ import {
   FolderOpen, 
   CheckSquare, 
   FileText, 
-  TrendingUp,
   User,
-  Calendar,
   Search,
-  Filter
+  Filter,
+  Edit
 } from 'lucide-react';
 
 export default function ProjectList() {
@@ -141,14 +140,25 @@ export default function ProjectList() {
                         </h3>
                       </Link>
                     </div>
-                    <span className={`badge ${
-                      project.status === 'COMPLETED' ? 'badge-success' :
-                      project.status === 'IN_PROGRESS' ? 'badge-primary' :
-                      project.status === 'UNDER_REVIEW' ? 'badge-warning' :
-                      'badge-gray'
-                    }`}>
-                      {project.status.replace('_', ' ')}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className={`badge ${
+                        project.status === 'COMPLETED' ? 'badge-success' :
+                        project.status === 'IN_PROGRESS' ? 'badge-primary' :
+                        project.status === 'UNDER_REVIEW' ? 'badge-warning' :
+                        'badge-gray'
+                      }`}>
+                        {project.status.replace('_', ' ')}
+                      </span>
+                      {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+                        <Link
+                          to={`/projects/${project.id}/edit`}
+                          className="btn-ghost p-1"
+                          title="Edit project"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                      )}
+                    </div>
                   </div>
                   
                   <p className="text-gray-600 mb-4 line-clamp-3">
@@ -188,12 +198,14 @@ export default function ProjectList() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center text-sm text-gray-500">
                         <User className="w-4 h-4 mr-1" />
-                        {user.role === 'STUDENT' ? 'Lecturer' : 'Student'}
+                        {user.role === 'STUDENT' ? 'Lecturer' : 'Students'}
                       </div>
                       <div className="text-sm font-medium text-gray-900">
                         {user.role === 'STUDENT' 
                           ? project.lecturer.fullName 
-                          : project.student.fullName
+                          : project.students?.length > 0 
+                            ? `${project.students.length} student${project.students.length > 1 ? 's' : ''}`
+                            : 'No students'
                         }
                       </div>
                     </div>

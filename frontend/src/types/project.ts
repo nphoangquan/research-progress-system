@@ -1,10 +1,16 @@
 import { User } from './auth';
 
+export interface ProjectStudent {
+  id: string;
+  role: 'LEAD' | 'MEMBER';
+  joinedAt: string;
+  student: Pick<User, 'id' | 'fullName' | 'email' | 'studentId'>;
+}
+
 export interface Project {
   id: string;
   title: string;
   description: string;
-  studentId: string;
   lecturerId: string;
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'UNDER_REVIEW' | 'COMPLETED' | 'CANCELLED';
   startDate: string;
@@ -12,8 +18,8 @@ export interface Project {
   progress: number;
   createdAt: string;
   updatedAt: string;
-  student: Pick<User, 'id' | 'fullName' | 'email' | 'studentId'>;
   lecturer: Pick<User, 'id' | 'fullName' | 'email'>;
+  students: ProjectStudent[];
   _count: {
     tasks: number;
     documents: number;
@@ -23,7 +29,7 @@ export interface Project {
 export interface CreateProjectRequest {
   title: string;
   description: string;
-  studentId: string;
+  studentIds: string[];
   lecturerId: string;
   startDate?: string;
   endDate?: string;
