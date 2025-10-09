@@ -24,8 +24,8 @@ model User {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  projectsAsStudent   Project[] @relation("StudentProjects")
   projectsAsLecturer  Project[] @relation("LecturerProjects")
+  projectStudents     ProjectStudent[]
   tasks               Task[]
   notifications       Notification[]
   aiQueries           AIQuery[]
@@ -47,7 +47,6 @@ model Project {
   id              String    @id @default(uuid())
   title           String
   description     String    @db.Text
-  studentId       String    @map("student_id")
   lecturerId      String    @map("lecturer_id")
   status          ProjectStatus @default(IN_PROGRESS)
   startDate       DateTime  @map("start_date")
@@ -57,16 +56,32 @@ model Project {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  student         User      @relation("StudentProjects", fields: [studentId], references: [id], onDelete: Cascade)
   lecturer        User      @relation("LecturerProjects", fields: [lecturerId], references: [id], onDelete: Restrict)
+  students        ProjectStudent[]
   tasks           Task[]
   documents       Document[]
   aiQueries       AIQuery[]
   notifications   Notification[]
 
-  @@index([studentId])
   @@index([lecturerId])
   @@map("projects")
+}
+
+model ProjectStudent {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  studentId String   @map("student_id")
+  role      String   @default("MEMBER") // LEAD, MEMBER
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, studentId])
+  @@index([projectId])
+  @@index([studentId])
+  @@map("project_students")
 }
 
 enum ProjectStatus {

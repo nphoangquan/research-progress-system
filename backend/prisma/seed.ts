@@ -12,6 +12,7 @@ async function main() {
   await prisma.documentChunk.deleteMany();
   await prisma.document.deleteMany();
   await prisma.task.deleteMany();
+  await prisma.projectStudent.deleteMany();
   await prisma.project.deleteMany();
   await prisma.user.deleteMany();
 
@@ -76,14 +77,33 @@ async function main() {
       studentId: 'SV003',
     },
   });
-  console.log('✅ Created 3 students');
+
+  const student4 = await prisma.user.create({
+    data: {
+      email: 'student4@research.edu',
+      passwordHash: await bcrypt.hash('student123', 10),
+      fullName: 'Vũ Thị F',
+      role: 'STUDENT',
+      studentId: 'SV004',
+    },
+  });
+
+  const student5 = await prisma.user.create({
+    data: {
+      email: 'student5@research.edu',
+      passwordHash: await bcrypt.hash('student123', 10),
+      fullName: 'Đặng Văn G',
+      role: 'STUDENT',
+      studentId: 'SV005',
+    },
+  });
+  console.log('✅ Created 5 students');
 
   // Create Projects
   const project1 = await prisma.project.create({
     data: {
       title: 'Nghiên cứu ứng dụng AI trong giáo dục',
       description: 'Đề tài nghiên cứu về việc áp dụng trí tuệ nhân tạo vào quản lý và hỗ trợ giảng dạy trong các trường đại học.',
-      studentId: student1.id,
       lecturerId: lecturer1.id,
       startDate: new Date('2024-09-01'),
       endDate: new Date('2025-06-30'),
@@ -96,7 +116,6 @@ async function main() {
     data: {
       title: 'Phát triển hệ thống IoT cho nhà thông minh',
       description: 'Xây dựng hệ thống quản lý và điều khiển thiết bị thông minh trong gia đình sử dụng công nghệ IoT.',
-      studentId: student2.id,
       lecturerId: lecturer1.id,
       startDate: new Date('2024-10-01'),
       endDate: new Date('2025-07-31'),
@@ -109,7 +128,6 @@ async function main() {
     data: {
       title: 'Phân tích dữ liệu lớn với Machine Learning',
       description: 'Nghiên cứu và ứng dụng các thuật toán machine learning để phân tích và dự đoán xu hướng từ dữ liệu lớn.',
-      studentId: student3.id,
       lecturerId: lecturer2.id,
       startDate: new Date('2024-08-15'),
       endDate: new Date('2025-05-30'),
@@ -117,7 +135,47 @@ async function main() {
       progress: 60,
     },
   });
-  console.log('✅ Created 3 projects');
+
+  // Add students to projects
+  await prisma.projectStudent.createMany({
+    data: [
+      // Project 1 - AI in Education (3 students - team project)
+      {
+        projectId: project1.id,
+        studentId: student1.id,
+        role: 'LEAD',
+      },
+      {
+        projectId: project1.id,
+        studentId: student2.id,
+        role: 'MEMBER',
+      },
+      {
+        projectId: project1.id,
+        studentId: student4.id,
+        role: 'MEMBER',
+      },
+      // Project 2 - IoT Smart Home (2 students)
+      {
+        projectId: project2.id,
+        studentId: student2.id,
+        role: 'LEAD',
+      },
+      {
+        projectId: project2.id,
+        studentId: student5.id,
+        role: 'MEMBER',
+      },
+      // Project 3 - Big Data ML (single student)
+      {
+        projectId: project3.id,
+        studentId: student3.id,
+        role: 'LEAD',
+      },
+    ],
+  });
+
+  console.log('✅ Created 3 projects with student assignments');
 
   // Create Tasks for Project 1
   await prisma.task.createMany({
@@ -195,19 +253,71 @@ async function main() {
         projectId: project2.id,
         title: 'Phát triển ứng dụng mobile',
         description: 'Xây dựng app điều khiển trên điện thoại',
-        assigneeId: student2.id,
+        assigneeId: student5.id,
         status: 'TODO',
         priority: 'MEDIUM',
         dueDate: new Date('2025-04-30'),
       },
+      {
+        projectId: project2.id,
+        title: 'Tích hợp hệ thống',
+        description: 'Kết nối các module IoT với ứng dụng',
+        assigneeId: student5.id,
+        status: 'TODO',
+        priority: 'HIGH',
+        dueDate: new Date('2025-05-15'),
+      },
     ],
   });
 
-  console.log('✅ Created tasks');
+  // Create Tasks for Project 3
+  await prisma.task.createMany({
+    data: [
+      {
+        projectId: project3.id,
+        title: 'Thu thập dữ liệu',
+        description: 'Tìm kiếm và thu thập các dataset phù hợp',
+        assigneeId: student3.id,
+        status: 'DONE',
+        priority: 'HIGH',
+        completedAt: new Date('2024-09-30'),
+      },
+      {
+        projectId: project3.id,
+        title: 'Tiền xử lý dữ liệu',
+        description: 'Làm sạch và chuẩn hóa dữ liệu',
+        assigneeId: student3.id,
+        status: 'IN_PROGRESS',
+        priority: 'HIGH',
+        dueDate: new Date('2025-01-15'),
+      },
+      {
+        projectId: project3.id,
+        title: 'Xây dựng model ML',
+        description: 'Phát triển và huấn luyện các mô hình machine learning',
+        assigneeId: student3.id,
+        status: 'TODO',
+        priority: 'HIGH',
+        dueDate: new Date('2025-03-30'),
+      },
+      {
+        projectId: project3.id,
+        title: 'Đánh giá và tối ưu',
+        description: 'Đánh giá hiệu suất và tối ưu hóa model',
+        assigneeId: student3.id,
+        status: 'TODO',
+        priority: 'MEDIUM',
+        dueDate: new Date('2025-05-15'),
+      },
+    ],
+  });
+
+  console.log('✅ Created tasks for all projects');
 
   // Create Notifications
   await prisma.notification.createMany({
     data: [
+      // Project 1 notifications
       {
         userId: student1.id,
         projectId: project1.id,
@@ -217,11 +327,11 @@ async function main() {
         isRead: false,
       },
       {
-        userId: student1.id,
+        userId: student2.id,
         projectId: project1.id,
         type: 'COMMENT_ADDED',
         title: 'Giảng viên đã nhận xét',
-        message: 'Dr. Nguyễn Văn A đã thêm nhận xét về báo cáo tiến độ của bạn',
+        message: 'Dr. Nguyễn Văn A đã thêm nhận xét về báo cáo tiến độ của team',
         isRead: false,
       },
       {
@@ -232,6 +342,40 @@ async function main() {
         message: 'Lê Văn C đã hoàn thành task "Thiết kế hệ thống"',
         isRead: true,
       },
+      // Project 2 notifications
+      {
+        userId: student2.id,
+        projectId: project2.id,
+        type: 'DEADLINE_APPROACHING',
+        title: 'Deadline sắp đến',
+        message: 'Task "Thiết kế phần cứng" sẽ đến hạn vào ngày 31/01/2025',
+        isRead: false,
+      },
+      {
+        userId: student5.id,
+        projectId: project2.id,
+        type: 'TASK_ASSIGNED',
+        title: 'Task mới được giao',
+        message: 'Bạn đã được giao task "Phát triển ứng dụng mobile"',
+        isRead: false,
+      },
+      // Project 3 notifications
+      {
+        userId: student3.id,
+        projectId: project3.id,
+        type: 'TASK_COMPLETED',
+        title: 'Hoàn thành task',
+        message: 'Bạn đã hoàn thành task "Thu thập dữ liệu"',
+        isRead: true,
+      },
+      {
+        userId: lecturer2.id,
+        projectId: project3.id,
+        type: 'PROJECT_STATUS_CHANGED',
+        title: 'Cập nhật tiến độ',
+        message: 'Hoàng Văn E đã cập nhật tiến độ project lên 60%',
+        isRead: false,
+      },
     ],
   });
 
@@ -241,7 +385,16 @@ async function main() {
   console.log('\n📋 Demo accounts:');
   console.log('Admin:     admin@research.edu / admin123');
   console.log('Lecturer:  lecturer1@research.edu / lecturer123');
-  console.log('Student:   student1@research.edu / student123');
+  console.log('Lecturer:  lecturer2@research.edu / lecturer123');
+  console.log('Student:   student1@research.edu / student123 (Lead of Project 1)');
+  console.log('Student:   student2@research.edu / student123 (Member of Project 1, Lead of Project 2)');
+  console.log('Student:   student3@research.edu / student123 (Lead of Project 3)');
+  console.log('Student:   student4@research.edu / student123 (Member of Project 1)');
+  console.log('Student:   student5@research.edu / student123 (Member of Project 2)');
+  console.log('\n📊 Project assignments:');
+  console.log('Project 1: AI in Education - 3 students (student1 LEAD, student2+4 MEMBERS)');
+  console.log('Project 2: IoT Smart Home - 2 students (student2 LEAD, student5 MEMBER)');
+  console.log('Project 3: Big Data ML - 1 student (student3 LEAD)');
 }
 
 main()

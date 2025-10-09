@@ -33,8 +33,12 @@ export const uploadDocument = async (req: Request, res: Response) => {
       select: { 
         id: true, 
         title: true,
-        studentId: true, 
-        lecturerId: true 
+        lecturerId: true,
+        students: {
+          select: {
+            studentId: true
+          }
+        }
       }
     });
 
@@ -45,10 +49,15 @@ export const uploadDocument = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (userRole === 'STUDENT' && project.studentId !== userId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this project' 
-      });
+    if (userRole === 'STUDENT') {
+      const isStudentInProject = project.students.some(
+        (ps: any) => ps.studentId === userId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this project' 
+        });
+      }
     }
 
     if (userRole === 'LECTURER' && project.lecturerId !== userId) {
@@ -127,8 +136,12 @@ export const getDocuments = async (req: Request, res: Response) => {
       where: { id: projectId as string },
       select: { 
         id: true, 
-        studentId: true, 
-        lecturerId: true 
+        lecturerId: true,
+        students: {
+          select: {
+            studentId: true
+          }
+        }
       }
     });
 
@@ -139,10 +152,15 @@ export const getDocuments = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (userRole === 'STUDENT' && project.studentId !== userId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this project' 
-      });
+    if (userRole === 'STUDENT') {
+      const isStudentInProject = project.students.some(
+        (ps: any) => ps.studentId === userId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this project' 
+        });
+      }
     }
 
     if (userRole === 'LECTURER' && project.lecturerId !== userId) {
@@ -193,8 +211,12 @@ export const getDocumentById = async (req: Request, res: Response) => {
           select: {
             id: true,
             title: true,
-            studentId: true,
-            lecturerId: true
+            lecturerId: true,
+            students: {
+              select: {
+                studentId: true
+              }
+            }
           }
         }
       }
@@ -207,10 +229,15 @@ export const getDocumentById = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (userRole === 'STUDENT' && document.project.studentId !== userId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this document' 
-      });
+    if (userRole === 'STUDENT') {
+      const isStudentInProject = document.project.students.some(
+        (ps: any) => ps.studentId === userId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this document' 
+        });
+      }
     }
 
     if (userRole === 'LECTURER' && document.project.lecturerId !== userId) {
@@ -249,8 +276,12 @@ export const updateDocument = async (req: Request, res: Response) => {
         project: {
           select: {
             id: true,
-            studentId: true,
-            lecturerId: true
+            lecturerId: true,
+            students: {
+              select: {
+                studentId: true
+              }
+            }
           }
         }
       }
@@ -263,10 +294,15 @@ export const updateDocument = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (userRole === 'STUDENT' && existingDocument.project.studentId !== userId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this document' 
-      });
+    if (userRole === 'STUDENT') {
+      const isStudentInProject = existingDocument.project.students.some(
+        (ps: any) => ps.studentId === userId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this document' 
+        });
+      }
     }
 
     if (userRole === 'LECTURER' && existingDocument.project.lecturerId !== userId) {
@@ -319,8 +355,12 @@ export const deleteDocument = async (req: Request, res: Response) => {
         project: {
           select: {
             id: true,
-            studentId: true,
-            lecturerId: true
+            lecturerId: true,
+            students: {
+              select: {
+                studentId: true
+              }
+            }
           }
         }
       }
@@ -333,10 +373,15 @@ export const deleteDocument = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (userRole === 'STUDENT' && existingDocument.project.studentId !== userId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this document' 
-      });
+    if (userRole === 'STUDENT') {
+      const isStudentInProject = existingDocument.project.students.some(
+        (ps: any) => ps.studentId === userId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this document' 
+        });
+      }
     }
 
     if (userRole === 'LECTURER' && existingDocument.project.lecturerId !== userId) {

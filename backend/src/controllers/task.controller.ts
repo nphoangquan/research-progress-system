@@ -24,9 +24,13 @@ export const createTask = async (req: Request, res: Response) => {
       where: { id: projectId },
       select: { 
         id: true, 
-        studentId: true, 
         lecturerId: true,
-        title: true
+        title: true,
+        students: {
+          select: {
+            studentId: true
+          }
+        }
       }
     });
 
@@ -37,10 +41,15 @@ export const createTask = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (currentUserRole === 'STUDENT' && project.studentId !== currentUserId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this project' 
-      });
+    if (currentUserRole === 'STUDENT') {
+      const isStudentInProject = project.students.some(
+        (ps: any) => ps.studentId === currentUserId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this project' 
+        });
+      }
     }
 
     if (currentUserRole === 'LECTURER' && project.lecturerId !== currentUserId) {
@@ -62,7 +71,10 @@ export const createTask = async (req: Request, res: Response) => {
     }
 
     // Check if assignee is part of the project
-    if (assigneeId !== project.studentId && assigneeId !== project.lecturerId) {
+    const isStudentInProject = project.students.some(
+      (ps: any) => ps.studentId === assigneeId
+    );
+    if (!isStudentInProject && assigneeId !== project.lecturerId) {
       return res.status(400).json({ 
         error: 'Assignee must be part of the project' 
       });
@@ -129,9 +141,13 @@ export const getTasks = async (req: Request, res: Response) => {
       where: { id: projectId as string },
       select: { 
         id: true, 
-        studentId: true, 
         lecturerId: true,
-        title: true
+        title: true,
+        students: {
+          select: {
+            studentId: true
+          }
+        }
       }
     });
 
@@ -142,10 +158,15 @@ export const getTasks = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (currentUserRole === 'STUDENT' && project.studentId !== currentUserId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this project' 
-      });
+    if (currentUserRole === 'STUDENT') {
+      const isStudentInProject = project.students.some(
+        (ps: any) => ps.studentId === currentUserId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this project' 
+        });
+      }
     }
 
     if (currentUserRole === 'LECTURER' && project.lecturerId !== currentUserId) {
@@ -201,8 +222,12 @@ export const getTaskById = async (req: Request, res: Response) => {
           select: {
             id: true,
             title: true,
-            studentId: true,
-            lecturerId: true
+            lecturerId: true,
+            students: {
+              select: {
+                studentId: true
+              }
+            }
           }
         },
         assignee: {
@@ -222,10 +247,15 @@ export const getTaskById = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (currentUserRole === 'STUDENT' && task.project.studentId !== currentUserId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this task' 
-      });
+    if (currentUserRole === 'STUDENT') {
+      const isStudentInProject = task.project.students.some(
+        (ps: any) => ps.studentId === currentUserId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this task' 
+        });
+      }
     }
 
     if (currentUserRole === 'LECTURER' && task.project.lecturerId !== currentUserId) {
@@ -264,8 +294,12 @@ export const updateTask = async (req: Request, res: Response) => {
         project: {
           select: {
             id: true,
-            studentId: true,
-            lecturerId: true
+            lecturerId: true,
+            students: {
+              select: {
+                studentId: true
+              }
+            }
           }
         }
       }
@@ -278,10 +312,15 @@ export const updateTask = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (currentUserRole === 'STUDENT' && existingTask.project.studentId !== currentUserId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this task' 
-      });
+    if (currentUserRole === 'STUDENT') {
+      const isStudentInProject = existingTask.project.students.some(
+        (ps: any) => ps.studentId === currentUserId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this task' 
+        });
+      }
     }
 
     if (currentUserRole === 'LECTURER' && existingTask.project.lecturerId !== currentUserId) {
@@ -355,8 +394,12 @@ export const deleteTask = async (req: Request, res: Response) => {
         project: {
           select: {
             id: true,
-            studentId: true,
-            lecturerId: true
+            lecturerId: true,
+            students: {
+              select: {
+                studentId: true
+              }
+            }
           }
         }
       }
@@ -369,10 +412,15 @@ export const deleteTask = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (currentUserRole === 'STUDENT' && existingTask.project.studentId !== currentUserId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this task' 
-      });
+    if (currentUserRole === 'STUDENT') {
+      const isStudentInProject = existingTask.project.students.some(
+        (ps: any) => ps.studentId === currentUserId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this task' 
+        });
+      }
     }
 
     if (currentUserRole === 'LECTURER' && existingTask.project.lecturerId !== currentUserId) {

@@ -8,14 +8,14 @@ const prisma = new PrismaClient();
  */
 export const createProject = async (req: Request, res: Response) => {
   try {
-    const { title, description, studentId, lecturerId, startDate, endDate } = req.body;
+    const { title, description, studentIds, lecturerId, startDate, endDate } = req.body;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
     // Validation
-    if (!title || !description || !studentId || !lecturerId) {
+    if (!title || !description || !studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !lecturerId) {
       return res.status(400).json({ 
-        error: 'Title, description, studentId, and lecturerId are required' 
+        error: 'Title, description, studentIds (array), and lecturerId are required' 
       });
     }
 
@@ -26,23 +26,11 @@ export const createProject = async (req: Request, res: Response) => {
       });
     }
 
-    // Verify student and lecturer exist
-    const [student, lecturer] = await Promise.all([
-      prisma.user.findUnique({ 
-        where: { id: studentId },
-        select: { id: true, fullName: true, role: true }
-      }),
-      prisma.user.findUnique({ 
-        where: { id: lecturerId },
-        select: { id: true, fullName: true, role: true }
-      })
-    ]);
-
-    if (!student || student.role !== 'STUDENT') {
-      return res.status(400).json({ 
-        error: 'Invalid student ID or user is not a student' 
-      });
-    }
+    // Verify lecturer exists
+    const lecturer = await prisma.user.findUnique({ 
+      where: { id: lecturerId },
+      select: { id: true, fullName: true, role: true }
+    });
 
     if (!lecturer || lecturer.role !== 'LECTURER') {
       return res.status(400).json({ 
@@ -50,41 +38,76 @@ export const createProject = async (req: Request, res: Response) => {
       });
     }
 
-    // Create project
-    const project = await prisma.project.create({
-      data: {
-        title,
-        description,
-        studentId,
-        lecturerId,
-        startDate: startDate ? new Date(startDate) : new Date(),
-        endDate: endDate ? new Date(endDate) : null,
-        status: 'NOT_STARTED',
-        progress: 0
+    // Verify all students exist and are students
+    const students = await prisma.user.findMany({
+      where: { 
+        id: { in: studentIds },
+        role: 'STUDENT'
       },
-      include: {
-        student: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            studentId: true
-          }
-        },
-        lecturer: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true
-          }
-        },
-        _count: {
-          select: {
-            tasks: true,
-            documents: true
+      select: { id: true, fullName: true, role: true }
+    });
+
+    if (students.length !== studentIds.length) {
+      return res.status(400).json({ 
+        error: 'One or more student IDs are invalid or users are not students' 
+      });
+    }
+
+    // Create project with transaction
+    const project = await prisma.$transaction(async (tx) => {
+      // Create project
+      const newProject = await tx.project.create({
+        data: {
+          title,
+          description,
+          lecturerId,
+          startDate: startDate ? new Date(startDate) : new Date(),
+          endDate: endDate ? new Date(endDate) : null,
+          status: 'NOT_STARTED',
+          progress: 0
+        }
+      });
+
+      // Add students to project
+      await tx.projectStudent.createMany({
+        data: studentIds.map((studentId: string, index: number) => ({
+          projectId: newProject.id,
+          studentId,
+          role: index === 0 ? 'LEAD' : 'MEMBER' // First student is lead
+        }))
+      });
+
+      // Return project with relations
+      return await tx.project.findUnique({
+        where: { id: newProject.id },
+        include: {
+          lecturer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true
+            }
+          },
+          students: {
+            include: {
+              student: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  studentId: true
+                }
+              }
+            }
+          },
+          _count: {
+            select: {
+              tasks: true,
+              documents: true
+            }
           }
         }
-      }
+      });
     });
 
     res.status(201).json({
@@ -113,7 +136,11 @@ export const getProjects = async (req: Request, res: Response) => {
 
     // Filter by user role
     if (currentUserRole === 'STUDENT') {
-      whereClause.studentId = currentUserId;
+      whereClause.students = {
+        some: {
+          studentId: currentUserId
+        }
+      };
     } else if (currentUserRole === 'LECTURER') {
       whereClause.lecturerId = currentUserId;
     }
@@ -130,19 +157,23 @@ export const getProjects = async (req: Request, res: Response) => {
       prisma.project.findMany({
         where: whereClause,
         include: {
-          student: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              studentId: true
-            }
-          },
           lecturer: {
             select: {
               id: true,
               fullName: true,
               email: true
+            }
+          },
+          students: {
+            include: {
+              student: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  studentId: true
+                }
+              }
             }
           },
           _count: {
@@ -190,19 +221,23 @@ export const getProjectById = async (req: Request, res: Response) => {
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
-        student: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            studentId: true
-          }
-        },
         lecturer: {
           select: {
             id: true,
             fullName: true,
             email: true
+          }
+        },
+        students: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                studentId: true
+              }
+            }
           }
         },
         tasks: {
@@ -246,10 +281,15 @@ export const getProjectById = async (req: Request, res: Response) => {
     }
 
     // Check access permissions
-    if (currentUserRole === 'STUDENT' && project.studentId !== currentUserId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this project' 
-      });
+    if (currentUserRole === 'STUDENT') {
+      const isStudentInProject = project.students.some(
+        (ps: any) => ps.studentId === currentUserId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this project' 
+        });
+      }
     }
 
     if (currentUserRole === 'LECTURER' && project.lecturerId !== currentUserId) {
@@ -284,7 +324,15 @@ export const updateProject = async (req: Request, res: Response) => {
     // Check if project exists
     const existingProject = await prisma.project.findUnique({
       where: { id },
-      select: { id: true, studentId: true, lecturerId: true }
+      select: { 
+        id: true, 
+        lecturerId: true,
+        students: {
+          select: {
+            studentId: true
+          }
+        }
+      }
     });
 
     if (!existingProject) {
@@ -294,10 +342,15 @@ export const updateProject = async (req: Request, res: Response) => {
     }
 
     // Check permissions
-    if (currentUserRole === 'STUDENT' && existingProject.studentId !== currentUserId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this project' 
-      });
+    if (currentUserRole === 'STUDENT') {
+      const isStudentInProject = existingProject.students.some(
+        (ps: any) => ps.studentId === currentUserId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this project' 
+        });
+      }
     }
 
     if (currentUserRole === 'LECTURER' && existingProject.lecturerId !== currentUserId) {
@@ -318,19 +371,23 @@ export const updateProject = async (req: Request, res: Response) => {
       where: { id },
       data: updateData,
       include: {
-        student: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            studentId: true
-          }
-        },
         lecturer: {
           select: {
             id: true,
             fullName: true,
             email: true
+          }
+        },
+        students: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                studentId: true
+              }
+            }
           }
         },
         _count: {
@@ -367,7 +424,7 @@ export const deleteProject = async (req: Request, res: Response) => {
     // Check if project exists
     const existingProject = await prisma.project.findUnique({
       where: { id },
-      select: { id: true, studentId: true, lecturerId: true }
+      select: { id: true, lecturerId: true }
     });
 
     if (!existingProject) {
