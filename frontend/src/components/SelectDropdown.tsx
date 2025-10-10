@@ -47,7 +47,7 @@ export default function SelectDropdown({
         >
           <div className="flex items-center justify-between">
             <span className={`text-sm ${selectedOption ? 'text-gray-900' : 'text-gray-500'}`}>
-              {selectedOption ? `${selectedOption.fullName} (${selectedOption.studentId || selectedOption.email})` : placeholder}
+              {selectedOption ? `${selectedOption.fullName}${selectedOption.studentId || selectedOption.email ? ` (${selectedOption.studentId || selectedOption.email})` : ''}` : placeholder}
             </span>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function SelectDropdown({
                   setIsOpen(false);
                 }}
               >
-                {option.fullName} ({option.studentId || option.email})
+                {option.fullName}{option.studentId || option.email ? ` (${option.studentId || option.email})` : ''}
               </div>
             ))}
           </div>

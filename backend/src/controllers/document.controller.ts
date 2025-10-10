@@ -125,9 +125,47 @@ export const getDocuments = async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const userRole = req.user!.role;
 
+    // If no projectId, get all documents for the user
     if (!projectId) {
-      return res.status(400).json({ 
-        error: 'Project ID is required' 
+      let whereClause: any = {};
+
+      if (userRole === 'STUDENT') {
+        // Students can only see documents from projects they're part of
+        whereClause = {
+          project: {
+            students: {
+              some: {
+                studentId: userId
+              }
+            }
+          }
+        };
+      } else if (userRole === 'LECTURER') {
+        // Lecturers can see documents from their projects
+        whereClause = {
+          project: {
+            lecturerId: userId
+          }
+        };
+      }
+      // ADMIN can see all documents (no additional where clause)
+
+      const documents = await prisma.document.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          project: {
+            select: {
+              id: true,
+              title: true
+            }
+          }
+        }
+      });
+
+      return res.json({
+        message: 'Documents retrieved successfully',
+        documents
       });
     }
 

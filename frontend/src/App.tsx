@@ -13,6 +13,14 @@ import ProjectDetail from './pages/ProjectDetail';
 import CreateProject from './pages/CreateProject';
 import EditProject from './pages/EditProject';
 import ProjectSettings from './pages/ProjectSettings';
+import TaskList from './pages/TaskList';
+import TaskKanban from './pages/TaskKanban';
+import TaskDetail from './pages/TaskDetail';
+import TaskForm from './pages/TaskForm';
+import DocumentList from './pages/DocumentList';
+import DocumentDetail from './pages/DocumentDetail';
+import DocumentUpload from './pages/DocumentUpload';
+import ProjectProgress from './pages/ProjectProgress';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -74,10 +82,130 @@ function AppContent() {
             } 
           />
           <Route 
+            path="/projects/:id/progress" 
+            element={
+              <ProtectedRoute>
+                <ProjectProgress />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="/projects/:id" 
             element={
               <ProtectedRoute>
                 <ProjectDetail />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Task Routes */}
+          <Route 
+            path="/tasks" 
+            element={
+              <ProtectedRoute>
+                <TaskList />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/tasks/kanban" 
+            element={
+              <ProtectedRoute>
+                <TaskKanban />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/tasks/new" 
+            element={
+              <ProtectedRoute>
+                <TaskForm />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/tasks/:id" 
+            element={
+              <ProtectedRoute>
+                <TaskDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/tasks/:id/edit" 
+            element={
+              <ProtectedRoute>
+                <TaskForm />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Project Task Routes */}
+          <Route 
+            path="/projects/:projectId/tasks" 
+            element={
+              <ProtectedRoute>
+                <TaskList />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/:projectId/tasks/kanban" 
+            element={
+              <ProtectedRoute>
+                <TaskKanban />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/:projectId/tasks/new" 
+            element={
+              <ProtectedRoute>
+                <TaskForm />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Document Routes */}
+          <Route 
+            path="/documents" 
+            element={
+              <ProtectedRoute>
+                <DocumentList />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/documents/upload" 
+            element={
+              <ProtectedRoute>
+                <DocumentUpload />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/documents/:id" 
+            element={
+              <ProtectedRoute>
+                <DocumentDetail />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Project Document Routes */}
+          <Route 
+            path="/projects/:projectId/documents" 
+            element={
+              <ProtectedRoute>
+                <DocumentList />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/:projectId/documents/upload" 
+            element={
+              <ProtectedRoute>
+                <DocumentUpload />
               </ProtectedRoute>
             } 
           />

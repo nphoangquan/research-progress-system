@@ -90,7 +90,7 @@ export default function MultiSelectDropdown({
                   className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm"
                   onClick={() => handleSelect(option.id)}
                 >
-                  {option.fullName} ({option.studentId || option.email})
+                  {option.fullName}{option.studentId || option.email ? ` (${option.studentId || option.email})` : ''}
                 </div>
               ))
             ) : (

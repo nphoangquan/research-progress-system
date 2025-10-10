@@ -105,6 +105,45 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="card">
+            <div className="card-body">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Projects</h3>
+                  <p className="text-gray-600 mb-4">Manage your research projects</p>
+                  <Link to="/projects" className="btn-primary">
+                    <FolderOpen className="w-4 h-4 mr-2" />
+                    View Projects
+                  </Link>
+                </div>
+                <div className="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center">
+                  <FolderOpen className="w-8 h-8 text-primary-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-body">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Tasks</h3>
+                  <p className="text-gray-600 mb-4">Track and manage your work</p>
+                  <Link to="/tasks" className="btn-primary">
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    View Tasks
+                  </Link>
+                </div>
+                <div className="w-16 h-16 bg-success-100 rounded-xl flex items-center justify-center">
+                  <CheckSquare className="w-8 h-8 text-success-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Recent Projects */}
         <div className="card">
           <div className="card-header">

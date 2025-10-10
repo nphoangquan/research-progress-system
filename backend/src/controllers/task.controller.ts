@@ -130,9 +130,58 @@ export const getTasks = async (req: Request, res: Response) => {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
+    // If no projectId, get all tasks for the user
     if (!projectId) {
-      return res.status(400).json({ 
-        error: 'Project ID is required' 
+      let whereClause: any = {};
+
+      if (currentUserRole === 'STUDENT') {
+        // Students can only see tasks from projects they're part of
+        whereClause = {
+          project: {
+            students: {
+              some: {
+                studentId: currentUserId
+              }
+            }
+          }
+        };
+      } else if (currentUserRole === 'LECTURER') {
+        // Lecturers can see tasks from their projects
+        whereClause = {
+          project: {
+            lecturerId: currentUserId
+          }
+        };
+      }
+      // ADMIN can see all tasks (no additional where clause)
+
+      const tasks = await prisma.task.findMany({
+        where: whereClause,
+        include: {
+          project: {
+            select: {
+              id: true,
+              title: true
+            }
+          },
+          assignee: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true
+            }
+          }
+        },
+        orderBy: [
+          { status: 'asc' },
+          { priority: 'desc' },
+          { createdAt: 'desc' }
+        ]
+      });
+
+      return res.json({
+        message: 'Tasks retrieved successfully',
+        tasks
       });
     }
 
@@ -338,10 +387,10 @@ export const updateTask = async (req: Request, res: Response) => {
     if (dueDate) updateData.dueDate = new Date(dueDate);
     if (assigneeId) updateData.assigneeId = assigneeId;
 
-    // Set completedAt if status is DONE
-    if (status === 'DONE' && existingTask.status !== 'DONE') {
+    // Set completedAt if status is COMPLETED
+    if (status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
       updateData.completedAt = new Date();
-    } else if (status !== 'DONE' && existingTask.status === 'DONE') {
+    } else if (status !== 'COMPLETED' && existingTask.status === 'COMPLETED') {
       updateData.completedAt = null;
     }
 

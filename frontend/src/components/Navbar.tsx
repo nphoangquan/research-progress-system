@@ -4,6 +4,8 @@ import type { User } from '../types/auth';
 import { 
   LayoutDashboard, 
   FolderOpen, 
+  CheckSquare,
+  FileText,
   User as UserIcon, 
   LogOut,
   Bell,
@@ -55,6 +57,20 @@ export default function Navbar({ user }: NavbarProps) {
             >
               <FolderOpen className="w-4 h-4 mr-2" />
               Projects
+            </Link>
+            <Link 
+              to="/tasks" 
+              className={`nav-link ${isActive('/tasks') ? 'nav-link-active' : ''}`}
+            >
+              <CheckSquare className="w-4 h-4 mr-2" />
+              Tasks
+            </Link>
+            <Link 
+              to="/documents" 
+              className={`nav-link ${isActive('/documents') ? 'nav-link-active' : ''}`}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Documents
             </Link>
           </div>
           

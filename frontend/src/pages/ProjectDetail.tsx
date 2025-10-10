@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/Navbar';
 import api from '../lib/axios';
-import { Edit, Settings } from 'lucide-react';
+import { Edit, Settings, TrendingUp } from 'lucide-react';
 // import { Project } from '../types/project';
 
 export default function ProjectDetail() {
@@ -87,23 +87,32 @@ export default function ProjectDetail() {
                 </span>
                 
                 {/* Action Buttons */}
-                {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
-                  <div className="flex items-center space-x-2">
-                    <Link
-                      to={`/projects/${id}/edit`}
-                      className="btn-secondary"
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </Link>
-                    <Link
-                      to={`/projects/${id}/settings`}
-                      className="btn-ghost"
-                    >
-                      <Settings className="w-4 h-4" />
-                    </Link>
-                  </div>
-                )}
+                <div className="flex items-center space-x-2">
+                  <Link
+                    to={`/projects/${id}/progress`}
+                    className="btn-secondary"
+                  >
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Progress
+                  </Link>
+                  {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+                    <>
+                      <Link
+                        to={`/projects/${id}/edit`}
+                        className="btn-secondary"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Link>
+                      <Link
+                        to={`/projects/${id}/settings`}
+                        className="btn-ghost"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Link>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -148,9 +157,17 @@ export default function ProjectDetail() {
               <div className="bg-white shadow rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-medium text-gray-900">Tasks</h2>
-                  <span className="text-sm text-gray-500">
-                    {project.tasks?.length || 0} tasks
-                  </span>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-sm text-gray-500">
+                      {project.tasks?.length || 0} tasks
+                    </span>
+                    <Link
+                      to={`/projects/${id}/tasks`}
+                      className="btn-secondary text-sm"
+                    >
+                      View All
+                    </Link>
+                  </div>
                 </div>
                 {project.tasks?.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">No tasks yet.</p>
@@ -179,9 +196,17 @@ export default function ProjectDetail() {
               <div className="bg-white shadow rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-medium text-gray-900">Documents</h2>
-                  <span className="text-sm text-gray-500">
-                    {project.documents?.length || 0} documents
-                  </span>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-sm text-gray-500">
+                      {project.documents?.length || 0} documents
+                    </span>
+                    <Link
+                      to={`/projects/${id}/documents`}
+                      className="btn-secondary text-sm"
+                    >
+                      View All
+                    </Link>
+                  </div>
                 </div>
                 {project.documents?.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">No documents uploaded yet.</p>
