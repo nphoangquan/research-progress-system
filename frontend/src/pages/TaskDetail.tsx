@@ -20,7 +20,8 @@ import {
   Send,
   MoreVertical,
   Download,
-  Eye
+  Eye,
+  Plus
 } from 'lucide-react';
 
 interface Task {
@@ -62,11 +63,15 @@ interface Attachment {
   fileUrl: string;
   fileSize: number;
   mimeType: string;
-  uploadedBy: {
+  description: string | null;
+  uploadedBy: string;
+  uploader: {
     id: string;
     fullName: string;
+    email: string;
   };
-  uploadedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function TaskDetail() {
@@ -78,6 +83,9 @@ export default function TaskDetail() {
 
   const [newComment, setNewComment] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadDescription, setUploadDescription] = useState('');
   const [editData, setEditData] = useState({
     title: '',
     description: '',
@@ -107,15 +115,14 @@ export default function TaskDetail() {
     enabled: !!id,
   });
 
-  // Fetch attachments (TODO: Implement attachments API)
+  // Fetch attachments
   const { data: attachments } = useQuery({
     queryKey: ['task-attachments', id],
     queryFn: async () => {
-      // const response = await api.get(`/tasks/${id}/attachments`);
-      // return response.data.attachments;
-      return []; // Temporary: return empty array
+      const response = await api.get(`/task-attachments/${id}`);
+      return response.data.attachments;
     },
-    enabled: false, // Disabled until API is implemented
+    enabled: !!id,
   });
 
   // Fetch users for assignee dropdown (only for admin/lecturer)
@@ -172,6 +179,45 @@ export default function TaskDetail() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to delete task');
+    },
+  });
+
+  // Upload attachment mutation
+  const uploadAttachmentMutation = useMutation({
+    mutationFn: async (data: { file: File; description?: string }) => {
+      const formData = new FormData();
+      formData.append('file', data.file);
+      if (data.description) {
+        formData.append('description', data.description);
+      }
+      
+      const response = await api.post(`/task-attachments/${id}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-attachments', id] });
+      toast.success('Attachment uploaded successfully!');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to upload attachment');
+    },
+  });
+
+  // Delete attachment mutation
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: async (attachmentId: string) => {
+      await api.delete(`/task-attachments/${attachmentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-attachments', id] });
+      toast.success('Attachment deleted successfully!');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to delete attachment');
     },
   });
 
@@ -251,6 +297,50 @@ export default function TaskDetail() {
   const handleAddComment = () => {
     if (newComment.trim()) {
       addCommentMutation.mutate(newComment.trim());
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain'
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Only PDF, DOC, DOCX, and TXT files are allowed');
+        return;
+      }
+
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size must be less than 10MB');
+        return;
+      }
+
+      setUploadFile(file);
+    }
+  };
+
+  const handleUploadAttachment = () => {
+    if (uploadFile && id) {
+      uploadAttachmentMutation.mutate({
+        file: uploadFile,
+        description: uploadDescription || undefined
+      });
+      setShowUploadModal(false);
+      setUploadFile(null);
+      setUploadDescription('');
+    }
+  };
+
+  const handleDeleteAttachment = (attachmentId: string) => {
+    if (confirm('Are you sure you want to delete this attachment?')) {
+      deleteAttachmentMutation.mutate(attachmentId);
     }
   };
 
@@ -461,15 +551,24 @@ export default function TaskDetail() {
             </div>
 
             {/* Attachments */}
-            {attachments && attachments.length > 0 && (
-              <div className="card">
-                <div className="card-header">
+            <div className="card">
+              <div className="card-header">
+                <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-gray-900 flex items-center">
                     <Paperclip className="w-5 h-5 mr-2" />
-                    Attachments ({attachments.length})
+                    Attachments ({attachments?.length || 0})
                   </h2>
+                  <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="btn-primary"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Upload File
+                  </button>
                 </div>
-                <div className="card-body">
+              </div>
+              <div className="card-body">
+                {attachments && attachments.length > 0 ? (
                   <div className="space-y-3">
                     {attachments.map((attachment: Attachment) => (
                       <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -478,14 +577,18 @@ export default function TaskDetail() {
                           <div>
                             <p className="font-medium text-gray-900">{attachment.fileName}</p>
                             <p className="text-sm text-gray-500">
-                              {formatFileSize(attachment.fileSize)} • Uploaded by {attachment.uploadedBy.fullName}
+                              {formatFileSize(attachment.fileSize)} • Uploaded by {attachment.uploader.fullName}
                             </p>
+                            {attachment.description && (
+                              <p className="text-sm text-gray-600 mt-1">{attachment.description}</p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => window.open(attachment.fileUrl, '_blank')}
                             className="btn-ghost p-2"
+                            title="View File"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -497,16 +600,32 @@ export default function TaskDetail() {
                               link.click();
                             }}
                             className="btn-ghost p-2"
+                            title="Download File"
                           >
                             <Download className="w-4 h-4" />
                           </button>
+                          {(user.role === 'ADMIN' || user.role === 'LECTURER' || attachment.uploadedBy === user.id) && (
+                            <button
+                              onClick={() => handleDeleteAttachment(attachment.id)}
+                              className="btn-ghost p-2 text-red-600 hover:text-red-800"
+                              title="Delete File"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Paperclip className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>No attachments yet</p>
+                    <p className="text-sm">Upload files to share with your team</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -632,6 +751,70 @@ export default function TaskDetail() {
             </div>
           </div>
         </div>
+
+        {/* Upload Attachment Modal */}
+        {showUploadModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Upload Attachment</h3>
+              
+              <div className="space-y-4">
+                {/* File Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select File
+                  </label>
+                  <input
+                    type="file"
+                    onChange={handleFileSelect}
+                    accept=".pdf,.doc,.docx,.txt"
+                    className="input"
+                  />
+                  {uploadFile && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Selected: {uploadFile.name} ({formatFileSize(uploadFile.size)})
+                    </p>
+                  )}
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    value={uploadDescription}
+                    onChange={(e) => setUploadDescription(e.target.value)}
+                    placeholder="Add a description for this file..."
+                    rows={3}
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setUploadFile(null);
+                    setUploadDescription('');
+                  }}
+                  className="btn-secondary"
+                  disabled={uploadAttachmentMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUploadAttachment}
+                  className="btn-primary"
+                  disabled={!uploadFile || uploadAttachmentMutation.isPending}
+                >
+                  {uploadAttachmentMutation.isPending ? 'Uploading...' : 'Upload'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
