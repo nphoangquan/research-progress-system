@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import ConnectionStatus from './ConnectionStatus';
+import GlobalSearch from './GlobalSearch';
 import type { User } from '../types/auth';
 import { 
   LayoutDashboard, 
@@ -12,7 +14,9 @@ import {
   Bell,
   Settings,
   BarChart3,
-  Activity
+  Activity,
+  Menu,
+  X
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -22,6 +26,7 @@ interface NavbarProps {
 export default function Navbar({ user }: NavbarProps) {
   const { logout } = useAuth();
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -31,10 +36,10 @@ export default function Navbar({ user }: NavbarProps) {
 
   return (
     <nav className="bg-white shadow-medium border-b border-gray-100 sticky top-0 z-50">
-      <div className="container">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center flex-shrink-0">
             <Link to="/dashboard" className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
@@ -45,8 +50,9 @@ export default function Navbar({ user }: NavbarProps) {
             </Link>
           </div>
           
-          {/* Navigation Links */}
-          <div className="flex items-center space-x-1">
+          {/* Navigation Links - Centered */}
+          <div className="hidden md:flex items-center justify-center flex-1 px-8">
+            <div className="flex items-center space-x-1">
             <Link 
               to="/dashboard" 
               className={`nav-link ${isActive('/dashboard') ? 'nav-link-active' : ''}`}
@@ -93,19 +99,23 @@ export default function Navbar({ user }: NavbarProps) {
                 </Link>
               </>
             )}
+            </div>
           </div>
           
-          {/* User Menu */}
-          <div className="flex items-center space-x-3">
-            {/* Notifications */}
+          {/* User Menu - Right Side */}
+          <div className="flex items-center space-x-3 flex-shrink-0">
+            {/* Search */}
+          <GlobalSearch />
+          
+          {/* Notifications */}
             <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
               <Bell className="w-5 h-5" />
             </button>
             
             {/* Settings */}
-            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+            <Link to="/profile" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
               <Settings className="w-5 h-5" />
-            </button>
+            </Link>
             
             {/* User Profile */}
             <div className="flex items-center space-x-3 pl-3 border-l border-gray-200">
@@ -130,9 +140,79 @@ export default function Navbar({ user }: NavbarProps) {
               >
                 <LogOut className="w-4 h-4" />
               </button>
+
+              {/* Mobile menu button */}
+              <div className="md:hidden">
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                >
+                  {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 bg-white">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              <Link 
+                to="/dashboard" 
+                className={`nav-link-mobile ${isActive('/dashboard') ? 'nav-link-mobile-active' : ''}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <LayoutDashboard className="w-4 h-4 mr-2" />
+                Dashboard
+              </Link>
+              <Link 
+                to="/projects" 
+                className={`nav-link-mobile ${isActive('/projects') ? 'nav-link-mobile-active' : ''}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <FolderOpen className="w-4 h-4 mr-2" />
+                Projects
+              </Link>
+              {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+                <>
+                  <Link 
+                    to="/tasks" 
+                    className={`nav-link-mobile ${isActive('/tasks') ? 'nav-link-mobile-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    Tasks
+                  </Link>
+                  <Link 
+                    to="/documents" 
+                    className={`nav-link-mobile ${isActive('/documents') ? 'nav-link-mobile-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Documents
+                  </Link>
+                  <Link 
+                    to="/analytics" 
+                    className={`nav-link-mobile ${isActive('/analytics') ? 'nav-link-mobile-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Analytics
+                  </Link>
+                  <Link 
+                    to="/user-activity" 
+                    className={`nav-link-mobile ${isActive('/user-activity') ? 'nav-link-mobile-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Activity className="w-4 h-4 mr-2" />
+                    User Activity
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

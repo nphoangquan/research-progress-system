@@ -13,6 +13,7 @@
     @apply bg-gray-50 text-gray-900 antialiased;
   }
   
+  
   * {
     @apply border-gray-200;
   }
@@ -113,6 +114,14 @@
   
   .nav-link-active {
     @apply nav-link text-primary-600 bg-primary-50;
+  }
+  
+  .nav-link-mobile {
+    @apply flex items-center px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200;
+  }
+  
+  .nav-link-mobile-active {
+    @apply nav-link-mobile text-primary-600 bg-primary-50;
   }
   
   /* Progress Bar */

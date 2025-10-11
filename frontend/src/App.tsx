@@ -28,6 +28,7 @@ import DocumentEdit from './pages/DocumentEdit';
 import Analytics from './pages/Analytics';
 import UserActivity from './pages/UserActivity';
 import ProjectProgress from './pages/ProjectProgress';
+import UserProfile from './pages/UserProfile';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -102,6 +103,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <Analytics />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <UserProfile />
               </ProtectedRoute>
             } 
           />

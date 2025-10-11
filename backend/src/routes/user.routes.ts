@@ -2,9 +2,12 @@ import { Router } from 'express';
 import { 
   getUsers,
   getUserById,
-  updateUser
+  updateUser,
+  changePassword,
+  uploadAvatar
 } from '../controllers/user.controller';
 import { verifyToken, requireUser } from '../middleware/auth.middleware';
+import { upload } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -32,5 +35,21 @@ router.get('/:id', getUserById);
  * @body    { fullName?, email?, studentId? }
  */
 router.put('/:id', requireUser, updateUser);
+
+/**
+ * @route   PUT /api/users/:id/password
+ * @desc    Change user password
+ * @access  Private (User can change own password, Admin can change any)
+ * @body    { currentPassword, newPassword }
+ */
+router.put('/:id/password', requireUser, changePassword);
+
+/**
+ * @route   POST /api/users/:id/avatar
+ * @desc    Upload user avatar
+ * @access  Private (User can upload own avatar, Admin can upload any)
+ * @body    FormData with image file
+ */
+router.post('/:id/avatar', requireUser, upload.single('avatar'), uploadAvatar);
 
 export default router;
