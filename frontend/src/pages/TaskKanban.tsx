@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useWebSocketEvents } from "../hooks/useWebSocketEvents";
 import Navbar from "../components/Navbar";
 import SelectDropdown from "../components/SelectDropdown";
+import UserFilterSelector from "../components/UserFilterSelector";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
 import {
@@ -119,7 +120,13 @@ export default function TaskKanban() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (projectId) params.append("projectId", projectId);
-      if (filters.assignee) params.append("assignee", filters.assignee);
+      if (filters.assignee) {
+        if (Array.isArray(filters.assignee)) {
+          filters.assignee.forEach(assignee => params.append("assignee", assignee));
+        } else {
+          params.append("assignee", filters.assignee);
+        }
+      }
       if (filters.search) params.append("search", filters.search);
 
       const response = await api.get(`/tasks?${params.toString()}`);
@@ -360,20 +367,12 @@ export default function TaskKanban() {
               {/* Assignee Filter Row */}
               <div className="flex justify-start">
                 <div className="w-full sm:w-64">
-                  <SelectDropdown
-                    label=""
-                    options={[
-                      { id: "", fullName: "All Assignees" },
-                      ...(projectMembers?.map((member: any) => ({
-                        id: member.id,
-                        fullName: `${member.fullName} (${member.role})`,
-                      })) || []),
-                    ]}
-                    value={filters.assignee}
-                    onChange={(assignee) =>
-                      setFilters((prev) => ({ ...prev, assignee }))
-                    }
+                  <UserFilterSelector
+                    selectedUsers={Array.isArray(filters.assignee) ? filters.assignee : (filters.assignee ? [filters.assignee] : [])}
+                    onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignee: userIds.length > 0 ? userIds : '' }))}
+                    multiple={true}
                     placeholder="All Assignees"
+                    className="w-full"
                   />
                 </div>
               </div>

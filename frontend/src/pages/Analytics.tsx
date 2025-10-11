@@ -5,14 +5,10 @@ import Navbar from '../components/Navbar';
 import api from '../lib/axios';
 import { 
   BarChart3, 
-  PieChart, 
   TrendingUp, 
   Users, 
   FileText, 
   CheckSquare,
-  Calendar,
-  Target,
-  Activity,
   Clock,
   AlertCircle,
   CheckCircle,
@@ -48,6 +44,25 @@ interface AnalyticsData {
     recentProjects: any[];
     recentTasks: any[];
     recentDocuments: any[];
+  };
+  // Enhanced Analytics
+  performance: {
+    completionRate: number;
+    averageProjectProgress: number;
+    tasksCompletedThisPeriod: number;
+    documentsUploadedThisPeriod: number;
+    overdueTaskRate: number;
+    activeProjectRate: number;
+  };
+  trends: {
+    projectsCreated: { date: string; count: number }[];
+    tasksCompleted: { date: string; count: number }[];
+    documentsUploaded: { date: string; count: number }[];
+  };
+  timeRange: {
+    start: string;
+    end: string;
+    period: string;
   };
 }
 
@@ -108,6 +123,24 @@ export default function Analytics() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getPerformanceColor = (value: number, type: 'rate' | 'count') => {
+    if (type === 'rate') {
+      if (value >= 80) return 'text-green-600';
+      if (value >= 60) return 'text-yellow-600';
+      return 'text-red-600';
+    }
+    return 'text-blue-600';
+  };
+
+  const getPerformanceIcon = (value: number, type: 'rate' | 'count') => {
+    if (type === 'rate') {
+      if (value >= 80) return <CheckCircle className="w-5 h-5 text-green-600" />;
+      if (value >= 60) return <AlertCircle className="w-5 h-5 text-yellow-600" />;
+      return <AlertCircle className="w-5 h-5 text-red-600" />;
+    }
+    return <TrendingUp className="w-5 h-5 text-blue-600" />;
   };
 
   if (isLoading) {
@@ -391,6 +424,177 @@ export default function Analytics() {
             </div>
           </div>
         </div>
+
+        {/* Performance Metrics */}
+        {analytics?.performance && (
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">Performance Metrics</h3>
+              <div className="text-sm text-gray-500">
+                {analytics.timeRange.period.charAt(0).toUpperCase() + analytics.timeRange.period.slice(1)} Overview
+              </div>
+            </div>
+            <div className="card-body">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Completion Rate */}
+                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-600">Task Completion Rate</p>
+                      <p className={`text-2xl font-bold ${getPerformanceColor(analytics.performance.completionRate, 'rate')}`}>
+                        {analytics.performance.completionRate}%
+                      </p>
+                    </div>
+                    {getPerformanceIcon(analytics.performance.completionRate, 'rate')}
+                  </div>
+                </div>
+
+                {/* Average Project Progress */}
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-600">Avg Project Progress</p>
+                      <p className={`text-2xl font-bold ${getPerformanceColor(analytics.performance.averageProjectProgress, 'rate')}`}>
+                        {analytics.performance.averageProjectProgress}%
+                      </p>
+                    </div>
+                    {getPerformanceIcon(analytics.performance.averageProjectProgress, 'rate')}
+                  </div>
+                </div>
+
+                {/* Tasks Completed This Period */}
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-purple-600">Tasks Completed</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {analytics.performance.tasksCompletedThisPeriod}
+                      </p>
+                    </div>
+                    <CheckCircle className="w-5 h-5 text-purple-600" />
+                  </div>
+                </div>
+
+                {/* Documents Uploaded */}
+                <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-orange-600">Documents Uploaded</p>
+                      <p className="text-2xl font-bold text-orange-600">
+                        {analytics.performance.documentsUploadedThisPeriod}
+                      </p>
+                    </div>
+                    <FileText className="w-5 h-5 text-orange-600" />
+                  </div>
+                </div>
+
+                {/* Overdue Task Rate */}
+                <div className="bg-gradient-to-r from-red-50 to-red-100 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-red-600">Overdue Task Rate</p>
+                      <p className={`text-2xl font-bold ${getPerformanceColor(100 - analytics.performance.overdueTaskRate, 'rate')}`}>
+                        {analytics.performance.overdueTaskRate}%
+                      </p>
+                    </div>
+                    {analytics.performance.overdueTaskRate > 20 ? 
+                      <AlertCircle className="w-5 h-5 text-red-600" /> : 
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    }
+                  </div>
+                </div>
+
+                {/* Active Project Rate */}
+                <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-indigo-600">Active Project Rate</p>
+                      <p className={`text-2xl font-bold ${getPerformanceColor(analytics.performance.activeProjectRate, 'rate')}`}>
+                        {analytics.performance.activeProjectRate}%
+                      </p>
+                    </div>
+                    {getPerformanceIcon(analytics.performance.activeProjectRate, 'rate')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Trends Charts */}
+        {analytics?.trends && (
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">Activity Trends</h3>
+            </div>
+            <div className="card-body">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Projects Created Trend */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Projects Created</h4>
+                  <div className="space-y-2">
+                    {analytics.trends.projectsCreated.slice(-5).map((trend, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">{trend.date}</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-500 h-2 rounded-full" 
+                              style={{ width: `${(trend.count / Math.max(...analytics.trends.projectsCreated.map(t => t.count))) * 100}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium text-gray-700">{trend.count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tasks Completed Trend */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Tasks Completed</h4>
+                  <div className="space-y-2">
+                    {analytics.trends.tasksCompleted.slice(-5).map((trend, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">{trend.date}</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-green-500 h-2 rounded-full" 
+                              style={{ width: `${(trend.count / Math.max(...analytics.trends.tasksCompleted.map(t => t.count))) * 100}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium text-gray-700">{trend.count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Documents Uploaded Trend */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Documents Uploaded</h4>
+                  <div className="space-y-2">
+                    {analytics.trends.documentsUploaded.slice(-5).map((trend, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">{trend.date}</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-purple-500 h-2 rounded-full" 
+                              style={{ width: `${(trend.count / Math.max(...analytics.trends.documentsUploaded.map(t => t.count))) * 100}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-medium text-gray-700">{trend.count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Recent Activity */}
         <div className="card">

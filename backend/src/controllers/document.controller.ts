@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { uploadFile, deleteFile } from '../utils/cloudinary';
 import { cleanupLocalFile } from '../middleware/upload.middleware';
+import ActivityService from '../services/activity.service';
 
 const prisma = new PrismaClient();
 
@@ -130,6 +131,20 @@ export const uploadDocument = async (req: Request, res: Response) => {
 
       // TODO: Send to Python AI service for indexing (Phase 2)
       // For now, we'll just mark it as PENDING
+
+      // Log activity
+      await ActivityService.logActivity({
+        userId: userId,
+        type: 'DOCUMENT_UPLOADED',
+        description: `uploaded document "${req.file.originalname}"`,
+        projectId: projectId,
+        documentId: document.id,
+        metadata: {
+          fileName: req.file.originalname,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype
+        }
+      });
 
       res.status(201).json({
         message: 'Document uploaded successfully',

@@ -5,8 +5,6 @@ import Navbar from '../components/Navbar';
 import api from '../lib/axios';
 import { 
   Activity, 
-  Clock, 
-  User, 
   CheckSquare, 
   FileText, 
   MessageSquare,
@@ -54,9 +52,9 @@ export default function UserActivity() {
 
   // Fetch user activity data
   const { data: activityData, isLoading } = useQuery({
-    queryKey: ['user-activity'],
+    queryKey: ['user-activity', timeRange],
     queryFn: async () => {
-      const response = await api.get('/analytics/user-activity');
+      const response = await api.get(`/analytics/user-activity?timeRange=${timeRange}`);
       return response.data as UserActivityData;
     },
   });
@@ -329,13 +327,42 @@ export default function UserActivity() {
             <h3 className="card-title">Activity Over Time</h3>
           </div>
           <div className="card-body">
-            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Activity chart visualization</p>
-                <p className="text-sm text-gray-500">Chart implementation coming soon</p>
+            {activityData.activityByDay && activityData.activityByDay.length > 0 ? (
+              <div className="space-y-4">
+                {activityData.activityByDay.slice(0, 7).map((day, index) => (
+                  <div key={day.date} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-blue-600">{index + 1}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {new Date(day.date).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-gray-500">{day.count} activities</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-24 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{ width: `${Math.min((day.count / Math.max(...activityData.activityByDay.map(d => d.count))) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm text-gray-600">{day.count}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+                <div className="text-center">
+                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No activity data available</p>
+                  <p className="text-sm text-gray-500">Activity will appear here as you use the system</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

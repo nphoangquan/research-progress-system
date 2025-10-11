@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { wsService } from '../index';
+import ActivityService from '../services/activity.service';
 
 const prisma = new PrismaClient();
 
@@ -158,6 +159,20 @@ export const createTask = async (req: Request, res: Response) => {
     // Emit WebSocket event for task creation
     wsService.emitTaskCreated(task, projectId);
 
+    // Log activity
+    await ActivityService.logActivity({
+      userId: currentUserId,
+      type: 'TASK_CREATED',
+      description: `created task "${title}"`,
+      projectId: projectId,
+      taskId: task.id,
+      metadata: {
+        taskTitle: title,
+        assigneeId: assigneeId,
+        priority: priority
+      }
+    });
+
     res.status(201).json({
       message: 'Task created successfully',
       task
@@ -194,9 +209,13 @@ export const getTasks = async (req: Request, res: Response) => {
         filters.priority = priority;
       }
 
-      // Assignee filter
+      // Assignee filter (support multiple assignees)
       if (assignee) {
-        filters.assigneeId = assignee;
+        if (Array.isArray(assignee)) {
+          filters.assigneeId = { in: assignee };
+        } else {
+          filters.assigneeId = assignee;
+        }
       }
 
       // Due date filter
@@ -607,6 +626,20 @@ export const updateTask = async (req: Request, res: Response) => {
     };
     
     wsService.emitTaskUpdated(updatedTask, existingTask.projectId, changes);
+
+    // Log activity
+    await ActivityService.logActivity({
+      userId: currentUserId,
+      type: 'TASK_UPDATED',
+      description: `updated task "${existingTask.title}"`,
+      projectId: existingTask.projectId,
+      taskId: existingTask.id,
+      metadata: {
+        changes: changes,
+        oldStatus: existingTask.status,
+        newStatus: updatedTask.status
+      }
+    });
 
     res.json({
       message: 'Task updated successfully',

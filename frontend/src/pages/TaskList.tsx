@@ -5,6 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useWebSocketEvents } from '../hooks/useWebSocketEvents';
 import Navbar from '../components/Navbar';
 import SelectDropdown from '../components/SelectDropdown';
+import AdvancedFilter from '../components/AdvancedFilter';
+import UserFilterSelector from '../components/UserFilterSelector';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
 import { 
@@ -65,17 +67,35 @@ export default function TaskList() {
     search: ''
   });
 
+  // State for advanced filters
+  const [advancedFilters, setAdvancedFilters] = useState<any>({});
+
   // Fetch tasks
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ['tasks', projectId, filters],
+    queryKey: ['tasks', projectId, filters, advancedFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (projectId) params.append('projectId', projectId);
+      
+      // Basic filters
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
-      if (filters.assignee) params.append('assignee', filters.assignee);
+      if (filters.assignee) {
+        if (Array.isArray(filters.assignee)) {
+          filters.assignee.forEach(assignee => params.append('assignee', assignee));
+        } else {
+          params.append('assignee', filters.assignee);
+        }
+      }
       if (filters.dueDate) params.append('dueDate', filters.dueDate);
       if (filters.search) params.append('search', filters.search);
+      
+      // Advanced filters
+      Object.keys(advancedFilters).forEach(key => {
+        if (advancedFilters[key] !== undefined && advancedFilters[key] !== '') {
+          params.append(key, advancedFilters[key]);
+        }
+      });
 
       const response = await api.get(`/tasks?${params.toString()}`);
       return response.data.tasks;
@@ -254,6 +274,14 @@ export default function TaskList() {
           </div>
         </div>
 
+        {/* Advanced Filters */}
+        <AdvancedFilter
+          entityType="task"
+          filters={advancedFilters}
+          onFiltersChange={setAdvancedFilters}
+          className="mb-6"
+        />
+
         {/* Filters */}
         <div className="card mb-6">
           <div className="card-body">
@@ -281,7 +309,7 @@ export default function TaskList() {
               </div>
 
               {/* Filter Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                 {/* Status Filter */}
                 <SelectDropdown
                   label=""
@@ -312,21 +340,6 @@ export default function TaskList() {
                   placeholder="All Priority"
                 />
 
-                {/* Assignee Filter */}
-                <SelectDropdown
-                  label=""
-                  options={[
-                    { id: '', fullName: 'All Assignees' },
-                    ...(projectMembers?.map((member: any) => ({
-                      id: member.id,
-                      fullName: `${member.fullName} (${member.role})`
-                    })) || [])
-                  ]}
-                  value={filters.assignee}
-                  onChange={(assignee) => setFilters(prev => ({ ...prev, assignee }))}
-                  placeholder="All Assignees"
-                />
-
                 {/* Due Date Filter */}
                 <SelectDropdown
                   label=""
@@ -343,6 +356,19 @@ export default function TaskList() {
                   onChange={(dueDate) => setFilters(prev => ({ ...prev, dueDate }))}
                   placeholder="All Due Dates"
                 />
+              </div>
+
+              {/* Assignee Filter Row */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <UserFilterSelector
+                    selectedUsers={Array.isArray(filters.assignee) ? filters.assignee : (filters.assignee ? [filters.assignee] : [])}
+                    onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignee: userIds.length > 0 ? userIds : '' }))}
+                    multiple={true}
+                    placeholder="All Assignees"
+                    className="w-full"
+                  />
+                </div>
               </div>
             </div>
           </div>

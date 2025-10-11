@@ -331,12 +331,14 @@ export default function UserProfile() {
                 <div className="card-body">
                   <form onSubmit={handleProfileSubmit} className="space-y-6">
                     {/* Avatar Section */}
-                    <div className="flex items-center space-x-6">
-                      <AvatarUpload
-                        currentAvatarUrl={userProfile?.avatarUrl}
-                        onAvatarChange={handleAvatarChange}
-                        isUploading={uploadAvatarMutation.isPending}
-                      />
+                    <div className="flex items-center space-x-6 mb-8">
+                      <div className="flex-shrink-0">
+                        <AvatarUpload
+                          currentAvatarUrl={userProfile?.avatarUrl}
+                          onAvatarChange={handleAvatarChange}
+                          isUploading={uploadAvatarMutation.isPending}
+                        />
+                      </div>
                       <div>
                         <h3 className="text-lg font-medium text-gray-900">{userProfile?.fullName}</h3>
                         <p className="text-sm text-gray-600">{userProfile?.email}</p>

@@ -80,7 +80,7 @@ export default function AvatarUpload({
       {/* Avatar Display */}
       <div
         className={`
-          relative w-20 h-20 rounded-full cursor-pointer transition-all duration-200
+          relative w-32 h-32 rounded-full cursor-pointer transition-all duration-200
           ${isDragOver ? 'ring-4 ring-primary-300 ring-opacity-50' : ''}
           ${isUploading ? 'opacity-50 pointer-events-none' : ''}
         `}
@@ -98,14 +98,14 @@ export default function AvatarUpload({
               className="w-full h-full object-cover"
             />
           ) : (
-            <Camera className="w-8 h-8 text-primary-600" />
+            <Camera className="w-12 h-12 text-primary-600" />
           )}
         </div>
 
         {/* Upload Overlay */}
         <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 rounded-full transition-all duration-200 flex items-center justify-center">
           <div className="opacity-0 hover:opacity-100 transition-opacity duration-200">
-            <Upload className="w-6 h-6 text-white" />
+            <Upload className="w-8 h-8 text-white" />
           </div>
         </div>
 
@@ -114,28 +114,28 @@ export default function AvatarUpload({
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute -top-1 -right-1 w-6 h-6 bg-error-500 text-white rounded-full flex items-center justify-center hover:bg-error-600 transition-colors z-10"
+            className="absolute -top-1 -right-1 w-8 h-8 bg-error-500 text-white rounded-full flex items-center justify-center hover:bg-error-600 transition-colors z-10"
           >
-            <X className="w-3 h-3" />
+            <X className="w-4 h-4" />
           </button>
         )}
 
         {/* Camera Icon Button */}
         <button
           type="button"
-          className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors z-10"
+          className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors z-10"
           onClick={(e) => {
             e.stopPropagation();
             handleClick();
           }}
         >
-          <Camera className="w-3 h-3" />
+          <Camera className="w-4 h-4" />
         </button>
 
         {/* Upload Progress Indicator */}
         {isUploading && (
           <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
           </div>
         )}
       </div>
@@ -161,7 +161,7 @@ export default function AvatarUpload({
       )}
 
       {/* Upload Guidelines */}
-      <div className="mt-2 text-xs text-gray-500 text-center">
+      <div className="mt-2 text-xs text-gray-500">
         <p>Click or drag to upload</p>
         <p>Max 5MB • JPEG, PNG, GIF, WEBP</p>
       </div>

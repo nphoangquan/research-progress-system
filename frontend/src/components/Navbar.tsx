@@ -50,8 +50,8 @@ export default function Navbar({ user }: NavbarProps) {
             </Link>
           </div>
           
-          {/* Navigation Links - Centered */}
-          <div className="hidden md:flex items-center justify-center flex-1 px-8">
+          {/* Navigation Links - Left Side */}
+          <div className="hidden md:flex items-center flex-1 pl-8 ml-10">
             <div className="flex items-center space-x-1">
             <Link 
               to="/dashboard" 
@@ -95,7 +95,7 @@ export default function Navbar({ user }: NavbarProps) {
                   className={`nav-link ${isActive('/user-activity') ? 'nav-link-active' : ''}`}
                 >
                   <Activity className="w-4 h-4 mr-2" />
-                  User Activity
+                  Activity
                 </Link>
               </>
             )}

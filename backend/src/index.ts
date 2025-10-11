@@ -10,6 +10,7 @@ import userRoutes from './routes/user.routes';
 import commentRoutes from './routes/comment.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import searchRoutes from './routes/search.routes';
+import filterRoutes from './routes/filter.routes';
 import WebSocketService from './services/websocket.service';
 
 // Load environment variables
@@ -62,6 +63,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/filters', filterRoutes);
 
 // Global error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

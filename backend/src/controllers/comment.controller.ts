@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { wsService } from '../index';
+import ActivityService from '../services/activity.service';
 
 const prisma = new PrismaClient();
 
@@ -18,6 +19,7 @@ export const getComments = async (req: Request, res: Response) => {
       where: { id: taskId },
       select: {
         id: true,
+        title: true,
         projectId: true,
         assigneeId: true,
         project: {
@@ -114,6 +116,7 @@ export const addComment = async (req: Request, res: Response) => {
       where: { id: taskId },
       select: {
         id: true,
+        title: true,
         projectId: true,
         assigneeId: true,
         project: {
@@ -194,6 +197,19 @@ export const addComment = async (req: Request, res: Response) => {
 
     // Emit WebSocket event for comment addition
     wsService.emitCommentAdded(comment, taskId, task.projectId);
+
+    // Log activity
+    await ActivityService.logActivity({
+      userId: currentUserId,
+      type: 'COMMENT_ADDED',
+      description: `added a comment`,
+      projectId: task.projectId,
+      taskId: taskId,
+      metadata: {
+        commentContent: content.substring(0, 100), // First 100 chars
+        taskTitle: task.title
+      }
+    });
 
     res.status(201).json({
       message: 'Comment added successfully',

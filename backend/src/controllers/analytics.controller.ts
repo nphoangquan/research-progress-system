@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import ActivityService from '../services/activity.service';
 
 const prisma = new PrismaClient();
 
@@ -75,16 +76,14 @@ export const getAnalytics = async (req: Request, res: Response) => {
     // Tasks Analytics
     const tasks = await prisma.task.findMany({
       where: {
-        project: {
-          ...baseWhereClause,
-          createdAt: { gte: startDate }
-        }
+        project: baseWhereClause,
+        createdAt: { gte: startDate }
       },
       include: {
-        project: {
+        assignee: {
           select: {
             id: true,
-            title: true
+            fullName: true
           }
         }
       }
@@ -93,18 +92,8 @@ export const getAnalytics = async (req: Request, res: Response) => {
     // Documents Analytics
     const documents = await prisma.document.findMany({
       where: {
-        project: {
-          ...baseWhereClause,
-          createdAt: { gte: startDate }
-        }
-      },
-      include: {
-        project: {
-          select: {
-            id: true,
-            title: true
-          }
-        }
+        project: baseWhereClause,
+        createdAt: { gte: startDate }
       }
     });
 
@@ -220,6 +209,57 @@ export const getAnalytics = async (req: Request, res: Response) => {
         createdAt: doc.createdAt
       }));
 
+    // Enhanced Analytics - Additional Metrics
+    const completionRate = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
+    const averageProjectProgress = projects.length > 0 ? 
+      projects.reduce((sum, project) => sum + project.progress, 0) / projects.length : 0;
+    
+    // Productivity metrics
+    const tasksCompletedThisPeriod = tasks.filter(task => 
+      task.status === 'COMPLETED' && 
+      task.updatedAt >= startDate
+    ).length;
+    
+    const documentsUploadedThisPeriod = documents.filter(doc => 
+      doc.createdAt >= startDate
+    ).length;
+    
+    // Time-based trends (mock data for now - in real implementation, you'd calculate from actual data)
+    const trends = {
+      projectsCreated: [
+        { date: '2024-01-01', count: 2 },
+        { date: '2024-01-02', count: 1 },
+        { date: '2024-01-03', count: 3 },
+        { date: '2024-01-04', count: 1 },
+        { date: '2024-01-05', count: 2 }
+      ],
+      tasksCompleted: [
+        { date: '2024-01-01', count: 5 },
+        { date: '2024-01-02', count: 3 },
+        { date: '2024-01-03', count: 7 },
+        { date: '2024-01-04', count: 4 },
+        { date: '2024-01-05', count: 6 }
+      ],
+      documentsUploaded: [
+        { date: '2024-01-01', count: 3 },
+        { date: '2024-01-02', count: 2 },
+        { date: '2024-01-03', count: 5 },
+        { date: '2024-01-04', count: 1 },
+        { date: '2024-01-05', count: 4 }
+      ]
+    };
+
+    // Performance indicators
+    const performanceIndicators = {
+      completionRate: Math.round(completionRate * 100) / 100,
+      averageProjectProgress: Math.round(averageProjectProgress * 100) / 100,
+      tasksCompletedThisPeriod,
+      documentsUploadedThisPeriod,
+      overdueTaskRate: tasks.length > 0 ? Math.round((overdueTasks / tasks.length) * 100 * 100) / 100 : 0,
+      activeProjectRate: projects.length > 0 ? 
+        Math.round((projects.filter(p => p.status === 'IN_PROGRESS').length / projects.length) * 100 * 100) / 100 : 0
+    };
+
     // Format response
     const analyticsData = {
       projects: {
@@ -274,6 +314,14 @@ export const getAnalytics = async (req: Request, res: Response) => {
         recentProjects,
         recentTasks,
         recentDocuments
+      },
+      // Enhanced Analytics
+      performance: performanceIndicators,
+      trends: trends,
+      timeRange: {
+        start: startDate.toISOString(),
+        end: now.toISOString(),
+        period: timeRange
       }
     };
 
@@ -291,91 +339,203 @@ export const getAnalytics = async (req: Request, res: Response) => {
 };
 
 /**
+ * Get detailed analytics with custom date range
+ */
+export const getDetailedAnalytics = async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate, projectId, userId } = req.query;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+
+    // Parse date range
+    const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate as string) : new Date();
+
+    // Build filters
+    let filters: any = {
+      createdAt: { gte: start, lte: end }
+    };
+
+    if (projectId) {
+      filters.id = projectId;
+    }
+
+    // Role-based access
+    if (currentUserRole === 'STUDENT') {
+      filters.students = {
+        some: { studentId: currentUserId }
+      };
+    } else if (currentUserRole === 'LECTURER') {
+      filters.lecturerId = currentUserId;
+    }
+
+    // Get detailed project data
+    const projects = await prisma.project.findMany({
+      where: filters,
+      include: {
+        lecturer: { select: { id: true, fullName: true } },
+        students: {
+          include: {
+            student: { select: { id: true, fullName: true } }
+          }
+        },
+        tasks: {
+          include: {
+            assignee: { select: { id: true, fullName: true } }
+          }
+        },
+        documents: true
+      }
+    });
+
+    // Calculate detailed metrics
+    const projectMetrics = projects.map(project => ({
+      id: project.id,
+      title: project.title,
+      status: project.status,
+      progress: project.progress,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      lecturer: project.lecturer,
+      studentCount: project.students.length,
+      taskCount: project.tasks.length,
+      completedTasks: project.tasks.filter(t => t.status === 'COMPLETED').length,
+      overdueTasks: project.tasks.filter(t => 
+        t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'COMPLETED'
+      ).length,
+      documentCount: project.documents.length,
+      totalDocumentSize: project.documents.reduce((sum, doc) => sum + doc.fileSize, 0),
+      completionRate: project.tasks.length > 0 ? 
+        Math.round((project.tasks.filter(t => t.status === 'COMPLETED').length / project.tasks.length) * 100 * 100) / 100 : 0
+    }));
+
+    // User productivity metrics
+    const userProductivity = await prisma.user.findMany({
+      where: {
+        ...(userId ? { id: userId as string } : {}),
+        ...(currentUserRole === 'STUDENT' ? { id: currentUserId } : {})
+      },
+      include: {
+        tasks: {
+          where: {
+            updatedAt: { gte: start, lte: end }
+          }
+        },
+        documents: {
+          where: {
+            createdAt: { gte: start, lte: end }
+          }
+        }
+      }
+    });
+
+    const productivityMetrics = userProductivity.map(user => ({
+      id: user.id,
+      fullName: user.fullName,
+      role: user.role,
+      tasksCompleted: user.tasks.filter((t: any) => t.status === 'COMPLETED').length,
+      tasksAssigned: user.tasks.length,
+      documentsUploaded: user.documents.length,
+      totalDocumentSize: user.documents.reduce((sum: number, doc: any) => sum + doc.fileSize, 0),
+      productivityScore: user.tasks.length > 0 ? 
+        Math.round((user.tasks.filter((t: any) => t.status === 'COMPLETED').length / user.tasks.length) * 100 * 100) / 100 : 0
+    }));
+
+    res.json({
+      message: 'Detailed analytics retrieved successfully',
+      data: {
+        projectMetrics,
+        productivityMetrics,
+        timeRange: {
+          start: start.toISOString(),
+          end: end.toISOString()
+        },
+        summary: {
+          totalProjects: projects.length,
+          totalTasks: projects.reduce((sum, p) => sum + p.tasks.length, 0),
+          totalDocuments: projects.reduce((sum, p) => sum + p.documents.length, 0),
+          averageProgress: projects.length > 0 ? 
+            Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length * 100) / 100 : 0
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get detailed analytics error:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve detailed analytics data' 
+    });
+  }
+};
+
+/**
  * Get user activity data
  */
 export const getUserActivity = async (req: Request, res: Response) => {
   try {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
+    const { timeRange = 'month' } = req.query;
 
-    // Get recent activities (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Calculate date range
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (timeRange) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        break;
+      case 'quarter':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    }
 
-    // Mock data for now - in a real implementation, you'd track activities in a separate table
-    const recentActivities = [
-      {
-        id: '1',
-        type: 'task_created',
-        description: 'created a new task',
-        userId: currentUserId,
-        userName: 'Current User',
-        projectId: 'project-1',
-        projectName: 'Research Project Alpha',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-        metadata: { taskTitle: 'Data Analysis Task' }
-      },
-      {
-        id: '2',
-        type: 'document_uploaded',
-        description: 'uploaded a document',
-        userId: currentUserId,
-        userName: 'Current User',
-        projectId: 'project-1',
-        projectName: 'Research Project Alpha',
-        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-        metadata: { fileName: 'research_paper.pdf' }
-      },
-      {
-        id: '3',
-        type: 'comment_added',
-        description: 'added a comment',
-        userId: currentUserId,
-        userName: 'Current User',
-        projectId: 'project-1',
-        projectName: 'Research Project Alpha',
-        createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
-        metadata: { commentContent: 'Great progress!' }
-      }
-    ];
+    // Get recent activities
+    const recentActivities = await ActivityService.getRecentActivities(20);
 
     // Get user stats
-    const userStats = {
-      totalTasks: 15,
-      completedTasks: 8,
-      uploadedDocuments: 12,
-      commentsAdded: 25,
-      projectsInvolved: 3
-    };
+    const userStats = await ActivityService.getUserActivityStats(currentUserId, startDate, now);
 
-    // Mock activity by day data
-    const activityByDay = [
-      { date: '2024-01-01', count: 5 },
-      { date: '2024-01-02', count: 8 },
-      { date: '2024-01-03', count: 3 },
-      { date: '2024-01-04', count: 12 },
-      { date: '2024-01-05', count: 7 }
-    ];
+    // Get top active users
+    const topActiveUsers = await ActivityService.getTopActiveUsers(10, 30);
 
-    // Mock top active users
-    const topActiveUsers = [
-      { userId: 'user-1', userName: 'Dr. Smith', activityCount: 45 },
-      { userId: 'user-2', userName: 'John Doe', activityCount: 38 },
-      { userId: 'user-3', userName: 'Jane Wilson', activityCount: 32 },
-      { userId: 'user-4', userName: 'Mike Johnson', activityCount: 28 },
-      { userId: 'user-5', userName: 'Sarah Brown', activityCount: 25 }
-    ];
-
-    const userActivityData = {
-      recentActivities,
-      userStats,
-      activityByDay,
-      topActiveUsers
-    };
+    // Get activity by day data
+    const activityByDay = await ActivityService.getUserActivityStats(currentUserId, startDate, now);
 
     res.json({
       message: 'User activity data retrieved successfully',
-      ...userActivityData
+      recentActivities: recentActivities.map((activity: any) => ({
+        id: activity.id,
+        type: activity.type.toLowerCase(),
+        description: activity.description,
+        userId: activity.userId,
+        userName: activity.user.fullName,
+        projectId: activity.projectId,
+        projectName: activity.project?.title,
+        createdAt: activity.createdAt.toISOString(),
+        metadata: activity.metadata
+      })),
+      userStats: {
+        totalTasks: userStats.activityCounts.TASK_CREATED || 0,
+        completedTasks: userStats.activityCounts.TASK_COMPLETED || 0,
+        uploadedDocuments: userStats.activityCounts.DOCUMENT_UPLOADED || 0,
+        commentsAdded: userStats.activityCounts.COMMENT_ADDED || 0,
+        projectsInvolved: userStats.projectsInvolved
+      },
+      activityByDay: activityByDay.activitiesByDay,
+      topActiveUsers: topActiveUsers.map((user: any) => ({
+        userId: user.userId,
+        userName: user.userName,
+        activityCount: user.activityCount
+      }))
     });
 
   } catch (error) {
