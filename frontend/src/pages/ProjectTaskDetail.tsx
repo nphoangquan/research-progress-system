@@ -74,8 +74,8 @@ interface Attachment {
   updatedAt: string;
 }
 
-export default function TaskDetail() {
-  const { id } = useParams<{ id: string }>();
+export default function ProjectTaskDetail() {
+  const { id, projectId } = useParams<{ id: string; projectId: string }>();
   const navigate = useNavigate();
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
@@ -138,14 +138,37 @@ export default function TaskDetail() {
     enabled: !!id,
   });
 
-  // Fetch users for assignee dropdown (only for admin/lecturer)
-  const { data: users } = useQuery({
-    queryKey: ['users'],
+  // Fetch project members for assignee dropdown (only for admin/lecturer)
+  const { data: projectMembers } = useQuery({
+    queryKey: ['project-members', projectId],
     queryFn: async () => {
-      const response = await api.get('/users');
-      return response.data.users;
+      if (!projectId) return [];
+      const response = await api.get(`/projects/${projectId}`);
+      const project = response.data.project;
+      
+      // Get lecturer and students
+      const members = [];
+      if (project.lecturer) {
+        members.push({
+          id: project.lecturer.id,
+          fullName: project.lecturer.fullName,
+          email: project.lecturer.email,
+          role: 'LECTURER'
+        });
+      }
+      if (project.students) {
+        project.students.forEach((student: any) => {
+          members.push({
+            id: student.student.id,
+            fullName: student.student.fullName,
+            email: student.student.email,
+            role: 'STUDENT'
+          });
+        });
+      }
+      return members;
     },
-    enabled: user?.role === 'ADMIN' || user?.role === 'LECTURER',
+    enabled: (user?.role === 'ADMIN' || user?.role === 'LECTURER') && !!projectId,
   });
 
   // Update task mutation
@@ -188,7 +211,7 @@ export default function TaskDetail() {
     },
     onSuccess: () => {
       toast.success('Task deleted successfully!');
-      navigate(task?.project?.id ? `/projects/${task.project.id}/tasks` : '/tasks');
+      navigate(`/projects/${projectId}/tasks`);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to delete task');
@@ -597,10 +620,10 @@ export default function TaskDetail() {
             <h3 className="text-lg font-medium text-gray-900 mb-2">Task not found</h3>
             <p className="text-gray-600 mb-6">The task you're looking for doesn't exist or you don't have access to it.</p>
             <button
-              onClick={() => navigate('/tasks')}
+              onClick={() => navigate(`/projects/${projectId}/tasks`)}
               className="btn-primary"
             >
-              Back to Tasks
+              Back to Project Tasks
             </button>
           </div>
         </div>
@@ -618,10 +641,7 @@ export default function TaskDetail() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => {
-                  // Always navigate back to global tasks for admin TaskDetail
-                  navigate('/tasks');
-                }}
+                onClick={() => navigate(`/projects/${projectId}/tasks`)}
                 className="btn-ghost p-2"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -901,9 +921,9 @@ export default function TaskDetail() {
                   {isEditing ? (
                     <SelectDropdown
                       label=""
-                      options={users?.map((user: any) => ({
-                        id: user.id,
-                        fullName: user.fullName
+                      options={projectMembers?.map((member: any) => ({
+                        id: member.id,
+                        fullName: `${member.fullName} (${member.role})`
                       })) || []}
                       value={editData.assigneeId}
                       onChange={(assigneeId) => setEditData(prev => ({ ...prev, assigneeId }))}

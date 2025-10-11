@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
+import { useWebSocketEvents } from "../hooks/useWebSocketEvents";
 import Navbar from "../components/Navbar";
 import SelectDropdown from "../components/SelectDropdown";
 import api from "../lib/axios";
@@ -15,6 +16,7 @@ import {
   CheckCircle,
   AlertCircle,
   Edit,
+  ArrowLeft,
 } from "lucide-react";
 
 interface Task {
@@ -84,6 +86,13 @@ export default function TaskKanban() {
   const user = getCurrentUser();
   const queryClient = useQueryClient();
 
+  // WebSocket integration
+  useWebSocketEvents({
+    projectId: projectId,
+    enableTaskEvents: true,
+    enableCommentEvents: false
+  });
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -118,14 +127,37 @@ export default function TaskKanban() {
     },
   });
 
-  // Fetch users for assignee filter (only for admin/lecturer)
-  const { data: users } = useQuery({
-    queryKey: ["users"],
+  // Fetch project members for assignee filter (only for admin/lecturer)
+  const { data: projectMembers } = useQuery({
+    queryKey: ['project-members', projectId],
     queryFn: async () => {
-      const response = await api.get("/users");
-      return response.data.users;
+      if (!projectId) return [];
+      const response = await api.get(`/projects/${projectId}`);
+      const project = response.data.project;
+      
+      // Get lecturer and students
+      const members = [];
+      if (project.lecturer) {
+        members.push({
+          id: project.lecturer.id,
+          fullName: project.lecturer.fullName,
+          email: project.lecturer.email,
+          role: 'LECTURER'
+        });
+      }
+      if (project.students) {
+        project.students.forEach((student: any) => {
+          members.push({
+            id: student.student.id,
+            fullName: student.student.fullName,
+            email: student.student.email,
+            role: 'STUDENT'
+          });
+        });
+      }
+      return members;
     },
-    enabled: user?.role === 'ADMIN' || user?.role === 'LECTURER',
+    enabled: (user?.role === 'ADMIN' || user?.role === 'LECTURER') && !!projectId,
   });
 
   // Update task status mutation
@@ -244,12 +276,23 @@ export default function TaskKanban() {
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="page-title">Kanban Board</h1>
-              <p className="page-subtitle">
-                {projectId ? "Project tasks" : "All tasks"} - Drag and drop to
-                manage workflow
-              </p>
+            <div className="flex items-center gap-4">
+              {projectId && (
+                <button
+                  onClick={() => navigate(`/projects/${projectId}`)}
+                  className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
+                  title="Back to Project"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              )}
+              <div>
+                <h1 className="page-title">Kanban Board</h1>
+                <p className="page-subtitle">
+                  {projectId ? "Project tasks" : "All tasks"} - Drag and drop to
+                  manage workflow
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center space-x-3">
@@ -321,9 +364,9 @@ export default function TaskKanban() {
                     label=""
                     options={[
                       { id: "", fullName: "All Assignees" },
-                      ...(users?.map((user: any) => ({
-                        id: user.id,
-                        fullName: user.fullName,
+                      ...(projectMembers?.map((member: any) => ({
+                        id: member.id,
+                        fullName: `${member.fullName} (${member.role})`,
                       })) || []),
                     ]}
                     value={filters.assignee}
@@ -370,7 +413,12 @@ export default function TaskKanban() {
                       key={task.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, task)}
-                      className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-move"
+                      onClick={() => navigate(
+                        projectId 
+                          ? `/projects/${projectId}/tasks/${task.id}` 
+                          : `/tasks/${task.id}`
+                      )}
+                      className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <h4 className="font-medium text-gray-900 text-sm line-clamp-2 flex-1 mr-2">
@@ -389,7 +437,11 @@ export default function TaskKanban() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/tasks/${task.id}/edit`);
+                                navigate(
+                                  projectId 
+                                    ? `/projects/${projectId}/tasks/${task.id}/edit` 
+                                    : `/tasks/${task.id}/edit`
+                                );
                               }}
                               className="p-1 text-gray-400 hover:text-gray-600"
                             >

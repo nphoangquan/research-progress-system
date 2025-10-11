@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import {
   uploadAttachment,
+  uploadMultipleAttachments,
   getAttachments,
   deleteAttachment,
   updateAttachment
 } from '../controllers/taskAttachment.controller';
 import { verifyToken } from '../middleware/auth.middleware';
-import { upload } from '../middleware/upload.middleware';
+import { upload, uploadMultiple } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -20,6 +21,14 @@ router.use(verifyToken);
  * @body    { file: File, description?: string }
  */
 router.post('/:taskId/upload', upload.single('file'), uploadAttachment);
+
+/**
+ * @route   POST /api/task-attachments/:taskId/upload-multiple
+ * @desc    Upload multiple attachments to a task
+ * @access  Private (Project member)
+ * @body    { files: File[], descriptions?: string[] }
+ */
+router.post('/:taskId/upload-multiple', uploadMultiple.array('files', 10), uploadMultipleAttachments);
 
 /**
  * @route   GET /api/task-attachments/:taskId

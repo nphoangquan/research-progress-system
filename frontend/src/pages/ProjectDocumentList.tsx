@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/Navbar';
 import SelectDropdown from '../components/SelectDropdown';
-import ProjectFilterSelector from '../components/ProjectFilterSelector';
 import UserFilterSelector from '../components/UserFilterSelector';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
@@ -35,53 +34,79 @@ interface Document {
   fileSize: number;
   mimeType: string;
   uploadedBy: string;
-  description?: string;
+  description: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   indexStatus: 'PENDING' | 'PROCESSING' | 'INDEXED' | 'FAILED';
-  indexedAt?: string;
-  chunkCount?: number;
-  errorMessage?: string;
+  indexedAt: string | null;
+  chunkCount: number | null;
+  errorMessage: string | null;
   createdAt: string;
   updatedAt: string;
-  project: {
+  uploader?: {
     id: string;
-    title: string;
+    fullName: string;
+    email: string;
   };
 }
 
-export default function DocumentList() {
-  const { projectId } = useParams<{ projectId?: string }>();
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  lecturerId: string;
+  status: string;
+  startDate: string;
+  endDate: string | null;
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+  lecturer: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+  students: Array<{
+    studentId: string;
+    student: {
+      id: string;
+      fullName: string;
+      email: string;
+    };
+  }>;
+}
+
+export default function ProjectDocumentList() {
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
   const queryClient = useQueryClient();
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
   const [filters, setFilters] = useState({
     status: '',
-    projectFilter: [] as string[],
     uploader: [] as string[],
     fileType: '',
     uploadDate: '',
     search: ''
   });
 
-  // Fetch documents
+  // Fetch project details
+  const { data: project } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: async () => {
+      const response = await api.get(`/projects/${projectId}`);
+      return response.data.project;
+    },
+    enabled: !!projectId,
+  });
+
+  // Fetch documents for this specific project
   const { data: documents, isLoading } = useQuery({
     queryKey: ['documents', projectId, filters],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (projectId) params.append('projectId', projectId);
       if (filters.status) params.append('status', filters.status);
-      if (filters.projectFilter.length > 0) {
-        filters.projectFilter.forEach(projectId => params.append('projectFilter', projectId));
-      }
       if (filters.uploader.length > 0) {
         filters.uploader.forEach(uploaderId => params.append('uploader', uploaderId));
       }
@@ -91,15 +116,6 @@ export default function DocumentList() {
 
       const response = await api.get(`/documents?${params.toString()}`);
       return response.data.documents;
-    },
-  });
-
-  // Fetch project info
-  const { data: project } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: async () => {
-      const response = await api.get(`/projects/${projectId}`);
-      return response.data.project;
     },
     enabled: !!projectId,
   });
@@ -111,23 +127,27 @@ export default function DocumentList() {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
       toast.success('Document deleted successfully!');
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to delete document');
     },
   });
 
+  const handleDeleteDocument = (documentId: string, fileName: string) => {
+    if (window.confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
+      deleteDocumentMutation.mutate(documentId);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'PENDING':
         return <Clock className="w-4 h-4 text-yellow-500" />;
-      case 'PROCESSING':
-        return <Clock className="w-4 h-4 text-blue-500" />;
-      case 'INDEXED':
+      case 'APPROVED':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'FAILED':
+      case 'REJECTED':
         return <XCircle className="w-4 h-4 text-red-500" />;
       default:
         return <AlertCircle className="w-4 h-4 text-gray-500" />;
@@ -138,11 +158,9 @@ export default function DocumentList() {
     switch (status) {
       case 'PENDING':
         return 'bg-yellow-100 text-yellow-800';
-      case 'PROCESSING':
-        return 'bg-blue-100 text-blue-800';
-      case 'INDEXED':
+      case 'APPROVED':
         return 'bg-green-100 text-green-800';
-      case 'FAILED':
+      case 'REJECTED':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -167,36 +185,31 @@ export default function DocumentList() {
     });
   };
 
-  const handleDelete = (documentId: string, fileName: string) => {
-    if (window.confirm(`Are you sure you want to delete "${fileName}"?`)) {
-      deleteDocumentMutation.mutate(documentId);
+  const handleDownload = async (document: Document) => {
+    try {
+      const response = await fetch(document.fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = document.fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      toast.error('Failed to download file');
     }
-  };
-
-  const handleDownload = (document: Document) => {
-    const link = document.createElement('a');
-    link.href = document.fileUrl;
-    link.download = document.fileName;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const handleView = (document: Document) => {
     window.open(document.fileUrl, '_blank');
   };
 
-  if (isLoading) {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
-        <div className="container py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading documents...</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -210,26 +223,24 @@ export default function DocumentList() {
         <div className="page-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {projectId && (
-                <button
-                  onClick={() => navigate(`/projects/${projectId}`)}
-                  className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
-                  title="Back to Project"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-              )}
+              <button
+                onClick={() => navigate(`/projects/${projectId}`)}
+                className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
+                title="Back to Project"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
               <div>
-                <h1 className="page-title">Documents</h1>
+                <h1 className="page-title">Project Documents</h1>
                 <p className="page-subtitle">
-                  {project ? `${project.title} - Documents` : 'All documents'} - Manage project files
+                  {project ? `${project.title} - Documents` : 'Project documents'} - Manage project files
                 </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => navigate(projectId ? `/projects/${projectId}/documents/upload` : '/documents/upload')}
+                onClick={() => navigate(`/projects/${projectId}/documents/upload`)}
                 className="btn-primary"
               >
                 <Upload className="w-4 h-4 mr-2" />
@@ -241,33 +252,25 @@ export default function DocumentList() {
 
         {/* Filters */}
         <div className="card mb-6">
-          <div className="card-body p-4">
+          <div className="card-body">
             <div className="space-y-4">
               {/* Search Row */}
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                {/* Search */}
-                <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="text"
                       placeholder="Search documents..."
-                      className="input pl-10 w-full h-10"
+                      className="input pl-10 w-full"
                       value={filters.search}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          search: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                     />
                   </div>
                 </div>
-
-                {/* Clear Filters */}
                 <button
-                  onClick={() => setFilters({ status: '', projectFilter: [], uploader: [], fileType: '', uploadDate: '', search: '' })}
-                  className="btn-ghost whitespace-nowrap h-10 px-4"
+                  onClick={() => setFilters({ status: '', uploader: [], fileType: '', uploadDate: '', search: '' })}
+                  className="btn-ghost whitespace-nowrap"
                 >
                   Clear Filters
                 </button>
@@ -281,9 +284,8 @@ export default function DocumentList() {
                   options={[
                     { id: '', fullName: 'All Status' },
                     { id: 'PENDING', fullName: 'Pending' },
-                    { id: 'PROCESSING', fullName: 'Processing' },
-                    { id: 'INDEXED', fullName: 'Indexed' },
-                    { id: 'FAILED', fullName: 'Failed' }
+                    { id: 'APPROVED', fullName: 'Approved' },
+                    { id: 'REJECTED', fullName: 'Rejected' }
                   ]}
                   value={filters.status}
                   onChange={(status) => setFilters(prev => ({ ...prev, status }))}
@@ -323,16 +325,8 @@ export default function DocumentList() {
                 />
               </div>
 
-              {/* Second Filter Row - Projects, Uploaders */}
+              {/* Second Filter Row - Uploaders */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Project Filter */}
-                <ProjectFilterSelector
-                  selectedProjects={filters.projectFilter}
-                  onSelectionChange={(projectIds) => setFilters(prev => ({ ...prev, projectFilter: projectIds }))}
-                  multiple={true}
-                  placeholder="All Projects"
-                />
-
                 {/* Uploader Filter */}
                 <UserFilterSelector
                   selectedUsers={filters.uploader}
@@ -348,22 +342,27 @@ export default function DocumentList() {
         {/* Documents List */}
         <div className="card">
           <div className="card-body">
-            {documents && documents.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading documents...</p>
+              </div>
+            ) : documents && documents.length > 0 ? (
               <div className="space-y-4">
                 {documents.map((document: Document) => (
                   <div
                     key={document.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-sm transition-all"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div className="flex-shrink-0">
-                            <FileText className="w-5 h-5 text-gray-500" />
-                          </div>
-                          <h3 className="font-medium text-gray-900 flex-1">{document.fileName}</h3>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${getStatusColor(document.indexStatus)}`}>
-                            {document.indexStatus}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <FileText className="w-5 h-5 text-gray-500" />
+                          <h3 className="text-lg font-semibold text-gray-900 truncate">
+                            {document.fileName}
+                          </h3>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(document.status)}`}>
+                            {document.status}
                           </span>
                         </div>
                         
@@ -374,49 +373,50 @@ export default function DocumentList() {
                         )}
                         
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1 flex-shrink-0" />
+                          <div className="flex items-center space-x-1">
+                            <User className="w-4 h-4" />
+                            <span>{document.uploader?.fullName || 'Unknown User'}</span>
+                          </div>
+                          
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="w-4 h-4" />
                             <span>{formatDate(document.createdAt)}</span>
                           </div>
-                          <div className="flex items-center">
-                            <span>{formatFileSize(document.fileSize)}</span>
-                          </div>
-                          {!projectId && (
-                            <div className="text-gray-400 truncate">
-                              {document.project.title}
-                            </div>
-                          )}
+                          
+                          <span>{formatFileSize(document.fileSize)}</span>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-1 flex-shrink-0 ml-3">
+                      <div className="flex items-center space-x-2 ml-4">
                         <button
                           onClick={() => handleView(document)}
-                          className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                          title="View Document"
+                          className="p-2 text-gray-400 hover:text-blue-600 rounded"
+                          title="View document"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+                        
                         <button
                           onClick={() => handleDownload(document)}
-                          className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                          title="Download Document"
+                          className="p-2 text-gray-400 hover:text-green-600 rounded"
+                          title="Download document"
                         >
                           <Download className="w-4 h-4" />
                         </button>
-                        {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+                        
+                        {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
                           <>
                             <button
                               onClick={() => navigate(`/documents/${document.id}/edit`)}
                               className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                              title="Edit Document"
+                              title="Edit document"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(document.id, document.fileName)}
+                              onClick={() => handleDeleteDocument(document.id, document.fileName)}
                               className="p-2 text-gray-400 hover:text-red-600 rounded"
-                              title="Delete Document"
+                              title="Delete document"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -429,21 +429,19 @@ export default function DocumentList() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-gray-400" />
-                </div>
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found</h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-gray-600 mb-4">
                   {filters.search || filters.status
                     ? 'Try adjusting your filters to see more documents.'
                     : 'Get started by uploading your first document.'}
                 </p>
                 <button
-                  onClick={() => navigate(projectId ? `/projects/${projectId}/documents/upload` : '/documents/upload')}
+                  onClick={() => navigate(`/projects/${projectId}/documents/upload`)}
                   className="btn-primary"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload Document
+                  Upload First Document
                 </button>
               </div>
             )}

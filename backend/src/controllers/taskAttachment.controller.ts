@@ -1,13 +1,199 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { uploadFile } from '../utils/cloudinary';
-import fs from 'fs';
+import { uploadFile, deleteFile } from '../utils/cloudinary';
+import { cleanupLocalFile } from '../middleware/upload.middleware';
 
 const prisma = new PrismaClient();
 
 /**
- * Upload attachment to a task
+ * Upload multiple attachments to a task
  */
+export const uploadMultipleAttachments = async (req: Request, res: Response) => {
+  try {
+    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+      return res.status(400).json({ 
+        error: 'No files provided' 
+      });
+    }
+
+    // File validation
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed'
+    ];
+
+    const maxSize = 25 * 1024 * 1024; // 25MB in bytes
+
+    // Validate each file
+    for (const file of req.files) {
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        return res.status(400).json({ 
+          error: `File "${file.originalname}" type not allowed. Allowed types: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, Images, Archives` 
+        });
+      }
+
+      if (file.size > maxSize) {
+        return res.status(400).json({ 
+          error: `File "${file.originalname}" too large. Maximum size is 25MB` 
+        });
+      }
+    }
+
+    const { taskId } = req.params;
+    const { descriptions } = req.body; // Array of descriptions
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+
+    // Check if task exists and user has access
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        id: true,
+        projectId: true,
+        assigneeId: true,
+        project: {
+          select: {
+            lecturerId: true,
+            students: {
+              select: {
+                studentId: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!task) {
+      return res.status(404).json({ 
+        error: 'Task not found' 
+      });
+    }
+
+    // Check access permissions
+    if (currentUserRole === 'STUDENT') {
+      const isStudentInProject = task.project.students.some(
+        (ps: any) => ps.studentId === currentUserId
+      );
+      if (!isStudentInProject && task.assigneeId !== currentUserId) {
+        return res.status(403).json({ 
+          error: 'Access denied to this task' 
+        });
+      }
+    } else if (currentUserRole === 'LECTURER') {
+      if (task.project.lecturerId !== currentUserId) {
+        return res.status(403).json({ 
+          error: 'Access denied to this task' 
+        });
+      }
+    }
+    // ADMIN can access all tasks
+
+    const uploadedAttachments = [];
+    const failedUploads = [];
+    let descriptionsArray = [];
+
+    // Parse descriptions if provided
+    if (descriptions) {
+      try {
+        descriptionsArray = JSON.parse(descriptions);
+      } catch (e) {
+        descriptionsArray = [];
+      }
+    }
+
+    // Process each file
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      const description = descriptionsArray[i] || null;
+
+      try {
+        // Upload to Cloudinary
+        const cloudinaryResult = await uploadFile(file);
+
+        try {
+          // Save to database
+          const attachment = await prisma.taskAttachment.create({
+            data: {
+              taskId,
+              fileName: file.originalname,
+              fileUrl: cloudinaryResult.secure_url,
+              fileSize: file.size,
+              mimeType: file.mimetype,
+              uploadedBy: currentUserId,
+              description: description,
+            },
+            include: {
+              uploader: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true
+                }
+              }
+            }
+          });
+
+          uploadedAttachments.push(attachment);
+          
+          // Delete local file
+          cleanupLocalFile(file.path);
+
+        } catch (dbError) {
+          // If DB save failed, clean up Cloudinary file
+          console.error('Database save error for file:', file.originalname, dbError);
+          try {
+            await deleteFile(cloudinaryResult.public_id);
+          } catch (cleanupError) {
+            console.error('Cloudinary cleanup error:', cleanupError);
+          }
+          
+          // Clean up local file
+          cleanupLocalFile(file.path);
+          
+          failedUploads.push({
+            fileName: file.originalname,
+            error: 'Database save failed'
+          });
+        }
+
+      } catch (uploadError) {
+        console.error('Upload error for file:', file.originalname, uploadError);
+        cleanupLocalFile(file.path);
+        failedUploads.push({
+          fileName: file.originalname,
+          error: 'Upload failed'
+        });
+      }
+    }
+
+    res.status(201).json({
+      message: `Successfully uploaded ${uploadedAttachments.length} files`,
+      attachments: uploadedAttachments,
+      failedUploads: failedUploads.length > 0 ? failedUploads : undefined
+    });
+
+  } catch (error) {
+    console.error('Upload multiple attachments error:', error);
+    res.status(500).json({ 
+      error: 'Failed to upload attachments' 
+    });
+  }
+};
+
 export const uploadAttachment = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
@@ -69,35 +255,51 @@ export const uploadAttachment = async (req: Request, res: Response) => {
     // Upload to Cloudinary
     const cloudinaryResult = await uploadFile(req.file);
 
-    // Save to database
-    const attachment = await prisma.taskAttachment.create({
-      data: {
-        taskId,
-        fileName: req.file.originalname,
-        fileUrl: cloudinaryResult.secure_url,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
-        uploadedBy: currentUserId,
-        description: description || null,
-      },
-      include: {
-        uploader: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true
+    try {
+      // Save to database
+      const attachment = await prisma.taskAttachment.create({
+        data: {
+          taskId,
+          fileName: req.file.originalname,
+          fileUrl: cloudinaryResult.secure_url,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          uploadedBy: currentUserId,
+          description: description || null,
+        },
+        include: {
+          uploader: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true
+            }
           }
         }
+      });
+
+      // Delete local file
+      cleanupLocalFile(req.file.path);
+
+      res.status(201).json({
+        message: 'Attachment uploaded successfully',
+        attachment
+      });
+
+    } catch (dbError) {
+      // If DB save failed, clean up Cloudinary file
+      console.error('Database save error:', dbError);
+      try {
+        await deleteFile(cloudinaryResult.public_id);
+      } catch (cleanupError) {
+        console.error('Cloudinary cleanup error:', cleanupError);
       }
-    });
-
-    // Delete local file
-    fs.unlinkSync(req.file.path);
-
-    res.status(201).json({
-      message: 'Attachment uploaded successfully',
-      attachment
-    });
+      
+      // Clean up local file
+      cleanupLocalFile(req.file.path);
+      
+      throw dbError; // Re-throw to be caught by outer catch
+    }
 
   } catch (error) {
     console.error('Upload attachment error:', error);

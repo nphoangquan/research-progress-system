@@ -64,7 +64,40 @@ export default function TaskForm() {
       const response = await api.get('/users');
       return response.data.users;
     },
-    enabled: user?.role === 'ADMIN' || user?.role === 'LECTURER',
+    enabled: (user?.role === 'ADMIN' || user?.role === 'LECTURER') && !projectId,
+  });
+
+  // Fetch project members for assignee dropdown when creating task for specific project
+  const { data: projectMembers } = useQuery({
+    queryKey: ['project-members', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const response = await api.get(`/projects/${projectId}`);
+      const project = response.data.project;
+      
+      // Get lecturer and students
+      const members = [];
+      if (project.lecturer) {
+        members.push({
+          id: project.lecturer.id,
+          fullName: project.lecturer.fullName,
+          email: project.lecturer.email,
+          role: 'LECTURER'
+        });
+      }
+      if (project.students) {
+        project.students.forEach((student: any) => {
+          members.push({
+            id: student.student.id,
+            fullName: student.student.fullName,
+            email: student.student.email,
+            role: 'STUDENT'
+          });
+        });
+      }
+      return members;
+    },
+    enabled: (user?.role === 'ADMIN' || user?.role === 'LECTURER') && !!projectId,
   });
 
   // Fetch projects for project dropdown
@@ -165,7 +198,15 @@ export default function TaskForm() {
       newErrors.title = 'Task title is required';
     }
 
-    // Assignee is now optional
+    if (formData.dueDate) {
+      const dueDate = new Date(formData.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (dueDate < today) {
+        newErrors.dueDate = 'Due date cannot be in the past';
+      }
+    }
 
     if (formData.projectIds.length === 0) {
       newErrors.projectIds = 'Please select at least one project';
@@ -319,9 +360,9 @@ export default function TaskForm() {
                     label="Assignee (Optional)"
                     options={[
                       { id: '', fullName: 'No specific assignee (Project only)' },
-                      ...(users?.map((user: any) => ({
+                      ...((projectId ? projectMembers : users)?.map((user: any) => ({
                         id: user.id,
-                        fullName: user.fullName,
+                        fullName: projectId ? `${user.fullName} (${user.role})` : user.fullName,
                         email: user.email
                       })) || [])
                     ]}

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { wsService } from '../index';
 
 const prisma = new PrismaClient();
 
@@ -95,6 +96,13 @@ export const addComment = async (req: Request, res: Response) => {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
+    // Input length validation
+    if (content && content.length > 1000) {
+      return res.status(400).json({ 
+        error: 'Comment must be 1000 characters or less' 
+      });
+    }
+
     if (!content || content.trim().length === 0) {
       return res.status(400).json({ 
         error: 'Comment content is required' 
@@ -184,6 +192,9 @@ export const addComment = async (req: Request, res: Response) => {
       });
     }
 
+    // Emit WebSocket event for comment addition
+    wsService.emitCommentAdded(comment, taskId, task.projectId);
+
     res.status(201).json({
       message: 'Comment added successfully',
       comment
@@ -206,6 +217,13 @@ export const updateComment = async (req: Request, res: Response) => {
     const { content } = req.body;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
+
+    // Input length validation
+    if (content && content.length > 1000) {
+      return res.status(400).json({ 
+        error: 'Comment must be 1000 characters or less' 
+      });
+    }
 
     if (!content || content.trim().length === 0) {
       return res.status(400).json({ 
@@ -274,6 +292,9 @@ export const updateComment = async (req: Request, res: Response) => {
         }
       }
     });
+
+    // Emit WebSocket event for comment update
+    wsService.emitCommentUpdated(updatedComment, existingComment.taskId, existingComment.task.projectId);
 
     res.json({
       message: 'Comment updated successfully',
@@ -345,6 +366,9 @@ export const deleteComment = async (req: Request, res: Response) => {
     await prisma.comment.delete({
       where: { id: commentId }
     });
+
+    // Emit WebSocket event for comment deletion
+    wsService.emitCommentDeleted(commentId, existingComment.taskId, existingComment.task.projectId);
 
     res.json({
       message: 'Comment deleted successfully'

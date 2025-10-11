@@ -103,6 +103,16 @@ export default function CreateProject() {
       newErrors.lecturerId = 'Please select a lecturer';
     }
 
+    if (formData.startDate) {
+      const startDate = new Date(formData.startDate);
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      
+      if (startDate < oneYearAgo) {
+        newErrors.startDate = 'Start date cannot be more than 1 year in the past';
+      }
+    }
+
     if (formData.endDate && formData.startDate && formData.endDate < formData.startDate) {
       newErrors.endDate = 'End date must be after start date';
     }

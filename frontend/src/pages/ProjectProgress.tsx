@@ -174,10 +174,12 @@ export default function ProjectProgress() {
 
   const getTaskStatusStats = (tasks: any[]) => {
     const stats = {
+      total: tasks.length,
       todo: 0,
       inProgress: 0,
       review: 0,
-      completed: 0
+      completed: 0,
+      overdue: 0
     };
     
     tasks.forEach(task => {
@@ -195,9 +197,49 @@ export default function ProjectProgress() {
           stats.completed++;
           break;
       }
+
+      // Check if overdue
+      if (task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'COMPLETED') {
+        stats.overdue++;
+      }
     });
     
     return stats;
+  };
+
+  const getDocumentStats = (documents: any[]) => {
+    const stats = {
+      total: documents.length,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      totalSize: 0
+    };
+
+    documents.forEach(doc => {
+      switch (doc.status) {
+        case 'PENDING':
+          stats.pending++;
+          break;
+        case 'APPROVED':
+          stats.approved++;
+          break;
+        case 'REJECTED':
+          stats.rejected++;
+          break;
+      }
+      stats.totalSize += doc.fileSize;
+    });
+
+    return stats;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   if (isLoading) {
@@ -239,6 +281,7 @@ export default function ProjectProgress() {
 
   const progressData = generateProgressData(project);
   const taskStats = getTaskStatusStats(project.tasks);
+  const documentStats = getDocumentStats(project.documents);
   const daysRemaining = project.endDate ? calculateDaysRemaining(project.endDate) : null;
 
   return (
@@ -331,22 +374,19 @@ export default function ProjectProgress() {
               <div className="card-body">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Task Progress</h2>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {/* Task Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-gray-600">{taskStats.todo}</div>
-                    <div className="text-sm text-gray-500">To Do</div>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{taskStats.inProgress}</div>
-                    <div className="text-sm text-blue-500">In Progress</div>
-                  </div>
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-600">{taskStats.review}</div>
-                    <div className="text-sm text-yellow-500">Review</div>
+                    <div className="text-2xl font-bold text-gray-600">{taskStats.total}</div>
+                    <div className="text-sm text-gray-500">Total Tasks</div>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <div className="text-2xl font-bold text-green-600">{taskStats.completed}</div>
                     <div className="text-sm text-green-500">Completed</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">{taskStats.overdue}</div>
+                    <div className="text-sm text-red-500">Overdue</div>
                   </div>
                 </div>
 
@@ -373,6 +413,58 @@ export default function ProjectProgress() {
                           </span>
                         )}
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Document Analytics */}
+            <div className="card">
+              <div className="card-body">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Document Analytics</h2>
+                
+                {/* Document Statistics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-gray-600">{documentStats.total}</div>
+                    <div className="text-sm text-gray-500">Total Documents</div>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-600">{documentStats.pending}</div>
+                    <div className="text-sm text-yellow-500">Pending</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{documentStats.approved}</div>
+                    <div className="text-sm text-green-500">Approved</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">{documentStats.rejected}</div>
+                    <div className="text-sm text-red-500">Rejected</div>
+                  </div>
+                </div>
+
+                {/* Document Size */}
+                <div className="text-center p-4 bg-blue-50 rounded-lg mb-6">
+                  <div className="text-2xl font-bold text-blue-600">{formatFileSize(documentStats.totalSize)}</div>
+                  <div className="text-sm text-blue-500">Total Storage Used</div>
+                </div>
+
+                {/* Recent Documents */}
+                <div className="space-y-3">
+                  <h3 className="text-md font-medium text-gray-900">Recent Documents</h3>
+                  {project.documents.slice(0, 5).map((doc: any) => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <FileText className="w-4 h-4 text-gray-400" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{doc.fileName}</p>
+                          <p className="text-xs text-gray-500">{formatFileSize(doc.fileSize)}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(doc.status)}`}>
+                        {doc.status}
+                      </span>
                     </div>
                   ))}
                 </div>

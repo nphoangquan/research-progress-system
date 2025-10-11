@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { queryClient } from './lib/queryClient';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 // import { useAuth } from './hooks/useAuth';
 
 // Pages
@@ -14,12 +15,18 @@ import CreateProject from './pages/CreateProject';
 import EditProject from './pages/EditProject';
 import ProjectSettings from './pages/ProjectSettings';
 import TaskList from './pages/TaskList';
+import ProjectTaskList from './pages/ProjectTaskList';
 import TaskKanban from './pages/TaskKanban';
 import TaskDetail from './pages/TaskDetail';
+import ProjectTaskDetail from './pages/ProjectTaskDetail';
 import TaskForm from './pages/TaskForm';
 import DocumentList from './pages/DocumentList';
+import ProjectDocumentList from './pages/ProjectDocumentList';
 import DocumentDetail from './pages/DocumentDetail';
 import DocumentUpload from './pages/DocumentUpload';
+import DocumentEdit from './pages/DocumentEdit';
+import Analytics from './pages/Analytics';
+import UserActivity from './pages/UserActivity';
 import ProjectProgress from './pages/ProjectProgress';
 
 // Components
@@ -28,8 +35,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 function AppContent() {
   return (
     <Router>
-      <div className="App">
-        <Routes>
+      <WebSocketProvider>
+        <div className="App">
+          <Routes>
           {/* Public Routes */}
           <Route 
             path="/login" 
@@ -78,6 +86,22 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <ProjectSettings />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/user-activity" 
+            element={
+              <ProtectedRoute>
+                <UserActivity />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/analytics" 
+            element={
+              <ProtectedRoute>
+                <Analytics />
               </ProtectedRoute>
             } 
           />
@@ -145,7 +169,7 @@ function AppContent() {
             path="/projects/:projectId/tasks" 
             element={
               <ProtectedRoute>
-                <TaskList />
+                <ProjectTaskList />
               </ProtectedRoute>
             } 
           />
@@ -162,6 +186,32 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <TaskForm />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/:projectId/tasks/:id" 
+            element={
+              <ProtectedRoute>
+                <ProjectTaskDetail />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Project Document Routes */}
+          <Route 
+            path="/projects/:projectId/documents" 
+            element={
+              <ProtectedRoute>
+                <ProjectDocumentList />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/:projectId/documents/upload" 
+            element={
+              <ProtectedRoute>
+                <DocumentUpload />
               </ProtectedRoute>
             } 
           />
@@ -188,6 +238,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <DocumentDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/documents/:id/edit" 
+            element={
+              <ProtectedRoute>
+                <DocumentEdit />
               </ProtectedRoute>
             } 
           />
@@ -262,7 +320,8 @@ function AppContent() {
             }}
           />
         </div>
-      </Router>
+      </WebSocketProvider>
+    </Router>
   );
 }
 

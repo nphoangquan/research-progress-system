@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import ConnectionStatus from './ConnectionStatus';
 import type { User } from '../types/auth';
 import { 
   LayoutDashboard, 
@@ -9,7 +10,9 @@ import {
   User as UserIcon, 
   LogOut,
   Bell,
-  Settings
+  Settings,
+  BarChart3,
+  Activity
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -58,20 +61,38 @@ export default function Navbar({ user }: NavbarProps) {
               <FolderOpen className="w-4 h-4 mr-2" />
               Projects
             </Link>
-            <Link 
-              to="/tasks" 
-              className={`nav-link ${isActive('/tasks') ? 'nav-link-active' : ''}`}
-            >
-              <CheckSquare className="w-4 h-4 mr-2" />
-              Tasks
-            </Link>
-            <Link 
-              to="/documents" 
-              className={`nav-link ${isActive('/documents') ? 'nav-link-active' : ''}`}
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Documents
-            </Link>
+            {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+              <>
+                <Link 
+                  to="/tasks" 
+                  className={`nav-link ${isActive('/tasks') ? 'nav-link-active' : ''}`}
+                >
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  Tasks
+                </Link>
+                <Link 
+                  to="/documents" 
+                  className={`nav-link ${isActive('/documents') ? 'nav-link-active' : ''}`}
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Documents
+                </Link>
+                <Link 
+                  to="/analytics" 
+                  className={`nav-link ${isActive('/analytics') ? 'nav-link-active' : ''}`}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Analytics
+                </Link>
+                <Link 
+                  to="/user-activity" 
+                  className={`nav-link ${isActive('/user-activity') ? 'nav-link-active' : ''}`}
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  User Activity
+                </Link>
+              </>
+            )}
           </div>
           
           {/* User Menu */}
@@ -97,6 +118,9 @@ export default function Navbar({ user }: NavbarProps) {
                   <p className="text-xs text-gray-500">{user.role}</p>
                 </div>
               </div>
+              
+              {/* Connection Status */}
+              <ConnectionStatus />
               
               {/* Logout */}
               <button

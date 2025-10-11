@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/Navbar';
+import SelectDropdown from '../components/SelectDropdown';
 import api from '../lib/axios';
 import type { Project } from '../types/project';
 import { 
@@ -19,10 +21,25 @@ export default function ProjectList() {
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
 
+  const [filters, setFilters] = useState({
+    status: '',
+    lecturer: '',
+    progress: '',
+    dateRange: '',
+    search: ''
+  });
+
   const { data: projects, isLoading, error } = useQuery({
-    queryKey: ['projects'],
+    queryKey: ['projects', filters],
     queryFn: async () => {
-      const response = await api.get('/projects');
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.lecturer) params.append('lecturer', filters.lecturer);
+      if (filters.progress) params.append('progress', filters.progress);
+      if (filters.dateRange) params.append('dateRange', filters.dateRange);
+      if (filters.search) params.append('search', filters.search);
+
+      const response = await api.get(`/projects?${params.toString()}`);
       return response.data.projects;
     },
   });
@@ -64,19 +81,87 @@ export default function ProjectList() {
         {/* Search and Filter Bar */}
         <div className="card mb-6">
           <div className="card-body">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search projects..."
-                  className="input pl-10"
+            <div className="space-y-4">
+              {/* Search Row */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search projects..."
+                    className="input pl-10"
+                    value={filters.search}
+                    onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  />
+                </div>
+                <button
+                  onClick={() => setFilters({ status: '', lecturer: '', progress: '', dateRange: '', search: '' })}
+                  className="btn-ghost whitespace-nowrap"
+                >
+                  Clear Filters
+                </button>
+              </div>
+
+              {/* Filter Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Status Filter */}
+                <SelectDropdown
+                  label=""
+                  options={[
+                    { id: '', fullName: 'All Status' },
+                    { id: 'NOT_STARTED', fullName: 'Not Started' },
+                    { id: 'IN_PROGRESS', fullName: 'In Progress' },
+                    { id: 'UNDER_REVIEW', fullName: 'Under Review' },
+                    { id: 'COMPLETED', fullName: 'Completed' },
+                    { id: 'CANCELLED', fullName: 'Cancelled' }
+                  ]}
+                  value={filters.status}
+                  onChange={(status) => setFilters(prev => ({ ...prev, status }))}
+                  placeholder="All Status"
+                />
+
+                {/* Lecturer Filter */}
+                <SelectDropdown
+                  label=""
+                  options={[
+                    { id: '', fullName: 'All Lecturers' },
+                    // Lecturers will be populated from API
+                  ]}
+                  value={filters.lecturer}
+                  onChange={(lecturer) => setFilters(prev => ({ ...prev, lecturer }))}
+                  placeholder="All Lecturers"
+                />
+
+                {/* Progress Filter */}
+                <SelectDropdown
+                  label=""
+                  options={[
+                    { id: '', fullName: 'All Progress' },
+                    { id: '0-25', fullName: '0-25%' },
+                    { id: '25-50', fullName: '25-50%' },
+                    { id: '50-75', fullName: '50-75%' },
+                    { id: '75-100', fullName: '75-100%' }
+                  ]}
+                  value={filters.progress}
+                  onChange={(progress) => setFilters(prev => ({ ...prev, progress }))}
+                  placeholder="All Progress"
+                />
+
+                {/* Date Range Filter */}
+                <SelectDropdown
+                  label=""
+                  options={[
+                    { id: '', fullName: 'All Dates' },
+                    { id: 'this_month', fullName: 'This Month' },
+                    { id: 'last_month', fullName: 'Last Month' },
+                    { id: 'this_quarter', fullName: 'This Quarter' },
+                    { id: 'this_year', fullName: 'This Year' }
+                  ]}
+                  value={filters.dateRange}
+                  onChange={(dateRange) => setFilters(prev => ({ ...prev, dateRange }))}
+                  placeholder="All Dates"
                 />
               </div>
-              <button className="btn-secondary">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </button>
             </div>
           </div>
         </div>

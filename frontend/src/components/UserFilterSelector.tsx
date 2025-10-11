@@ -5,84 +5,69 @@ import {
   Search, 
   X, 
   Check, 
-  FolderOpen,
-  Users,
-  Calendar,
-  CheckSquare
+  User,
+  Mail,
+  Shield,
+  GraduationCap
 } from 'lucide-react';
 
-interface Project {
+interface User {
   id: string;
-  title: string;
-  description: string;
-  status: string;
-  progress: number;
-  startDate: string;
-  endDate: string;
-  lecturer: {
-    id: string;
-    fullName: string;
-  };
-  students?: Array<{
-    student: {
-      id: string;
-      fullName: string;
-    };
-  }>;
-  _count?: {
-    tasks: number;
-    documents: number;
-  };
+  fullName: string;
+  email: string;
+  role: 'ADMIN' | 'LECTURER' | 'STUDENT';
+  studentId?: string;
+  isActive: boolean;
 }
 
-interface ProjectSelectorProps {
-  selectedProjects: string[];
-  onSelectionChange: (projectIds: string[]) => void;
+interface UserFilterSelectorProps {
+  selectedUsers: string[];
+  onSelectionChange: (userIds: string[]) => void;
   multiple?: boolean;
   placeholder?: string;
   className?: string;
 }
 
-export default function ProjectSelector({ 
-  selectedProjects, 
+export default function UserFilterSelector({ 
+  selectedUsers, 
   onSelectionChange, 
-  multiple = false,
-  placeholder = "Select projects...",
+  multiple = true,
+  placeholder = "All Uploaders",
   className = ""
-}: ProjectSelectorProps) {
+}: UserFilterSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [localSelection, setLocalSelection] = useState<string[]>(selectedProjects);
+  const [localSelection, setLocalSelection] = useState<string[]>(selectedUsers);
 
-  // Fetch projects
-  const { data: projects, isLoading } = useQuery({
-    queryKey: ['projects'],
+  // Fetch users
+  const { data: users, isLoading } = useQuery({
+    queryKey: ['users'],
     queryFn: async () => {
-      const response = await api.get('/projects');
-      return response.data.projects as Project[];
+      const response = await api.get('/users');
+      return response.data.users as User[];
     },
   });
 
-  // Filter projects based on search
-  const filteredProjects = projects?.filter(project =>
-    project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    project.lecturer.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter users based on search
+  const filteredUsers = users?.filter(user =>
+    user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.studentId && user.studentId.toLowerCase().includes(searchTerm.toLowerCase()))
   ) || [];
 
   // Update local selection when prop changes
   useEffect(() => {
-    setLocalSelection(selectedProjects);
-  }, [selectedProjects]);
+    setLocalSelection(selectedUsers);
+  }, [selectedUsers]);
 
-  const handleProjectToggle = (projectId: string) => {
+  const handleUserToggle = (userId: string) => {
     if (multiple) {
-      const newSelection = localSelection.includes(projectId)
-        ? localSelection.filter(id => id !== projectId)
-        : [...localSelection, projectId];
+      const newSelection = localSelection.includes(userId)
+        ? localSelection.filter(id => id !== userId)
+        : [...localSelection, userId];
       setLocalSelection(newSelection);
     } else {
-      setLocalSelection([projectId]);
+      setLocalSelection([userId]);
       setIsOpen(false);
     }
   };
@@ -93,14 +78,14 @@ export default function ProjectSelector({
   };
 
   const handleCancel = () => {
-    setLocalSelection(selectedProjects);
+    setLocalSelection(selectedUsers);
     setIsOpen(false);
   };
 
   const handleSelectAll = () => {
-    if (filteredProjects) {
-      const allProjectIds = filteredProjects.map(project => project.id);
-      setLocalSelection(allProjectIds);
+    if (filteredUsers) {
+      const allUserIds = filteredUsers.map(user => user.id);
+      setLocalSelection(allUserIds);
     }
   };
 
@@ -108,28 +93,37 @@ export default function ProjectSelector({
     setLocalSelection([]);
   };
 
-  const getSelectedProjectNames = () => {
-    if (!projects) return placeholder;
-    const selected = projects.filter(p => selectedProjects.includes(p.id));
+  const getSelectedUserNames = () => {
+    if (!users) return placeholder;
+    const selected = users.filter(u => selectedUsers.includes(u.id));
     if (selected.length === 0) return placeholder;
-    if (selected.length === 1) return selected[0].title;
-    return `${selected.length} projects selected`;
+    if (selected.length === 1) return selected[0].fullName;
+    return `${selected.length} users selected`;
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
-      case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
-      case 'UNDER_REVIEW':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'NOT_STARTED':
-        return 'bg-gray-100 text-gray-800';
-      case 'CANCELLED':
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
         return 'bg-red-100 text-red-800';
+      case 'LECTURER':
+        return 'bg-blue-100 text-blue-800';
+      case 'STUDENT':
+        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return <Shield className="w-3 h-3" />;
+      case 'LECTURER':
+        return <GraduationCap className="w-3 h-3" />;
+      case 'STUDENT':
+        return <User className="w-3 h-3" />;
+      default:
+        return <User className="w-3 h-3" />;
     }
   };
 
@@ -139,13 +133,13 @@ export default function ProjectSelector({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="w-full px-4 py-3 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+        className="w-full px-4 py-2 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
       >
         <div className="flex items-center justify-between">
-          <span className={`${selectedProjects.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
-            {getSelectedProjectNames()}
+          <span className={`${selectedUsers.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
+            {getSelectedUserNames()}
           </span>
-          <FolderOpen className="w-5 h-5 text-gray-400" />
+          <User className="w-4 h-4 text-gray-400" />
         </div>
       </button>
 
@@ -157,10 +151,10 @@ export default function ProjectSelector({
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {multiple ? 'Select Projects' : 'Select Project'}
+                  Filter by Uploaders
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {multiple ? 'Choose one or more projects' : 'Choose a project'}
+                  Choose users to filter documents
                 </p>
               </div>
               <button
@@ -177,7 +171,7 @@ export default function ProjectSelector({
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Search projects by title, description, or lecturer..."
+                  placeholder="Search users by name, email, or student ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -185,14 +179,14 @@ export default function ProjectSelector({
               </div>
               
               {/* Action Buttons */}
-              {multiple && filteredProjects && filteredProjects.length > 0 && (
+              {multiple && filteredUsers && filteredUsers.length > 0 && (
                 <div className="flex gap-2 mt-3">
                   <button
                     type="button"
                     onClick={handleSelectAll}
                     className="px-3 py-1.5 text-sm font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
                   >
-                    Select All ({filteredProjects.length})
+                    Select All ({filteredUsers.length})
                   </button>
                   <button
                     type="button"
@@ -205,28 +199,28 @@ export default function ProjectSelector({
               )}
             </div>
 
-            {/* Projects List */}
+            {/* Users List */}
             <div className="max-h-96 overflow-y-auto">
               {isLoading ? (
                 <div className="p-8 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">Loading projects...</p>
+                  <p className="mt-4 text-gray-600">Loading users...</p>
                 </div>
-              ) : filteredProjects.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <div className="p-8 text-center">
-                  <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">
-                    {searchTerm ? 'No projects found matching your search' : 'No projects available'}
+                    {searchTerm ? 'No users found matching your search' : 'No users available'}
                   </p>
                 </div>
               ) : (
                 <div className="p-4 space-y-2">
-                  {filteredProjects.map((project) => (
+                  {filteredUsers.map((user) => (
                     <div
-                      key={project.id}
-                      onClick={() => handleProjectToggle(project.id)}
+                      key={user.id}
+                      onClick={() => handleUserToggle(user.id)}
                       className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                        localSelection.includes(project.id)
+                        localSelection.includes(user.id)
                           ? 'border-primary-500 bg-primary-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
@@ -235,49 +229,39 @@ export default function ProjectSelector({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-3 mb-2">
                             <div className={`flex-shrink-0 w-3 h-3 rounded-full flex items-center justify-center ${
-                              localSelection.includes(project.id) ? 'bg-primary-500' : 'bg-gray-300'
+                              localSelection.includes(user.id) ? 'bg-primary-500' : 'bg-gray-300'
                             }`}>
-                              {localSelection.includes(project.id) && (
+                              {localSelection.includes(user.id) && (
                                 <Check className="w-2 h-2 text-white" />
                               )}
                             </div>
                             <h4 className="text-sm font-medium text-gray-900 truncate">
-                              {project.title}
+                              {user.fullName}
                             </h4>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
-                              {project.status.replace('_', ' ')}
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(user.role)}`}>
+                              {user.role}
                             </span>
+                            {!user.isActive && (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                                Inactive
+                              </span>
+                            )}
                           </div>
-                          
-                          <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                            {project.description}
-                          </p>
                           
                           <div className="flex items-center space-x-4 text-xs text-gray-500">
                             <div className="flex items-center space-x-1">
-                              <Users className="w-3 h-3" />
-                              <span>{(project.students?.length || 0) + 1} members</span>
+                              <Mail className="w-3 h-3" />
+                              <span className="truncate">{user.email}</span>
                             </div>
+                            {user.studentId && (
+                              <div className="flex items-center space-x-1">
+                                <GraduationCap className="w-3 h-3" />
+                                <span>{user.studentId}</span>
+                              </div>
+                            )}
                             <div className="flex items-center space-x-1">
-                              <CheckSquare className="w-3 h-3" />
-                              <span>{project._count?.tasks || 0} tasks</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>{new Date(project.startDate).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-2">
-                            <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                              <span>Progress</span>
-                              <span>{project.progress}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
-                              <div
-                                className="bg-primary-600 h-1.5 rounded-full transition-all duration-300"
-                                style={{ width: `${project.progress}%` }}
-                              ></div>
+                              {getRoleIcon(user.role)}
+                              <span>{user.role}</span>
                             </div>
                           </div>
                         </div>
@@ -291,7 +275,7 @@ export default function ProjectSelector({
             {/* Footer */}
             <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
               <div className="text-sm text-gray-600">
-                {localSelection.length} project{localSelection.length !== 1 ? 's' : ''} selected
+                {localSelection.length} user{localSelection.length !== 1 ? 's' : ''} selected
               </div>
               <div className="flex space-x-3">
                 <button
@@ -304,7 +288,7 @@ export default function ProjectSelector({
                   onClick={handleConfirm}
                   className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
                 >
-                  {multiple ? 'Select Projects' : 'Select Project'}
+                  Apply Filter
                 </button>
               </div>
             </div>

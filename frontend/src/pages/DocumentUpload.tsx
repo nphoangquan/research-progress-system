@@ -3,15 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/Navbar';
+import ProjectSelector from '../components/ProjectSelector';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
 import { 
   ArrowLeft, 
   Upload, 
   FileText, 
-  X, 
   AlertCircle,
-  CheckCircle
+  Trash2
 } from 'lucide-react';
 
 interface UploadDocumentRequest {
@@ -38,6 +38,8 @@ export default function DocumentUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(projectId ? [projectId] : []);
+
 
   // Fetch project info
   const { data: project } = useQuery({
@@ -68,9 +70,11 @@ export default function DocumentUpload() {
     },
     onSuccess: () => {
       toast.success('Document uploaded successfully!');
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      if (selectedProjectIds.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ['project', selectedProjectIds[0]] });
+      }
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      navigate(projectId ? `/projects/${projectId}/documents` : '/documents');
+      navigate(selectedProjectIds.length > 0 ? `/projects/${selectedProjectIds[0]}/documents` : '/documents');
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Upload failed');
@@ -80,20 +84,34 @@ export default function DocumentUpload() {
   const handleFileSelect = (selectedFile: File) => {
     // Validate file type
     const allowedTypes = [
+      // Documents
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
+      'text/plain',
+      // Images
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/gif',
+      'image/webp',
+      // Excel
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      // Archives
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed'
     ];
 
     if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error('Only PDF, DOC, DOCX, and TXT files are allowed');
+      toast.error('Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed');
       return;
     }
 
-    // Validate file size (10MB)
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
+    // Validate file size (25MB)
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      toast.error('File size must be less than 25MB');
       return;
     }
 
@@ -120,19 +138,54 @@ export default function DocumentUpload() {
     setIsDragOver(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!file || !projectId) {
+    if (!file) {
       toast.error('Please select a file');
       return;
     }
 
-    uploadMutation.mutate({
-      projectId,
-      file,
-      description: description.trim() || undefined
-    });
+    if (!projectId && selectedProjectIds.length === 0) {
+      toast.error('Please select at least one project');
+      return;
+    }
+
+    // If multiple projects selected, upload to each one
+    if (selectedProjectIds.length > 1) {
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const projectIdToUpload of selectedProjectIds) {
+        try {
+          await uploadMutation.mutateAsync({
+            projectId: projectIdToUpload,
+            file,
+            description: description.trim() || undefined
+          });
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          console.error(`Failed to upload to project ${projectIdToUpload}:`, error);
+        }
+      }
+      
+      if (successCount > 0) {
+        toast.success(`Document uploaded to ${successCount} project${successCount > 1 ? 's' : ''} successfully!`);
+        if (errorCount > 0) {
+          toast.error(`Failed to upload to ${errorCount} project${errorCount > 1 ? 's' : ''}`);
+        }
+      } else {
+        toast.error('Failed to upload document to any project');
+      }
+    } else {
+      // Single project upload
+      uploadMutation.mutate({
+        projectId: projectId || selectedProjectIds[0],
+        file,
+        description: description.trim() || undefined
+      });
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -173,6 +226,21 @@ export default function DocumentUpload() {
           <div className="card">
             <div className="card-body">
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Project Selection */}
+                {!projectId && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Project(s) <span className="text-error-500">*</span>
+                    </label>
+                    <ProjectSelector
+                      selectedProjects={selectedProjectIds}
+                      onSelectionChange={setSelectedProjectIds}
+                      multiple={true}
+                      placeholder="Select project(s)..."
+                    />
+                  </div>
+                )}
+
                 {/* File Upload Area */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -182,7 +250,7 @@ export default function DocumentUpload() {
                   <div
                     className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                       isDragOver
-                        ? 'border-primary-400 bg-primary-50'
+                        ? 'border-primary-500 bg-primary-50'
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
                     onDrop={handleDrop}
@@ -191,49 +259,53 @@ export default function DocumentUpload() {
                   >
                     {file ? (
                       <div className="space-y-4">
-                        <div className="flex items-center justify-center">
-                          <FileText className="w-12 h-12 text-primary-600" />
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center">
+                            <FileText className="w-6 h-6 text-green-600 mr-3" />
+                            <div className="flex-1 text-left">
+                              <p className="text-sm font-medium text-green-800">{file.name}</p>
+                              <p className="text-xs text-green-600">{formatFileSize(file.size)}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setFile(null)}
+                              className="text-green-600 hover:text-green-800 p-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                          <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setFile(null)}
-                          className="btn-ghost text-sm"
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Remove File
-                        </button>
+                        <p className="text-xs text-gray-500">
+                          File ready for upload. Click "Upload Document" below to proceed.
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="flex items-center justify-center">
-                          <Upload className="w-12 h-12 text-gray-400" />
+                        <div className="space-y-2">
+                          <Upload className="w-8 h-8 text-gray-400 mx-auto" />
+                          <div>
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium text-primary-600">Click to upload</span> or drag and drop
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              PDF, DOC, DOCX, TXT, Images, Excel, Archives (max 25MB)
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            Drop your file here, or{' '}
-                            <label className="text-primary-600 hover:text-primary-500 cursor-pointer">
-                              browse
-                              <input
-                                type="file"
-                                className="hidden"
-                                accept=".pdf,.doc,.docx,.txt"
-                                onChange={(e) => {
-                                  const selectedFile = e.target.files?.[0];
-                                  if (selectedFile) {
-                                    handleFileSelect(selectedFile);
-                                  }
-                                }}
-                              />
-                            </label>
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Supports PDF, DOC, DOCX, TXT files up to 10MB
-                          </p>
-                        </div>
+                        
+                        <input
+                          type="file"
+                          onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                          accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.zip,.rar,.7z"
+                          className="hidden"
+                          id="file-upload"
+                        />
+                        <label
+                          htmlFor="file-upload"
+                          className="inline-block btn-secondary cursor-pointer"
+                        >
+                          Choose File
+                        </label>
                       </div>
                     )}
                   </div>

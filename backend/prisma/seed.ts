@@ -314,6 +314,56 @@ async function main() {
 
   console.log('✅ Created tasks for all projects');
 
+  // Create sample documents
+  console.log('\n📄 Creating sample documents...');
+  
+  const documents = await prisma.document.createMany({
+    data: [
+      {
+        projectId: project1.id,
+        fileName: 'CV.docx',
+        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/sample_cv.docx',
+        fileSize: 65123,
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        uploadedBy: student1.id,
+        description: 'CVVVVVVVVVV',
+        status: 'PENDING',
+      },
+      {
+        projectId: project1.id,
+        fileName: 'CV.pdf',
+        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/sample_cv.pdf',
+        fileSize: 214123,
+        mimeType: 'application/pdf',
+        uploadedBy: student1.id,
+        description: 'AAA',
+        status: 'APPROVED',
+      },
+      {
+        projectId: project1.id,
+        fileName: 'quy_trinh_core_noneAl.txt',
+        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/workflow.txt',
+        fileSize: 4496,
+        mimeType: 'text/plain',
+        uploadedBy: lecturer1.id,
+        description: 'Workflow Al',
+        status: 'PENDING',
+      },
+      {
+        projectId: project2.id,
+        fileName: 'IoT_Design.pdf',
+        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/iot_design.pdf',
+        fileSize: 1024000,
+        mimeType: 'application/pdf',
+        uploadedBy: student2.id,
+        description: 'IoT System Design Document',
+        status: 'REJECTED',
+      },
+    ],
+  });
+
+  console.log('✅ Created sample documents');
+
   // Create Notifications
   await prisma.notification.createMany({
     data: [

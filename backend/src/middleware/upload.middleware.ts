@@ -26,27 +26,51 @@ const storage = multer.diskStorage({
 const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
   // Allowed file types
   const allowedTypes = [
+    // Documents
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain'
+    'text/plain',
+    // Images
+    'image/jpeg',
+    'image/jpg', 
+    'image/png',
+    'image/gif',
+    'image/webp',
+    // Excel
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    // Archives
+    'application/zip',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed'
   ];
 
   // Check file type
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only PDF, DOC, DOCX, and TXT files are allowed'), false);
+    cb(new Error('Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed'), false);
   }
 };
 
-// Configure multer
+// Configure multer for single file
 export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 25 * 1024 * 1024, // 25MB limit
     files: 1 // Only one file at a time
+  }
+});
+
+// Configure multer for multiple files
+export const uploadMultiple = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB limit per file
+    files: 10 // Maximum 10 files at once
   }
 });
 
@@ -55,7 +79,7 @@ export const handleUploadError = (error: any, req: any, res: any, next: any) => 
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
-        error: 'File too large. Maximum size is 10MB.'
+        error: 'File too large. Maximum size is 25MB.'
       });
     }
     if (error.code === 'LIMIT_FILE_COUNT') {
@@ -70,9 +94,9 @@ export const handleUploadError = (error: any, req: any, res: any, next: any) => 
     }
   }
 
-  if (error.message.includes('Only PDF, DOC, DOCX, and TXT files are allowed')) {
+  if (error.message.includes('Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed')) {
     return res.status(400).json({
-      error: 'Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed.'
+      error: 'Invalid file type. Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed.'
     });
   }
 

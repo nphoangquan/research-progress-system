@@ -12,11 +12,63 @@ export const createProject = async (req: Request, res: Response) => {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
+    // Input length validation
+    if (title && title.length > 200) {
+      return res.status(400).json({ 
+        error: 'Project title must be 200 characters or less' 
+      });
+    }
+
+    if (description && description.length > 2000) {
+      return res.status(400).json({ 
+        error: 'Project description must be 2000 characters or less' 
+      });
+    }
+
     // Validation
     if (!title || !description || !studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !lecturerId) {
       return res.status(400).json({ 
         error: 'Title, description, studentIds (array), and lecturerId are required' 
       });
+    }
+
+    // Date validation
+    if (startDate) {
+      const start = new Date(startDate);
+      if (isNaN(start.getTime())) {
+        return res.status(400).json({
+          error: 'Invalid start date format'
+        });
+      }
+      
+      // Start date should not be too far in the past (more than 1 year)
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      if (start < oneYearAgo) {
+        return res.status(400).json({
+          error: 'Start date cannot be more than 1 year in the past'
+        });
+      }
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      if (isNaN(end.getTime())) {
+        return res.status(400).json({
+          error: 'Invalid end date format'
+        });
+      }
+    }
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (end <= start) {
+        return res.status(400).json({
+          error: 'End date must be after start date'
+        });
+      }
     }
 
     // Check permissions
@@ -130,7 +182,7 @@ export const getProjects = async (req: Request, res: Response) => {
   try {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
-    const { status, page = 1, limit = 10 } = req.query;
+    const { status, lecturer, progress, dateRange, search, page = 1, limit = 10 } = req.query;
 
     let whereClause: any = {};
 
@@ -149,6 +201,61 @@ export const getProjects = async (req: Request, res: Response) => {
     // Filter by status if provided
     if (status && typeof status === 'string') {
       whereClause.status = status;
+    }
+
+    // Filter by lecturer if provided
+    if (lecturer && typeof lecturer === 'string') {
+      whereClause.lecturerId = lecturer;
+    }
+
+    // Filter by progress range if provided
+    if (progress && typeof progress === 'string') {
+      switch (progress) {
+        case '0-25':
+          whereClause.progress = { gte: 0, lte: 25 };
+          break;
+        case '25-50':
+          whereClause.progress = { gte: 25, lte: 50 };
+          break;
+        case '50-75':
+          whereClause.progress = { gte: 50, lte: 75 };
+          break;
+        case '75-100':
+          whereClause.progress = { gte: 75, lte: 100 };
+          break;
+      }
+    }
+
+    // Filter by date range if provided
+    if (dateRange && typeof dateRange === 'string') {
+      const now = new Date();
+      const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const thisQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      const thisYear = new Date(now.getFullYear(), 0, 1);
+
+      switch (dateRange) {
+        case 'this_month':
+          whereClause.createdAt = { gte: thisMonth };
+          break;
+        case 'last_month':
+          whereClause.createdAt = { gte: lastMonth, lt: thisMonth };
+          break;
+        case 'this_quarter':
+          whereClause.createdAt = { gte: thisQuarter };
+          break;
+        case 'this_year':
+          whereClause.createdAt = { gte: thisYear };
+          break;
+      }
+    }
+
+    // Search filter
+    if (search && typeof search === 'string') {
+      whereClause.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
     }
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -327,6 +434,7 @@ export const updateProject = async (req: Request, res: Response) => {
       select: { 
         id: true, 
         lecturerId: true,
+        startDate: true,
         students: {
           select: {
             studentId: true
@@ -365,7 +473,25 @@ export const updateProject = async (req: Request, res: Response) => {
     if (description) updateData.description = description;
     if (status) updateData.status = status;
     if (progress !== undefined) updateData.progress = Math.max(0, Math.min(100, progress));
-    if (endDate) updateData.endDate = new Date(endDate);
+    
+    // Date validation for endDate
+    if (endDate) {
+      const end = new Date(endDate);
+      if (isNaN(end.getTime())) {
+        return res.status(400).json({
+          error: 'Invalid end date format'
+        });
+      }
+      
+      // Check if end date is after start date
+      if (existingProject.startDate && end <= existingProject.startDate) {
+        return res.status(400).json({
+          error: 'End date must be after start date'
+        });
+      }
+      
+      updateData.endDate = end;
+    }
 
     const updatedProject = await prisma.project.update({
       where: { id },

@@ -31,6 +31,7 @@ model User {
   aiQueries           AIQuery[]
   comments            Comment[]
   taskAttachments     TaskAttachment[]
+  documents           Document[]
 
   @@map("users")
 }
@@ -133,6 +134,7 @@ enum Priority {
   LOW
   MEDIUM
   HIGH
+  URGENT
 }
 
 // ============================================================================
@@ -148,6 +150,7 @@ model Document {
   mimeType        String    @map("mime_type")
   uploadedBy      String    @map("uploaded_by")
   description     String?   @db.Text
+  status          DocumentStatus @default(PENDING)
   
   // AI Processing Status
   indexStatus     IndexStatus @default(PENDING) @map("index_status")
@@ -160,10 +163,11 @@ model Document {
 
   // Relations
   project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader        User      @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
   chunks          DocumentChunk[]
 
   @@index([projectId])
-  @@index([indexStatus])
+  @@index([uploadedBy])
   @@map("documents")
 }
 
@@ -172,6 +176,12 @@ enum IndexStatus {
   PROCESSING
   INDEXED
   FAILED
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ============================================================================

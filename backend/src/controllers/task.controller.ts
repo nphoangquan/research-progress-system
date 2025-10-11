@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { wsService } from '../index';
 
 const prisma = new PrismaClient();
 
@@ -12,11 +13,38 @@ export const createTask = async (req: Request, res: Response) => {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
-    // Validation
-    if (!projectId || !title || !assigneeId) {
+    // Input length validation
+    if (title && title.length > 200) {
       return res.status(400).json({ 
-        error: 'Project ID, title, and assignee ID are required' 
+        error: 'Task title must be 200 characters or less' 
       });
+    }
+
+    if (description && description.length > 2000) {
+      return res.status(400).json({ 
+        error: 'Task description must be 2000 characters or less' 
+      });
+    }
+
+    // Validation
+    if (!projectId || !title) {
+      return res.status(400).json({ 
+        error: 'Project ID and title are required' 
+      });
+    }
+
+    // Assignee ID is optional - if not provided, assign to lecturer
+    let finalAssigneeId = assigneeId;
+    if (!assigneeId || assigneeId.trim() === '') {
+      // Get project lecturer as default assignee
+      const projectForLecturer = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { lecturerId: true }
+      });
+      if (!projectForLecturer) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+      finalAssigneeId = projectForLecturer.lecturerId;
     }
 
     // Check if project exists and user has access
@@ -60,7 +88,7 @@ export const createTask = async (req: Request, res: Response) => {
 
     // Verify assignee exists and is part of the project
     const assignee = await prisma.user.findUnique({
-      where: { id: assigneeId },
+      where: { id: finalAssigneeId },
       select: { id: true, fullName: true, role: true }
     });
 
@@ -72,9 +100,9 @@ export const createTask = async (req: Request, res: Response) => {
 
     // Check if assignee is part of the project
     const isStudentInProject = project.students.some(
-      (ps: any) => ps.studentId === assigneeId
+      (ps: any) => ps.studentId === finalAssigneeId
     );
-    if (!isStudentInProject && assigneeId !== project.lecturerId) {
+    if (!isStudentInProject && finalAssigneeId !== project.lecturerId) {
       return res.status(400).json({ 
         error: 'Assignee must be part of the project' 
       });
@@ -86,7 +114,7 @@ export const createTask = async (req: Request, res: Response) => {
         projectId,
         title,
         description,
-        assigneeId,
+        assigneeId: finalAssigneeId,
         priority,
         dueDate: dueDate ? new Date(dueDate) : null,
         status: 'TODO'
@@ -108,6 +136,28 @@ export const createTask = async (req: Request, res: Response) => {
       }
     });
 
+    // Recalculate project progress
+    const completedTasks = await prisma.task.count({
+      where: { 
+        projectId,
+        status: 'COMPLETED'
+      }
+    });
+    
+    const totalTasks = await prisma.task.count({
+      where: { projectId }
+    });
+    
+    const newProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { progress: newProgress }
+    });
+
+    // Emit WebSocket event for task creation
+    wsService.emitTaskCreated(task, projectId);
+
     res.status(201).json({
       message: 'Task created successfully',
       task
@@ -126,9 +176,74 @@ export const createTask = async (req: Request, res: Response) => {
  */
 export const getTasks = async (req: Request, res: Response) => {
   try {
-    const { projectId } = req.query;
+    const { projectId, status, priority, assignee, dueDate, search } = req.query;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
+
+    // Build filter conditions
+    const buildFilters = (baseWhere: any) => {
+      let filters = { ...baseWhere };
+
+      // Status filter
+      if (status) {
+        filters.status = status;
+      }
+
+      // Priority filter
+      if (priority) {
+        filters.priority = priority;
+      }
+
+      // Assignee filter
+      if (assignee) {
+        filters.assigneeId = assignee;
+      }
+
+      // Due date filter
+      if (dueDate) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+        switch (dueDate) {
+          case 'overdue':
+            filters.dueDate = { lt: today };
+            break;
+          case 'today':
+            filters.dueDate = { gte: today, lt: tomorrow };
+            break;
+          case 'this_week':
+            filters.dueDate = { gte: today, lt: nextWeek };
+            break;
+          case 'next_week':
+            const weekAfter = new Date(nextWeek);
+            weekAfter.setDate(weekAfter.getDate() + 7);
+            filters.dueDate = { gte: nextWeek, lt: weekAfter };
+            break;
+          case 'this_month':
+            filters.dueDate = { gte: today, lt: nextMonth };
+            break;
+          case 'no_due_date':
+            filters.dueDate = null;
+            break;
+        }
+      }
+
+      // Search filter
+      if (search) {
+        filters.OR = [
+          { title: { contains: search as string, mode: 'insensitive' } },
+          { description: { contains: search as string, mode: 'insensitive' } }
+        ];
+      }
+
+      return filters;
+    };
 
     // If no projectId, get all tasks for the user
     if (!projectId) {
@@ -154,6 +269,9 @@ export const getTasks = async (req: Request, res: Response) => {
         };
       }
       // ADMIN can see all tasks (no additional where clause)
+
+      // Apply filters
+      whereClause = buildFilters(whereClause);
 
       const tasks = await prisma.task.findMany({
         where: whereClause,
@@ -224,8 +342,11 @@ export const getTasks = async (req: Request, res: Response) => {
       });
     }
 
+    // Apply filters for project-specific tasks
+    const whereClause = buildFilters({ projectId: projectId as string });
+
     const tasks = await prisma.task.findMany({
-      where: { projectId: projectId as string },
+      where: whereClause,
       include: {
         assignee: {
           select: {
@@ -336,6 +457,19 @@ export const updateTask = async (req: Request, res: Response) => {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
+    // Input length validation
+    if (title && title.length > 200) {
+      return res.status(400).json({ 
+        error: 'Task title must be 200 characters or less' 
+      });
+    }
+
+    if (description !== undefined && description && description.length > 2000) {
+      return res.status(400).json({ 
+        error: 'Task description must be 2000 characters or less' 
+      });
+    }
+
     // Check if task exists
     const existingTask = await prisma.task.findUnique({
       where: { id },
@@ -378,6 +512,30 @@ export const updateTask = async (req: Request, res: Response) => {
       });
     }
 
+    // Validate assignee if provided
+    if (assigneeId) {
+      const assignee = await prisma.user.findUnique({
+        where: { id: assigneeId },
+        select: { id: true, fullName: true, role: true }
+      });
+
+      if (!assignee) {
+        return res.status(400).json({ 
+          error: 'Invalid assignee ID' 
+        });
+      }
+
+      // Check if assignee is part of the project
+      const isStudentInProject = existingTask.project.students.some(
+        (ps: any) => ps.studentId === assigneeId
+      );
+      if (!isStudentInProject && assigneeId !== existingTask.project.lecturerId) {
+        return res.status(400).json({ 
+          error: 'Assignee must be part of the project' 
+        });
+      }
+    }
+
     // Prepare update data
     const updateData: any = {};
     if (title) updateData.title = title;
@@ -413,6 +571,42 @@ export const updateTask = async (req: Request, res: Response) => {
         }
       }
     });
+
+    // Recalculate project progress if task status changed
+    if (status && status !== existingTask.status) {
+      const completedTasks = await prisma.task.count({
+        where: { 
+          projectId: existingTask.projectId,
+          status: 'COMPLETED'
+        }
+      });
+      
+      const totalTasks = await prisma.task.count({
+        where: { projectId: existingTask.projectId }
+      });
+      
+      const newProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      
+      await prisma.project.update({
+        where: { id: existingTask.projectId },
+        data: { progress: newProgress }
+      });
+
+      // Emit WebSocket event for status change
+      wsService.emitTaskStatusChanged(updatedTask, existingTask.projectId, existingTask.status, status);
+    }
+
+    // Emit WebSocket event for task update
+    const changes = {
+      title: title ? { old: existingTask.title, new: title } : undefined,
+      description: description !== undefined ? { old: existingTask.description, new: description } : undefined,
+      status: status ? { old: existingTask.status, new: status } : undefined,
+      priority: priority ? { old: existingTask.priority, new: priority } : undefined,
+      dueDate: dueDate ? { old: existingTask.dueDate, new: dueDate } : undefined,
+      assigneeId: assigneeId ? { old: existingTask.assigneeId, new: assigneeId } : undefined
+    };
+    
+    wsService.emitTaskUpdated(updatedTask, existingTask.projectId, changes);
 
     res.json({
       message: 'Task updated successfully',
@@ -481,6 +675,9 @@ export const deleteTask = async (req: Request, res: Response) => {
     await prisma.task.delete({
       where: { id }
     });
+
+    // Emit WebSocket event for task deletion
+    wsService.emitTaskDeleted(id, existingTask.projectId);
 
     res.json({
       message: 'Task deleted successfully'

@@ -20,6 +20,39 @@ export const uploadDocument = async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const userRole = req.user!.role;
 
+    // File validation
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed'
+    ];
+
+    if (!allowedMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ 
+        error: 'File type not allowed. Allowed types: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, Images, Archives' 
+      });
+    }
+
+    // File size validation (25MB limit)
+    const maxSize = 25 * 1024 * 1024; // 25MB in bytes
+    if (req.file.size > maxSize) {
+      return res.status(400).json({ 
+        error: 'File size too large. Maximum size is 25MB' 
+      });
+    }
+
     // Validation
     if (!projectId) {
       return res.status(400).json({ 
@@ -69,38 +102,54 @@ export const uploadDocument = async (req: Request, res: Response) => {
     // Upload to Cloudinary
     const cloudinaryResult = await uploadFile(req.file);
 
-    // Save to database
-    const document = await prisma.document.create({
-      data: {
-        projectId,
-        fileName: req.file.originalname,
-        fileUrl: cloudinaryResult.secure_url,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
-        uploadedBy: userId,
-        description: description || null,
-        indexStatus: 'PENDING'
-      },
-      include: {
-        project: {
-          select: {
-            id: true,
-            title: true
+    try {
+      // Save to database
+      const document = await prisma.document.create({
+        data: {
+          projectId,
+          fileName: req.file.originalname,
+          fileUrl: cloudinaryResult.secure_url,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          uploadedBy: userId,
+          description: description || null,
+          indexStatus: 'PENDING'
+        },
+        include: {
+          project: {
+            select: {
+              id: true,
+              title: true
+            }
           }
         }
+      });
+
+      // Clean up local file
+      cleanupLocalFile(req.file.path);
+
+      // TODO: Send to Python AI service for indexing (Phase 2)
+      // For now, we'll just mark it as PENDING
+
+      res.status(201).json({
+        message: 'Document uploaded successfully',
+        document
+      });
+
+    } catch (dbError) {
+      // If DB save failed, clean up Cloudinary file
+      console.error('Database save error:', dbError);
+      try {
+        await deleteFile(cloudinaryResult.public_id);
+      } catch (cleanupError) {
+        console.error('Cloudinary cleanup error:', cleanupError);
       }
-    });
-
-    // Clean up local file
-    cleanupLocalFile(req.file.path);
-
-    // TODO: Send to Python AI service for indexing (Phase 2)
-    // For now, we'll just mark it as PENDING
-
-    res.status(201).json({
-      message: 'Document uploaded successfully',
-      document
-    });
+      
+      // Clean up local file
+      cleanupLocalFile(req.file.path);
+      
+      throw dbError; // Re-throw to be caught by outer catch
+    }
 
   } catch (error) {
     console.error('Upload document error:', error);
@@ -121,9 +170,90 @@ export const uploadDocument = async (req: Request, res: Response) => {
  */
 export const getDocuments = async (req: Request, res: Response) => {
   try {
-    const { projectId } = req.query;
+    const { projectId, status, projectFilter, uploader, fileType, uploadDate, search } = req.query;
     const userId = req.user!.userId;
     const userRole = req.user!.role;
+
+    // Build filter conditions
+    const buildFilters = (baseWhere: any) => {
+      let filters = { ...baseWhere };
+
+      // Status filter
+      if (status) {
+        filters.status = status;
+      }
+
+      // Project filter - support multiple values
+      if (projectFilter) {
+        const projectFilters = Array.isArray(projectFilter) ? projectFilter : [projectFilter];
+        if (projectFilters.length > 0) {
+          filters.projectId = { in: projectFilters };
+        }
+      }
+
+      // Uploader filter - support multiple values
+      if (uploader) {
+        const uploaderFilters = Array.isArray(uploader) ? uploader : [uploader];
+        if (uploaderFilters.length > 0) {
+          filters.uploadedBy = { in: uploaderFilters };
+        }
+      }
+
+      // File type filter
+      if (fileType) {
+        const mimeTypeMap: { [key: string]: string[] } = {
+          'pdf': ['application/pdf'],
+          'doc': ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+          'xls': ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+          'ppt': ['application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+          'image': ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+          'archive': ['application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed']
+        };
+
+        if (mimeTypeMap[fileType as string]) {
+          filters.mimeType = { in: mimeTypeMap[fileType as string] };
+        }
+      }
+
+      // Upload date filter
+      if (uploadDate) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const lastMonth = new Date(today);
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+        switch (uploadDate) {
+          case 'today':
+            filters.createdAt = { gte: today, lt: tomorrow };
+            break;
+          case 'this_week':
+            filters.createdAt = { gte: today, lt: nextWeek };
+            break;
+          case 'this_month':
+            filters.createdAt = { gte: today, lt: nextMonth };
+            break;
+          case 'last_month':
+            filters.createdAt = { gte: lastMonth, lt: today };
+            break;
+        }
+      }
+
+      // Search filter
+      if (search) {
+        filters.OR = [
+          { fileName: { contains: search as string, mode: 'insensitive' } },
+          { description: { contains: search as string, mode: 'insensitive' } }
+        ];
+      }
+
+      return filters;
+    };
 
     // If no projectId, get all documents for the user
     if (!projectId) {
@@ -149,6 +279,9 @@ export const getDocuments = async (req: Request, res: Response) => {
         };
       }
       // ADMIN can see all documents (no additional where clause)
+
+      // Apply filters
+      whereClause = buildFilters(whereClause);
 
       const documents = await prisma.document.findMany({
         where: whereClause,
@@ -207,8 +340,11 @@ export const getDocuments = async (req: Request, res: Response) => {
       });
     }
 
+    // Apply filters for project-specific documents
+    const whereClause = buildFilters({ projectId: projectId as string });
+
     const documents = await prisma.document.findMany({
-      where: { projectId: projectId as string },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         project: {
@@ -255,6 +391,13 @@ export const getDocumentById = async (req: Request, res: Response) => {
                 studentId: true
               }
             }
+          }
+        },
+        uploader: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
           }
         }
       }
@@ -303,7 +446,7 @@ export const getDocumentById = async (req: Request, res: Response) => {
 export const updateDocument = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { description } = req.body;
+    const { description, status } = req.body;
     const userId = req.user!.userId;
     const userRole = req.user!.role;
 
@@ -349,16 +492,30 @@ export const updateDocument = async (req: Request, res: Response) => {
       });
     }
 
+    // Prepare update data
+    const updateData: any = {};
+    if (description !== undefined) {
+      updateData.description = description || null;
+    }
+    if (status !== undefined) {
+      updateData.status = status;
+    }
+
     const updatedDocument = await prisma.document.update({
       where: { id },
-      data: {
-        description: description || null
-      },
+      data: updateData,
       include: {
         project: {
           select: {
             id: true,
             title: true
+          }
+        },
+        uploader: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
           }
         }
       }

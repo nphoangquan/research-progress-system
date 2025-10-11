@@ -44,11 +44,12 @@ interface Task {
   updatedAt: string;
 }
 
-export default function TaskList() {
-  const { projectId } = useParams<{ projectId?: string }>();
+export default function ProjectTaskList() {
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
+  const queryClient = useQueryClient();
 
   // WebSocket integration
   useWebSocketEvents({
@@ -65,7 +66,7 @@ export default function TaskList() {
     search: ''
   });
 
-  // Fetch tasks
+  // Fetch tasks for this specific project
   const { data: tasks, isLoading } = useQuery({
     queryKey: ['tasks', projectId, filters],
     queryFn: async () => {
@@ -183,7 +184,7 @@ export default function TaskList() {
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'No due date';
+    if (!dateString) return null;
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -196,16 +197,10 @@ export default function TaskList() {
     return new Date(dueDate) < new Date();
   };
 
-  if (isLoading) {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
-        <div className="container py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading tasks...</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -219,32 +214,30 @@ export default function TaskList() {
         <div className="page-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {projectId && (
-                <button
-                  onClick={() => navigate(`/projects/${projectId}`)}
-                  className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
-                  title="Back to Project"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-              )}
+              <button
+                onClick={() => navigate(`/projects/${projectId}`)}
+                className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
+                title="Back to Project"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
               <div>
-                <h1 className="page-title">Tasks</h1>
+                <h1 className="page-title">Project Tasks</h1>
                 <p className="page-subtitle">
-                  {projectId ? 'Project tasks' : 'All tasks'} - Manage and track your work
+                  Manage and track tasks for this project
                 </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => navigate(projectId ? `/projects/${projectId}/tasks/kanban` : '/tasks/kanban')}
+                onClick={() => navigate(`/projects/${projectId}/tasks/kanban`)}
                 className="btn-secondary"
               >
                 Kanban View
               </button>
               <button
-                onClick={() => navigate(projectId ? `/projects/${projectId}/tasks/new` : '/tasks/new')}
+                onClick={() => navigate(`/projects/${projectId}/tasks/new`)}
                 className="btn-primary"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -351,25 +344,30 @@ export default function TaskList() {
         {/* Tasks List */}
         <div className="card">
           <div className="card-body">
-            {tasks && tasks.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading tasks...</p>
+              </div>
+            ) : tasks && tasks.length > 0 ? (
               <div className="space-y-4">
                 {tasks.map((task: Task) => (
                   <div
                     key={task.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => navigate(`/tasks/${task.id}`)}
+                    onClick={() => navigate(`/projects/${projectId}/tasks/${task.id}`)}
+                    className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-sm transition-all cursor-pointer"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div className="flex-shrink-0">
-                            {getStatusIcon(task.status)}
-                          </div>
-                          <h3 className="font-medium text-gray-900 flex-1">{task.title}</h3>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${getStatusColor(task.status)}`}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-3 mb-2">
+                          {getStatusIcon(task.status)}
+                          <h3 className="text-lg font-semibold text-gray-900 truncate">
+                            {task.title}
+                          </h3>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)}`}>
                             {task.status.replace('_', ' ')}
                           </span>
-                          <span className={`text-sm font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${getPriorityColor(task.priority)}`}>
+                          <span className={`text-sm font-medium ${getPriorityColor(task.priority)}`}>
                             {task.priority}
                           </span>
                         </div>
@@ -381,26 +379,30 @@ export default function TaskList() {
                         )}
                         
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <User className="w-4 h-4 mr-1 flex-shrink-0" />
-                            <span className="truncate">{task.assignee.fullName}</span>
+                          <div className="flex items-center space-x-1">
+                            <User className="w-4 h-4" />
+                            <span>{task.assignee.fullName}</span>
                           </div>
-                          <div className="flex items-center flex-shrink-0">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            <span className={isOverdue(task.dueDate, task.status) ? 'text-red-600' : ''}>
-                              {formatDate(task.dueDate)}
-                            </span>
-                          </div>
-                          {!projectId && (
-                            <div className="text-gray-400 truncate">
-                              {task.project.title}
+                          
+                          {task.dueDate && (
+                            <div className={`flex items-center space-x-1 ${isOverdue(task.dueDate, task.status) ? 'text-red-600' : ''}`}>
+                              <Calendar className="w-4 h-4" />
+                              <span>{formatDate(task.dueDate)}</span>
+                              {isOverdue(task.dueDate, task.status) && (
+                                <span className="text-red-600 font-medium">(Overdue)</span>
+                              )}
                             </div>
                           )}
+                          
+                          <div className="flex items-center space-x-1">
+                            <Clock className="w-4 h-4" />
+                            <span>Created {formatDate(task.createdAt)}</span>
+                          </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-1 flex-shrink-0 ml-3">
-                        {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+                      <div className="flex items-center space-x-2 ml-4">
+                        {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
                           <>
                             <button
                               onClick={(e) => {
@@ -429,22 +431,22 @@ export default function TaskList() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <AlertCircle className="w-8 h-8 text-gray-400" />
-                </div>
+                <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-gray-600 mb-4">
                   {filters.search || filters.status || filters.priority || filters.assignee
                     ? 'Try adjusting your filters to see more tasks.'
                     : 'Get started by creating your first task.'}
                 </p>
-                <button
-                  onClick={() => navigate(projectId ? `/projects/${projectId}/tasks/new` : '/tasks/new')}
-                  className="btn-primary"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Task
-                </button>
+                {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
+                  <button
+                    onClick={() => navigate(`/projects/${projectId}/tasks/new`)}
+                    className="btn-primary"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create First Task
+                  </button>
+                )}
               </div>
             )}
           </div>

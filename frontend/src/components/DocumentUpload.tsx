@@ -47,20 +47,34 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
   const handleFileSelect = (selectedFile: File) => {
     // Validate file type
     const allowedTypes = [
+      // Documents
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
+      'text/plain',
+      // Images
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/gif',
+      'image/webp',
+      // Excel
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      // Archives
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed'
     ];
 
     if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error('Only PDF, DOC, DOCX, and TXT files are allowed');
+      toast.error('Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed');
       return;
     }
 
-    // Validate file size (10MB)
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
+    // Validate file size (25MB)
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      toast.error('File size must be less than 25MB');
       return;
     }
 

@@ -35,7 +35,7 @@ interface Project {
   };
 }
 
-interface ProjectSelectorProps {
+interface ProjectFilterSelectorProps {
   selectedProjects: string[];
   onSelectionChange: (projectIds: string[]) => void;
   multiple?: boolean;
@@ -43,13 +43,13 @@ interface ProjectSelectorProps {
   className?: string;
 }
 
-export default function ProjectSelector({ 
+export default function ProjectFilterSelector({ 
   selectedProjects, 
   onSelectionChange, 
-  multiple = false,
-  placeholder = "Select projects...",
+  multiple = true,
+  placeholder = "All Projects",
   className = ""
-}: ProjectSelectorProps) {
+}: ProjectFilterSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [localSelection, setLocalSelection] = useState<string[]>(selectedProjects);
@@ -139,13 +139,13 @@ export default function ProjectSelector({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="w-full px-4 py-3 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+        className="w-full px-4 py-2 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
       >
         <div className="flex items-center justify-between">
           <span className={`${selectedProjects.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
             {getSelectedProjectNames()}
           </span>
-          <FolderOpen className="w-5 h-5 text-gray-400" />
+          <FolderOpen className="w-4 h-4 text-gray-400" />
         </div>
       </button>
 
@@ -157,10 +157,10 @@ export default function ProjectSelector({
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {multiple ? 'Select Projects' : 'Select Project'}
+                  Filter by Projects
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {multiple ? 'Choose one or more projects' : 'Choose a project'}
+                  Choose projects to filter documents
                 </p>
               </div>
               <button
@@ -304,7 +304,7 @@ export default function ProjectSelector({
                   onClick={handleConfirm}
                   className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
                 >
-                  {multiple ? 'Select Projects' : 'Select Project'}
+                  Apply Filter
                 </button>
               </div>
             </div>
