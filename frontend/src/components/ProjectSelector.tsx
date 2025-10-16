@@ -77,9 +77,10 @@ export default function ProjectSelector({
 
   const handleProjectToggle = (projectId: string) => {
     if (multiple) {
-      const newSelection = localSelection.includes(projectId)
-        ? localSelection.filter(id => id !== projectId)
-        : [...localSelection, projectId];
+      const currentSelection = localSelection || [];
+      const newSelection = currentSelection.includes(projectId)
+        ? currentSelection.filter(id => id !== projectId)
+        : [...currentSelection, projectId];
       setLocalSelection(newSelection);
     } else {
       setLocalSelection([projectId]);
@@ -88,12 +89,12 @@ export default function ProjectSelector({
   };
 
   const handleConfirm = () => {
-    onSelectionChange(localSelection);
+    onSelectionChange(localSelection || []);
     setIsOpen(false);
   };
 
   const handleCancel = () => {
-    setLocalSelection(selectedProjects);
+    setLocalSelection(selectedProjects || []);
     setIsOpen(false);
   };
 
@@ -142,7 +143,7 @@ export default function ProjectSelector({
         className="w-full px-4 py-3 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
       >
         <div className="flex items-center justify-between">
-          <span className={`${selectedProjects.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
+          <span className={`${(selectedProjects?.length || 0) === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
             {getSelectedProjectNames()}
           </span>
           <FolderOpen className="w-5 h-5 text-gray-400" />
@@ -226,7 +227,7 @@ export default function ProjectSelector({
                       key={project.id}
                       onClick={() => handleProjectToggle(project.id)}
                       className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                        localSelection.includes(project.id)
+                        (localSelection || []).includes(project.id)
                           ? 'border-primary-500 bg-primary-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
@@ -235,9 +236,9 @@ export default function ProjectSelector({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-3 mb-2">
                             <div className={`flex-shrink-0 w-3 h-3 rounded-full flex items-center justify-center ${
-                              localSelection.includes(project.id) ? 'bg-primary-500' : 'bg-gray-300'
+                              (localSelection || []).includes(project.id) ? 'bg-primary-500' : 'bg-gray-300'
                             }`}>
-                              {localSelection.includes(project.id) && (
+                              {(localSelection || []).includes(project.id) && (
                                 <Check className="w-2 h-2 text-white" />
                               )}
                             </div>

@@ -29,6 +29,7 @@ import Analytics from './pages/Analytics';
 import UserActivity from './pages/UserActivity';
 import ProjectProgress from './pages/ProjectProgress';
 import UserProfile from './pages/UserProfile';
+import ArchivedProjects from './pages/ArchivedProjects';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -63,6 +64,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <ProjectList />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/projects/archived" 
+            element={
+              <ProtectedRoute>
+                <ArchivedProjects />
               </ProtectedRoute>
             } 
           />

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/Navbar';
 import SelectDropdown from '../components/SelectDropdown';
-import UserFilterSelector from '../components/UserFilterSelector';
+import ProjectUserFilterSelector from '../components/ProjectUserFilterSelector';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
 import { 
@@ -328,7 +328,8 @@ export default function ProjectDocumentList() {
               {/* Second Filter Row - Uploaders */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Uploader Filter */}
-                <UserFilterSelector
+                <ProjectUserFilterSelector
+                  projectId={projectId!}
                   selectedUsers={filters.uploader}
                   onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, uploader: userIds }))}
                   multiple={true}

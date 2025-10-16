@@ -343,13 +343,11 @@ export default function TaskForm() {
                 {!isEditing && (
                   <div>
                     <ProjectSelector
-                      label="Projects"
-                      projects={projects || []}
-                      selectedProjectIds={formData.projectIds}
-                      onChange={(projectIds) => setFormData(prev => ({ ...prev, projectIds }))}
-                      error={errors.projectIds}
+                      selectedProjects={formData.projectIds}
+                      onSelectionChange={(projectIds) => setFormData(prev => ({ ...prev, projectIds }))}
+                      multiple={true}
                       placeholder="Select projects..."
-                      required
+                      className="w-full"
                     />
                   </div>
                 )}

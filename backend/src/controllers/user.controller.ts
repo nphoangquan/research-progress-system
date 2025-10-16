@@ -50,6 +50,90 @@ export const getUsers = async (req: Request, res: Response) => {
 };
 
 /**
+ * Get project members (for students to see users in their projects)
+ */
+export const getProjectMembers = async (req: Request, res: Response) => {
+  try {
+    const { projectId } = req.params;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+
+    // Check if project exists and user has access
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { 
+        id: true, 
+        lecturerId: true,
+        students: {
+          select: {
+            studentId: true
+          }
+        }
+      }
+    });
+
+    if (!project) {
+      return res.status(404).json({ 
+        error: 'Project not found' 
+      });
+    }
+
+    // Check permissions
+    if (currentUserRole === 'STUDENT') {
+      const isStudentInProject = project.students.some(
+        (ps: any) => ps.studentId === currentUserId
+      );
+      if (!isStudentInProject) {
+        return res.status(403).json({ 
+          error: 'Access denied to this project' 
+        });
+      }
+    }
+
+    if (currentUserRole === 'LECTURER' && project.lecturerId !== currentUserId) {
+      return res.status(403).json({ 
+        error: 'Access denied to this project' 
+      });
+    }
+
+    // Get all users in this project
+    const projectMembers = await prisma.user.findMany({
+      where: {
+        OR: [
+          { id: project.lecturerId },
+          { 
+            projectStudents: {
+              some: {
+                projectId: projectId
+              }
+            }
+          }
+        ]
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        studentId: true
+      },
+      orderBy: { fullName: 'asc' }
+    });
+
+    res.json({
+      message: 'Project members retrieved successfully',
+      users: projectMembers
+    });
+
+  } catch (error) {
+    console.error('Get project members error:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve project members' 
+    });
+  }
+};
+
+/**
  * Get user by ID
  */
 export const getUserById = async (req: Request, res: Response) => {

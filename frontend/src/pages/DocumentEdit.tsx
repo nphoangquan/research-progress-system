@@ -128,7 +128,7 @@ export default function DocumentEdit() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar user={user} />
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
@@ -148,7 +148,7 @@ export default function DocumentEdit() {
   if (!document) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar user={user} />
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -168,7 +168,7 @@ export default function DocumentEdit() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar user={user} />
       
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}

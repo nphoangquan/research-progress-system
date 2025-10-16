@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { useWebSocketEvents } from '../hooks/useWebSocketEvents';
 import Navbar from '../components/Navbar';
+import TaskSubmission from '../components/TaskSubmission';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
 import { 
@@ -32,11 +33,19 @@ interface Task {
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   dueDate: string | null;
   completedAt: string | null;
+  submissionContent: string | null;
+  submittedAt: string | null;
+  submittedBy: string | null;
   assignee: {
     id: string;
     fullName: string;
     email: string;
   };
+  submittedByUser: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
   project: {
     id: string;
     title: string;
@@ -91,6 +100,7 @@ export default function ProjectTaskDetail() {
   const [newComment, setNewComment] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadDescriptions, setUploadDescriptions] = useState<string[]>([]);
@@ -437,8 +447,8 @@ export default function ProjectTaskDetail() {
 
       if (validFiles.length > 0) {
         if (isMultipleUpload) {
-          setUploadFiles(validFiles);
-          setUploadDescriptions(new Array(validFiles.length).fill(''));
+          setUploadFiles(prev => [...prev, ...validFiles]);
+          setUploadDescriptions(prev => [...prev, ...new Array(validFiles.length).fill('')]);
         } else {
           setUploadFile(validFiles[0]);
         }
@@ -491,8 +501,8 @@ export default function ProjectTaskDetail() {
       }
 
       if (validFiles.length > 0) {
-        setUploadFiles(validFiles);
-        setUploadDescriptions(new Array(validFiles.length).fill(''));
+        setUploadFiles(prev => [...prev, ...validFiles]);
+        setUploadDescriptions(prev => [...prev, ...new Array(validFiles.length).fill('')]);
       }
     }
   };
@@ -795,6 +805,52 @@ export default function ProjectTaskDetail() {
               </div>
             </div>
 
+            {/* Submission History */}
+            {task.submissionContent && (
+              <div className="card">
+                <div className="card-header">
+                  <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                    <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+                    Submission History
+                  </h2>
+                </div>
+                <div className="card-body">
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <User className="w-4 h-4" />
+                          <span>Submitted by: <span className="font-medium text-gray-900">{task.submittedByUser?.fullName || 'Unknown'}</span></span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Clock className="w-4 h-4" />
+                          <span>Submitted on: <span className="font-medium text-gray-900">{task.submittedAt ? formatDateTime(task.submittedAt) : 'Unknown'}</span></span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowSubmissionModal(true)}
+                        className="btn-secondary text-sm"
+                      >
+                        View Full Details
+                      </button>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-3">Submission Preview:</p>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-40 overflow-hidden">
+                        <div 
+                          className="text-sm text-gray-700 prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ 
+                            __html: task.submissionContent.substring(0, 300) + (task.submissionContent.length > 300 ? '...' : '')
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Attachments */}
             <div className="card">
               <div className="card-header">
@@ -813,6 +869,23 @@ export default function ProjectTaskDetail() {
                 </div>
               </div>
               <div className="card-body">
+                {/* Task Submission for Students */}
+                {user?.role === 'STUDENT' && (
+                  <div className="mb-6">
+                    <TaskSubmission 
+                      taskId={id!} 
+                      onSubmissionSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['task', id] });
+                      }}
+                      currentSubmission={{
+                        content: task.submissionContent,
+                        submittedAt: task.submittedAt,
+                        submittedBy: task.submittedBy
+                      }}
+                    />
+                  </div>
+                )}
+
                 {attachments && attachments.length > 0 ? (
                   <div className="space-y-3">
                     {attachments.map((attachment: Attachment) => (
@@ -984,6 +1057,109 @@ export default function ProjectTaskDetail() {
             </div>
           </div>
         </div>
+
+        {/* Submission Details Modal */}
+        {showSubmissionModal && task.submissionContent && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Task Submission Details</h3>
+                <button
+                  onClick={() => setShowSubmissionModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                {/* Submission Info */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-700">
+                        <strong>Submitted by:</strong> {task.submittedByUser?.fullName || 'Unknown'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-700">
+                        <strong>Submitted on:</strong> {task.submittedAt ? formatDateTime(task.submittedAt) : 'Unknown'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span className="text-sm text-gray-700">
+                        <strong>Status:</strong> Completed
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Paperclip className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-700">
+                        <strong>Attachments:</strong> {attachments?.length || 0} files
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submission Content */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Submission Content</h4>
+                  <div className="border border-gray-200 rounded-lg p-6 bg-white">
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: task.submissionContent }}
+                    />
+                  </div>
+                </div>
+
+                {/* Attachments */}
+                {attachments && attachments.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Submitted Files</h4>
+                    <div className="space-y-3">
+                      {attachments.map((attachment: Attachment) => (
+                        <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <Paperclip className="w-5 h-5 text-gray-400" />
+                            <div>
+                              <p className="font-medium text-gray-900">{attachment.fileName}</p>
+                              <p className="text-sm text-gray-500">
+                                {formatFileSize(attachment.fileSize)} • Uploaded by {attachment.uploader.fullName}
+                              </p>
+                              {attachment.description && (
+                                <p className="text-sm text-gray-600 mt-1">{attachment.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleDownloadFile(attachment.fileUrl, attachment.fileName)}
+                              className="btn-ghost p-2 text-green-600 hover:text-green-800"
+                              title="Download File"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setShowSubmissionModal(false)}
+                  className="btn-secondary"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Upload Attachment Modal */}
         {showUploadModal && (

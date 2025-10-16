@@ -11,6 +11,7 @@ import commentRoutes from './routes/comment.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import searchRoutes from './routes/search.routes';
 import filterRoutes from './routes/filter.routes';
+import taskAttachmentRoutes from './routes/taskAttachment.routes';
 import WebSocketService from './services/websocket.service';
 
 // Load environment variables
@@ -64,6 +65,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/filters', filterRoutes);
+app.use('/api/task-attachments', taskAttachmentRoutes);
 
 // Global error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -67,7 +67,7 @@ export default function Navbar({ user }: NavbarProps) {
               <FolderOpen className="w-4 h-4 mr-2" />
               Projects
             </Link>
-            {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+            {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
               <>
                 <Link 
                   to="/tasks" 
@@ -124,8 +124,8 @@ export default function Navbar({ user }: NavbarProps) {
                   <UserIcon className="w-4 h-4 text-primary-600" />
                 </div>
                 <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
-                  <p className="text-xs text-gray-500">{user.role}</p>
+                  <p className="text-sm font-medium text-gray-900">{user?.fullName || 'Loading...'}</p>
+                  <p className="text-xs text-gray-500">{user?.role}</p>
                 </div>
               </div>
               
@@ -174,7 +174,7 @@ export default function Navbar({ user }: NavbarProps) {
                 <FolderOpen className="w-4 h-4 mr-2" />
                 Projects
               </Link>
-              {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+              {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
                 <>
                   <Link 
                     to="/tasks" 

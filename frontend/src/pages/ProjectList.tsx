@@ -14,7 +14,8 @@ import {
   User,
   Search,
   Filter,
-  Edit
+  Edit,
+  Archive
 } from 'lucide-react';
 
 export default function ProjectList() {
@@ -26,7 +27,8 @@ export default function ProjectList() {
     lecturer: '',
     progress: '',
     dateRange: '',
-    search: ''
+    search: '',
+    showArchived: false
   });
 
   const { data: projects, isLoading, error } = useQuery({
@@ -38,6 +40,7 @@ export default function ProjectList() {
       if (filters.progress) params.append('progress', filters.progress);
       if (filters.dateRange) params.append('dateRange', filters.dateRange);
       if (filters.search) params.append('search', filters.search);
+      if (filters.showArchived) params.append('includeArchived', 'true');
 
       const response = await api.get(`/projects?${params.toString()}`);
       return response.data.projects;
@@ -66,15 +69,24 @@ export default function ProjectList() {
                 Manage your research projects and track progress.
               </p>
             </div>
-            {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+            <div className="flex items-center space-x-3">
+              {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
+                <Link
+                  to="/projects/new"
+                  className="btn-primary"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Project
+                </Link>
+              )}
               <Link
-                to="/projects/new"
-                className="btn-primary"
+                to="/projects/archived"
+                className="btn-secondary"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Project
+                <Archive className="w-4 h-4 mr-2" />
+                Archived Projects
               </Link>
-            )}
+            </div>
           </div>
         </div>
 
@@ -95,7 +107,7 @@ export default function ProjectList() {
                   />
                 </div>
                 <button
-                  onClick={() => setFilters({ status: '', lecturer: '', progress: '', dateRange: '', search: '' })}
+                  onClick={() => setFilters({ status: '', lecturer: '', progress: '', dateRange: '', search: '', showArchived: false })}
                   className="btn-ghost whitespace-nowrap"
                 >
                   Clear Filters
@@ -113,7 +125,8 @@ export default function ProjectList() {
                     { id: 'IN_PROGRESS', fullName: 'In Progress' },
                     { id: 'UNDER_REVIEW', fullName: 'Under Review' },
                     { id: 'COMPLETED', fullName: 'Completed' },
-                    { id: 'CANCELLED', fullName: 'Cancelled' }
+                    { id: 'CANCELLED', fullName: 'Cancelled' },
+                    { id: 'ARCHIVED', fullName: 'Archived' }
                   ]}
                   value={filters.status}
                   onChange={(status) => setFilters(prev => ({ ...prev, status }))}
@@ -161,6 +174,27 @@ export default function ProjectList() {
                   onChange={(dateRange) => setFilters(prev => ({ ...prev, dateRange }))}
                   placeholder="All Dates"
                 />
+              </div>
+
+              {/* Archive Toggle */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="showArchived"
+                    checked={filters.showArchived}
+                    onChange={(e) => setFilters(prev => ({ ...prev, showArchived: e.target.checked }))}
+                    className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
+                  />
+                  <label htmlFor="showArchived" className="text-sm font-medium text-gray-700">
+                    Show Archived Projects
+                  </label>
+                </div>
+                {filters.showArchived && (
+                  <div className="text-sm text-gray-500">
+                    Showing archived projects
+                  </div>
+                )}
               </div>
             </div>
           </div>

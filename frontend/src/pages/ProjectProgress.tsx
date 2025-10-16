@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/Navbar';
-import ProgressChart from '../components/ProgressChart';
 import api from '../lib/axios';
 import { 
   ArrowLeft, 
@@ -20,6 +19,25 @@ import {
   FileText,
   CheckSquare
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  RadialBarChart,
+  RadialBar
+} from 'recharts';
 
 interface Project {
   id: string;
@@ -288,7 +306,7 @@ export default function ProjectProgress() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
       
-      <div className="container py-8">
+      <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -311,9 +329,9 @@ export default function ProjectProgress() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="xl:col-span-3 space-y-6">
             {/* Progress Overview */}
             <div className="card">
               <div className="card-body">
@@ -361,32 +379,157 @@ export default function ProjectProgress() {
                 </div>
 
                 {/* Progress Chart */}
-                <ProgressChart 
-                  data={progressData} 
-                  height={200}
-                  showTasks={true}
-                />
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={progressData}>
+                      <defs>
+                        <linearGradient id="colorProgress" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorTasks" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis 
+                        dataKey="date" 
+                        tick={{ fontSize: 12 }}
+                        tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                        labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      />
+                      <Legend />
+                      <Area
+                        type="monotone"
+                        dataKey="progress"
+                        stroke="#3b82f6"
+                        fillOpacity={1}
+                        fill="url(#colorProgress)"
+                        strokeWidth={3}
+                        name="Progress %"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="tasksCompleted"
+                        stroke="#10b981"
+                        fillOpacity={1}
+                        fill="url(#colorTasks)"
+                        strokeWidth={3}
+                        name="Tasks Completed"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
 
             {/* Task Progress */}
             <div className="card">
               <div className="card-body">
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Task Progress</h2>
+                <h2 className="text-lg font-medium text-gray-900 mb-6">Task Progress</h2>
                 
-                {/* Task Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-gray-600">{taskStats.total}</div>
-                    <div className="text-sm text-gray-500">Total Tasks</div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Task Statistics */}
+                  <div>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Task Distribution</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart>
+                          <Pie
+                            data={[
+                              { name: 'Completed', value: taskStats.completed, color: '#10b981' },
+                              { name: 'In Progress', value: taskStats.inProgress, color: '#3b82f6' },
+                              { name: 'Review', value: taskStats.review, color: '#f59e0b' },
+                              { name: 'To Do', value: taskStats.todo, color: '#6b7280' },
+                              { name: 'Overdue', value: taskStats.overdue, color: '#ef4444' }
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => {
+                              // Only show label if percentage is > 5% to avoid overlap
+                              if (percent < 0.05) return '';
+                              return `${name} ${(percent * 100).toFixed(0)}%`;
+                            }}
+                            outerRadius={80}
+                            innerRadius={20}
+                            dataKey="value"
+                          >
+                            {[
+                              { name: 'Completed', value: taskStats.completed, color: '#10b981' },
+                              { name: 'In Progress', value: taskStats.inProgress, color: '#3b82f6' },
+                              { name: 'Review', value: taskStats.review, color: '#f59e0b' },
+                              { name: 'To Do', value: taskStats.todo, color: '#6b7280' },
+                              { name: 'Overdue', value: taskStats.overdue, color: '#ef4444' }
+                            ].map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: any, name: any) => [`${value} tasks`, name]}
+                            labelStyle={{ color: '#374151' }}
+                            contentStyle={{ 
+                              backgroundColor: '#f9fafb', 
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Legend 
+                            verticalAlign="bottom" 
+                            height={36}
+                            formatter={(value: any) => {
+                              const data = [
+                                { name: 'Completed', value: taskStats.completed },
+                                { name: 'In Progress', value: taskStats.inProgress },
+                                { name: 'Review', value: taskStats.review },
+                                { name: 'To Do', value: taskStats.todo },
+                                { name: 'Overdue', value: taskStats.overdue }
+                              ].find(item => item.name === value);
+                              const total = taskStats.total;
+                              const percentage = total > 0 ? ((data?.value || 0) / total * 100).toFixed(0) : '0';
+                              return `${value} (${percentage}%)`;
+                            }}
+                          />
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{taskStats.completed}</div>
-                    <div className="text-sm text-green-500">Completed</div>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600">{taskStats.overdue}</div>
-                    <div className="text-sm text-red-500">Overdue</div>
+
+                  {/* Task Statistics Cards */}
+                  <div>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Quick Stats</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-600">{taskStats.total}</div>
+                        <div className="text-sm text-gray-500">Total Tasks</div>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{taskStats.completed}</div>
+                        <div className="text-sm text-green-500">Completed</div>
+                      </div>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{taskStats.inProgress}</div>
+                        <div className="text-sm text-blue-500">In Progress</div>
+                      </div>
+                      <div className="text-center p-4 bg-red-50 rounded-lg">
+                        <div className="text-2xl font-bold text-red-600">{taskStats.overdue}</div>
+                        <div className="text-sm text-red-500">Overdue</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -422,32 +565,62 @@ export default function ProjectProgress() {
             {/* Document Analytics */}
             <div className="card">
               <div className="card-body">
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Document Analytics</h2>
+                <h2 className="text-lg font-medium text-gray-900 mb-6">Document Analytics</h2>
                 
-                {/* Document Statistics */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-gray-600">{documentStats.total}</div>
-                    <div className="text-sm text-gray-500">Total Documents</div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Document Status Chart */}
+                  <div>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Document Status</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={[
+                          { name: 'Pending', value: documentStats.pending, color: '#f59e0b' },
+                          { name: 'Approved', value: documentStats.approved, color: '#10b981' },
+                          { name: 'Rejected', value: documentStats.rejected, color: '#ef4444' }
+                        ]}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                          <YAxis tick={{ fontSize: 12 }} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'white', 
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-600">{documentStats.pending}</div>
-                    <div className="text-sm text-yellow-500">Pending</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{documentStats.approved}</div>
-                    <div className="text-sm text-green-500">Approved</div>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600">{documentStats.rejected}</div>
-                    <div className="text-sm text-red-500">Rejected</div>
-                  </div>
-                </div>
 
-                {/* Document Size */}
-                <div className="text-center p-4 bg-blue-50 rounded-lg mb-6">
-                  <div className="text-2xl font-bold text-blue-600">{formatFileSize(documentStats.totalSize)}</div>
-                  <div className="text-sm text-blue-500">Total Storage Used</div>
+                  {/* Document Statistics */}
+                  <div>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Quick Stats</h3>
+                    <div className="space-y-4">
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-600">{documentStats.total}</div>
+                        <div className="text-sm text-gray-500">Total Documents</div>
+                      </div>
+                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div className="text-2xl font-bold text-yellow-600">{documentStats.pending}</div>
+                        <div className="text-sm text-yellow-500">Pending</div>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{documentStats.approved}</div>
+                        <div className="text-sm text-green-500">Approved</div>
+                      </div>
+                      <div className="text-center p-4 bg-red-50 rounded-lg">
+                        <div className="text-2xl font-bold text-red-600">{documentStats.rejected}</div>
+                        <div className="text-sm text-red-500">Rejected</div>
+                      </div>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{formatFileSize(documentStats.totalSize)}</div>
+                        <div className="text-sm text-blue-500">Total Storage Used</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Recent Documents */}
@@ -467,6 +640,98 @@ export default function ProjectProgress() {
                       </span>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Team Performance */}
+            <div className="card">
+              <div className="card-body">
+                <h2 className="text-lg font-medium text-gray-900 mb-6">Team Performance</h2>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Team Activity Chart */}
+                  <div>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Activity Overview</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={progressData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 12 }}
+                            tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          />
+                          <YAxis tick={{ fontSize: 12 }} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'white', 
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                            labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="progress"
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                            name="Progress %"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="tasksCompleted"
+                            stroke="#10b981"
+                            strokeWidth={3}
+                            dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                            name="Tasks Completed"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Team Stats */}
+                  <div>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Team Statistics</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center">
+                          <Users className="w-5 h-5 text-gray-400 mr-3" />
+                          <span className="text-sm text-gray-600">Team Size</span>
+                        </div>
+                        <span className="font-medium text-gray-900">{project.students.length + 1}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                        <div className="flex items-center">
+                          <Target className="w-5 h-5 text-blue-400 mr-3" />
+                          <span className="text-sm text-gray-600">Completion Rate</span>
+                        </div>
+                        <span className="font-medium text-blue-900">{project.progress}%</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                        <div className="flex items-center">
+                          <CheckSquare className="w-5 h-5 text-green-400 mr-3" />
+                          <span className="text-sm text-gray-600">Tasks Completed</span>
+                        </div>
+                        <span className="font-medium text-green-900">{taskStats.completed}/{taskStats.total}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+                        <div className="flex items-center">
+                          <FileText className="w-5 h-5 text-purple-400 mr-3" />
+                          <span className="text-sm text-gray-600">Documents Uploaded</span>
+                        </div>
+                        <span className="font-medium text-purple-900">{documentStats.total}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -504,6 +769,26 @@ export default function ProjectProgress() {
                     <span className="text-gray-500">Team Members:</span>
                     <p className="font-medium text-gray-900">{project.students.length + 1} people</p>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Progress Overview */}
+            <div className="card">
+              <div className="card-body">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Progress Overview</h3>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={[{ name: 'Progress', value: project.progress, fill: '#3b82f6' }]}>
+                      <RadialBar dataKey="value" cornerRadius={10} fill="#3b82f6" />
+                      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="text-2xl font-bold fill-gray-900">
+                        {project.progress}%
+                      </text>
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="text-center mt-4">
+                  <p className="text-sm text-gray-600">Overall Progress</p>
                 </div>
               </div>
             </div>

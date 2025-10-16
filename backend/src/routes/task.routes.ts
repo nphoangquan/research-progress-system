@@ -4,9 +4,11 @@ import {
   getTasks,
   getTaskById,
   updateTask,
-  deleteTask
+  deleteTask,
+  submitTask
 } from '../controllers/task.controller';
 import { verifyToken } from '../middleware/auth.middleware';
+import { uploadMultiple } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -50,5 +52,13 @@ router.put('/:id', updateTask);
  * @access  Private (Project member)
  */
 router.delete('/:id', deleteTask);
+
+/**
+ * @route   POST /api/tasks/submit
+ * @desc    Submit task completion by student
+ * @access  Private (Student)
+ * @body    { taskId, content, files? }
+ */
+router.post('/submit', uploadMultiple.array('files', 10), submitTask);
 
 export default router;

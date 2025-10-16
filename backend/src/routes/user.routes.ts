@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { 
   getUsers,
+  getProjectMembers,
   getUserById,
   updateUser,
   changePassword,
@@ -20,6 +21,13 @@ router.use(verifyToken);
  * @access  Private (Admin, Lecturer)
  */
 router.get('/', getUsers);
+
+/**
+ * @route   GET /api/users/project/:projectId
+ * @desc    Get project members (for students to see users in their projects)
+ * @access  Private (Project members)
+ */
+router.get('/project/:projectId', getProjectMembers);
 
 /**
  * @route   GET /api/users/:id

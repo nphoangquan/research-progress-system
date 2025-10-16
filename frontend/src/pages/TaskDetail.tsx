@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { useWebSocketEvents } from '../hooks/useWebSocketEvents';
 import Navbar from '../components/Navbar';
+import SelectDropdown from '../components/SelectDropdown';
+import TaskSubmission from '../components/TaskSubmission';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
 import { 
@@ -414,8 +416,8 @@ export default function TaskDetail() {
 
       if (validFiles.length > 0) {
         if (isMultipleUpload) {
-          setUploadFiles(validFiles);
-          setUploadDescriptions(new Array(validFiles.length).fill(''));
+          setUploadFiles(prev => [...prev, ...validFiles]);
+          setUploadDescriptions(prev => [...prev, ...new Array(validFiles.length).fill('')]);
         } else {
           setUploadFile(validFiles[0]);
         }
@@ -468,8 +470,8 @@ export default function TaskDetail() {
       }
 
       if (validFiles.length > 0) {
-        setUploadFiles(validFiles);
-        setUploadDescriptions(new Array(validFiles.length).fill(''));
+        setUploadFiles(prev => [...prev, ...validFiles]);
+        setUploadDescriptions(prev => [...prev, ...new Array(validFiles.length).fill('')]);
       }
     }
   };
@@ -793,6 +795,7 @@ export default function TaskDetail() {
                 </div>
               </div>
               <div className="card-body">
+
                 {attachments && attachments.length > 0 ? (
                   <div className="space-y-3">
                     {attachments.map((attachment: Attachment) => (
@@ -840,6 +843,7 @@ export default function TaskDetail() {
               </div>
             </div>
           </div>
+
 
           {/* Sidebar */}
           <div className="space-y-6">

@@ -120,6 +120,21 @@ export default function ProjectSettings() {
     },
   });
 
+  // Restore project mutation
+  const restoreProjectMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.put(`/projects/${id}`, { status: 'IN_PROGRESS' });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Project restored successfully!');
+      navigate(`/projects/${id}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to restore project');
+    },
+  });
+
   // Delete project mutation
   const deleteProjectMutation = useMutation({
     mutationFn: async () => {
@@ -188,6 +203,12 @@ export default function ProjectSettings() {
   const handleArchive = () => {
     if (window.confirm('Are you sure you want to archive this project? It will be moved to archived projects.')) {
       archiveProjectMutation.mutate();
+    }
+  };
+
+  const handleRestore = () => {
+    if (window.confirm('Are you sure you want to restore this project? It will be moved back to active projects.')) {
+      restoreProjectMutation.mutate();
     }
   };
 
@@ -541,18 +562,33 @@ export default function ProjectSettings() {
                     <p className="text-sm text-gray-600 mb-3">
                       Archive this project to hide it from active projects list.
                     </p>
-                    <button
-                      onClick={handleArchive}
-                      disabled={archiveProjectMutation.isPending || project.status === 'ARCHIVED'}
-                      className="btn-secondary text-sm"
-                    >
-                      {archiveProjectMutation.isPending ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
-                      ) : (
-                        <Archive className="w-4 h-4 mr-2" />
-                      )}
-                      {archiveProjectMutation.isPending ? 'Archiving...' : 'Archive Project'}
-                    </button>
+                    {project.status === 'ARCHIVED' ? (
+                      <button
+                        onClick={handleRestore}
+                        disabled={restoreProjectMutation.isPending}
+                        className="btn-primary text-sm"
+                      >
+                        {restoreProjectMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        ) : (
+                          <Archive className="w-4 h-4 mr-2" />
+                        )}
+                        {restoreProjectMutation.isPending ? 'Restoring...' : 'Restore Project'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleArchive}
+                        disabled={archiveProjectMutation.isPending}
+                        className="btn-secondary text-sm"
+                      >
+                        {archiveProjectMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                        ) : (
+                          <Archive className="w-4 h-4 mr-2" />
+                        )}
+                        {archiveProjectMutation.isPending ? 'Archiving...' : 'Archive Project'}
+                      </button>
+                    )}
                   </div>
 
                   <div className="border-t border-gray-200 pt-4">

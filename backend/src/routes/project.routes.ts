@@ -4,7 +4,8 @@ import {
   getProjects,
   getProjectById,
   updateProject,
-  deleteProject
+  deleteProject,
+  getArchivedProjects
 } from '../controllers/project.controller';
 import { verifyToken, requireUser } from '../middleware/auth.middleware';
 
@@ -25,9 +26,17 @@ router.post('/', requireUser, createProject);
  * @route   GET /api/projects
  * @desc    Get all projects (filtered by user role)
  * @access  Private
- * @query   { status?, page?, limit? }
+ * @query   { status?, page?, limit?, includeArchived? }
  */
 router.get('/', getProjects);
+
+/**
+ * @route   GET /api/projects/archived
+ * @desc    Get archived projects only
+ * @access  Private
+ * @query   { page?, limit? }
+ */
+router.get('/archived', getArchivedProjects);
 
 /**
  * @route   GET /api/projects/:id

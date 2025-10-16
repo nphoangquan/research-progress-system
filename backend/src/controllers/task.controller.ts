@@ -425,6 +425,13 @@ export const getTaskById = async (req: Request, res: Response) => {
             fullName: true,
             email: true
           }
+        },
+        submittedByUser: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
         }
       }
     });
@@ -720,6 +727,124 @@ export const deleteTask = async (req: Request, res: Response) => {
     console.error('Delete task error:', error);
     res.status(500).json({ 
       error: 'Failed to delete task' 
+    });
+  }
+};
+
+/**
+ * Submit task completion by student
+ */
+export const submitTask = async (req: Request, res: Response) => {
+  try {
+    const { taskId, content } = req.body;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+
+    // Only students can submit tasks
+    if (currentUserRole !== 'STUDENT') {
+      return res.status(403).json({ 
+        error: 'Only students can submit tasks' 
+      });
+    }
+
+    // Check if task exists and user is assigned to it
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        project: {
+          include: {
+            students: {
+              select: { studentId: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!task) {
+      return res.status(404).json({ 
+        error: 'Task not found' 
+      });
+    }
+
+    // Check if user is assigned to this task or is a student in the project
+    const isAssigned = task.assigneeId === currentUserId;
+    const isProjectStudent = task.project.students.some(
+      (ps: any) => ps.studentId === currentUserId
+    );
+
+    if (!isAssigned && !isProjectStudent) {
+      return res.status(403).json({ 
+        error: 'You are not assigned to this task or not a member of this project' 
+      });
+    }
+
+    // Handle file uploads if any
+    const uploadedFiles = [];
+    if (req.files && Array.isArray(req.files)) {
+      for (const file of req.files) {
+        // Here you would upload to Cloudinary or your file storage
+        // For now, we'll just store the file info
+        uploadedFiles.push({
+          fileName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          uploadedBy: currentUserId
+        });
+      }
+    }
+
+    // Update task with submission
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        status: 'COMPLETED',
+        submissionContent: content,
+        submittedAt: new Date(),
+        submittedBy: currentUserId
+      },
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        },
+        project: {
+          select: {
+            id: true,
+            title: true
+          }
+        }
+      }
+    });
+
+    // Log activity
+    await ActivityService.logActivity({
+      userId: currentUserId,
+      type: 'TASK_SUBMITTED',
+      description: `Submitted task: ${task.title}`,
+      taskId: taskId,
+      projectId: task.projectId,
+      metadata: {
+        taskTitle: task.title,
+        projectTitle: task.project.title,
+        submissionContent: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+        filesUploaded: uploadedFiles.length
+      }
+    });
+
+    res.json({
+      message: 'Task submitted successfully',
+      task: updatedTask,
+      uploadedFiles
+    });
+
+  } catch (error) {
+    console.error('Submit task error:', error);
+    res.status(500).json({ 
+      error: 'Failed to submit task' 
     });
   }
 };

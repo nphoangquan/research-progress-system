@@ -182,7 +182,7 @@ export const getProjects = async (req: Request, res: Response) => {
   try {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
-    const { status, lecturer, progress, dateRange, search, page = 1, limit = 10 } = req.query;
+    const { status, lecturer, progress, dateRange, search, includeArchived = false, page = 1, limit = 10 } = req.query;
 
     let whereClause: any = {};
 
@@ -201,6 +201,9 @@ export const getProjects = async (req: Request, res: Response) => {
     // Filter by status if provided
     if (status && typeof status === 'string') {
       whereClause.status = status;
+    } else if (includeArchived === 'false' || includeArchived === false) {
+      // Exclude archived projects by default
+      whereClause.status = { not: 'ARCHIVED' };
     }
 
     // Filter by lecturer if provided
@@ -584,6 +587,88 @@ export const deleteProject = async (req: Request, res: Response) => {
     console.error('Delete project error:', error);
     res.status(500).json({ 
       error: 'Failed to delete project' 
+    });
+  }
+};
+
+/**
+ * Get archived projects only
+ */
+export const getArchivedProjects = async (req: Request, res: Response) => {
+  try {
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+    const { page = 1, limit = 10 } = req.query;
+
+    let whereClause: any = {
+      status: 'ARCHIVED'
+    };
+
+    // Filter by user role
+    if (currentUserRole === 'STUDENT') {
+      whereClause.students = {
+        some: {
+          studentId: currentUserId
+        }
+      };
+    } else if (currentUserRole === 'LECTURER') {
+      whereClause.lecturerId = currentUserId;
+    }
+    // ADMIN can see all archived projects
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [projects, total] = await Promise.all([
+      prisma.project.findMany({
+        where: whereClause,
+        include: {
+          lecturer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true
+            }
+          },
+          students: {
+            include: {
+              student: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true
+                }
+              }
+            }
+          },
+          _count: {
+            select: {
+              tasks: true,
+              documents: true
+            }
+          }
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: Number(limit)
+      }),
+      prisma.project.count({ where: whereClause })
+    ]);
+
+    res.json({
+      message: 'Archived projects retrieved successfully',
+      projects,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+
+  } catch (error) {
+    console.error('Get archived projects error:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve archived projects' 
     });
   }
 };
