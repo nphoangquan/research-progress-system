@@ -1,7 +1,8 @@
+import React from 'react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
-import Navbar from '../components/Navbar';
+import Navbar from '../components/layout/Navbar';
 import api from '../lib/axios';
 import { 
   BarChart3, 

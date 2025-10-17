@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Search, X, Users } from 'lucide-react';

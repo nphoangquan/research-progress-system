@@ -1,3 +1,4 @@
+import React from 'react';
 import { useMemo } from 'react';
 import { TrendingUp, BarChart3, Activity } from 'lucide-react';
 

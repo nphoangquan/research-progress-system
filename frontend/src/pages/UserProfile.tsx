@@ -1,7 +1,8 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
-import Navbar from '../components/Navbar';
+import Navbar from '../components/layout/Navbar';
 import AvatarUpload from '../components/AvatarUpload';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';

@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useRef } from 'react';
 import { Camera, Upload, X, AlertCircle, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';

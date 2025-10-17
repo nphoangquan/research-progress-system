@@ -1,9 +1,10 @@
+import React from 'react';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
 import type { UploadDocumentRequest } from '../types/document';
 import toast from 'react-hot-toast';
-import RichTextEditor from './RichTextEditor';
+import RichTextEditor from './features/RichTextEditor';
 
 interface DocumentUploadProps {
   projectId: string;

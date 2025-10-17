@@ -1,7 +1,8 @@
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import Navbar from '../components/Navbar';
+import Navbar from '../components/layout/Navbar';
 import api from '../lib/axios';
 import type { Project } from '../types/project';
 import { 

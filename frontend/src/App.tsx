@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -6,33 +7,33 @@ import { WebSocketProvider } from './contexts/WebSocketContext';
 // import { useAuth } from './hooks/useAuth';
 
 // Pages
-import Login from './pages/Login';
-import Register from './pages/Register';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 import Dashboard from './pages/Dashboard';
-import ProjectList from './pages/ProjectList';
-import ProjectDetail from './pages/ProjectDetail';
-import CreateProject from './pages/CreateProject';
-import EditProject from './pages/EditProject';
-import ProjectSettings from './pages/ProjectSettings';
-import TaskList from './pages/TaskList';
-import ProjectTaskList from './pages/ProjectTaskList';
-import TaskKanban from './pages/TaskKanban';
-import TaskDetail from './pages/TaskDetail';
-import ProjectTaskDetail from './pages/ProjectTaskDetail';
-import TaskForm from './pages/TaskForm';
-import DocumentList from './pages/DocumentList';
-import ProjectDocumentList from './pages/ProjectDocumentList';
-import DocumentDetail from './pages/DocumentDetail';
-import DocumentUpload from './pages/DocumentUpload';
-import DocumentEdit from './pages/DocumentEdit';
+import ProjectList from './pages/projects/ProjectList';
+import ProjectDetail from './pages/projects/ProjectDetail';
+import CreateProject from './pages/projects/CreateProject';
+import EditProject from './pages/projects/EditProject';
+import ProjectSettings from './pages/projects/ProjectSettings';
+import TaskList from './pages/tasks/TaskList';
+import ProjectTaskList from './pages/projects/ProjectTaskList';
+import TaskKanban from './pages/tasks/TaskKanban';
+import TaskDetail from './pages/tasks/TaskDetail';
+import ProjectTaskDetail from './pages/projects/ProjectTaskDetail';
+import TaskForm from './pages/tasks/TaskForm';
+import DocumentList from './pages/documents/DocumentList';
+import ProjectDocumentList from './pages/projects/ProjectDocumentList';
+import DocumentDetail from './pages/documents/DocumentDetail';
+import DocumentUpload from './pages/documents/DocumentUpload';
+import DocumentEdit from './pages/documents/DocumentEdit';
 import Analytics from './pages/Analytics';
 import UserActivity from './pages/UserActivity';
-import ProjectProgress from './pages/ProjectProgress';
+import ProjectProgress from './pages/projects/ProjectProgress';
 import UserProfile from './pages/UserProfile';
-import ArchivedProjects from './pages/ArchivedProjects';
+import ArchivedProjects from './pages/projects/ArchivedProjects';
 
 // Components
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/layout/ProtectedRoute';
 
 function AppContent() {
   return (
@@ -264,24 +265,6 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <DocumentEdit />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Project Document Routes */}
-          <Route 
-            path="/projects/:projectId/documents" 
-            element={
-              <ProtectedRoute>
-                <DocumentList />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/projects/:projectId/documents/upload" 
-            element={
-              <ProtectedRoute>
-                <DocumentUpload />
               </ProtectedRoute>
             } 
           />
