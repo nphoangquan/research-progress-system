@@ -14,8 +14,8 @@ import {
   User, 
   FileText,
   AlertCircle,
-  Clock,
-  Flag
+  CheckSquare,
+  AlertTriangle
 } from 'lucide-react';
 
 interface TaskFormData {
@@ -109,6 +109,9 @@ export default function TaskForm() {
     },
     enabled: !isEditing,
   });
+
+  // Suppress unused variable warning - projects is used in ProjectSelector
+  void projects;
 
   // Populate form when task data is loaded
   useEffect(() => {
@@ -230,25 +233,10 @@ export default function TaskForm() {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'LOW':
-        return 'text-gray-600';
-      case 'MEDIUM':
-        return 'text-yellow-600';
-      case 'HIGH':
-        return 'text-orange-600';
-      case 'URGENT':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
-
   if (taskLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
+        <Navbar user={user as any} />
         <div className="container py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
@@ -261,7 +249,7 @@ export default function TaskForm() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
+        <Navbar user={user as any} />
       
       <div className="container py-8">
         {/* Header */}
@@ -287,13 +275,13 @@ export default function TaskForm() {
         </div>
 
         {/* Form */}
-        <div className="max-w-2xl">
-          <div className="card">
-            <div className="card-body">
-              <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="card shadow-lg">
+            <div className="card-body p-8">
+              <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Task Title */}
-                <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="space-y-2">
+                  <label htmlFor="title" className="block text-sm font-semibold text-gray-700">
                     Task Title *
                   </label>
                   <div className="relative">
@@ -303,14 +291,14 @@ export default function TaskForm() {
                       name="title"
                       type="text"
                       required
-                      className={`input pl-10 ${errors.title ? 'input-error' : ''}`}
+                      className={`input pl-10 h-12 text-base ${errors.title ? 'input-error' : ''}`}
                       placeholder="Enter task title"
                       value={formData.title}
                       onChange={handleChange}
                     />
                   </div>
                   {errors.title && (
-                    <p className="mt-1 text-sm text-error-600 flex items-center">
+                    <p className="text-sm text-error-600 flex items-center">
                       <AlertCircle className="w-4 h-4 mr-1" />
                       {errors.title}
                     </p>
@@ -318,8 +306,8 @@ export default function TaskForm() {
                 </div>
 
                 {/* Task Description */}
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="space-y-2">
+                  <label htmlFor="description" className="block text-sm font-semibold text-gray-700">
                     Description
                   </label>
                   <textarea
@@ -332,7 +320,7 @@ export default function TaskForm() {
                     onChange={handleChange}
                   />
                   {errors.description && (
-                    <p className="mt-1 text-sm text-error-600 flex items-center">
+                    <p className="text-sm text-error-600 flex items-center">
                       <AlertCircle className="w-4 h-4 mr-1" />
                       {errors.description}
                     </p>
@@ -341,7 +329,10 @@ export default function TaskForm() {
 
                 {/* Project Selection */}
                 {!isEditing && (
-                  <div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Projects *
+                    </label>
                     <ProjectSelector
                       selectedProjects={formData.projectIds}
                       onSelectionChange={(projectIds) => setFormData(prev => ({ ...prev, projectIds }))}
@@ -349,11 +340,17 @@ export default function TaskForm() {
                       placeholder="Select projects..."
                       className="w-full"
                     />
+                    {errors.projectIds && (
+                      <p className="text-sm text-error-600 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.projectIds}
+                      </p>
+                    )}
                   </div>
                 )}
 
                 {/* Assignee Selection */}
-                <div>
+                <div className="space-y-2">
                   <SelectDropdown
                     label="Assignee (Optional)"
                     options={[
@@ -370,14 +367,14 @@ export default function TaskForm() {
                     placeholder="Select an assignee (optional)..."
                     icon={<User className="w-5 h-5" />}
                   />
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="text-sm text-gray-500">
                     Leave empty to assign task to project only (no specific person)
                   </p>
                 </div>
 
                 {/* Status and Priority */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="space-y-2">
                     <SelectDropdown
                       label="Status"
                       options={[
@@ -389,10 +386,11 @@ export default function TaskForm() {
                       value={formData.status}
                       onChange={(status) => setFormData(prev => ({ ...prev, status }))}
                       placeholder="Select status..."
+                      icon={<CheckSquare className="w-5 h-5" />}
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <SelectDropdown
                       label="Priority"
                       options={[
@@ -404,13 +402,14 @@ export default function TaskForm() {
                       value={formData.priority}
                       onChange={(priority) => setFormData(prev => ({ ...prev, priority }))}
                       placeholder="Select priority..."
+                      icon={<AlertTriangle className="w-5 h-5" />}
                     />
                   </div>
                 </div>
 
                 {/* Due Date */}
-                <div>
-                  <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="space-y-2">
+                  <label htmlFor="dueDate" className="block text-sm font-semibold text-gray-700">
                     Due Date
                   </label>
                   <div className="relative">
@@ -419,13 +418,13 @@ export default function TaskForm() {
                       id="dueDate"
                       name="dueDate"
                       type="date"
-                      className={`input pl-10 ${errors.dueDate ? 'input-error' : ''}`}
+                      className={`input pl-10 h-12 text-base ${errors.dueDate ? 'input-error' : ''}`}
                       value={formData.dueDate}
                       onChange={handleChange}
                     />
                   </div>
                   {errors.dueDate && (
-                    <p className="mt-1 text-sm text-error-600 flex items-center">
+                    <p className="text-sm text-error-600 flex items-center">
                       <AlertCircle className="w-4 h-4 mr-1" />
                       {errors.dueDate}
                     </p>
@@ -433,21 +432,30 @@ export default function TaskForm() {
                 </div>
 
                 {/* Form Actions */}
-                <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-end space-x-4 pt-8 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => navigate(projectId ? `/projects/${projectId}/tasks` : '/tasks')}
-                    className="btn-secondary"
+                    className="btn-secondary px-6 py-3"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
-                    className="btn-primary"
+                    className="btn-primary px-6 py-3"
                   >
-                    <Save className="w-4 h-4 mr-2" />
-                    {isEditing ? 'Update Task' : 'Create Task'}
+                    {createTaskMutation.isPending || updateTaskMutation.isPending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        {isEditing ? 'Updating...' : 'Creating...'}
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        {isEditing ? 'Update Task' : 'Create Task'}
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

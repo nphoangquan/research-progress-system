@@ -74,7 +74,13 @@ export default function ProjectDetail() {
                   ← Back to Projects
                 </Link>
                 <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>
-                <p className="mt-2 text-gray-600">{project.description}</p>
+                <div className="mt-2 text-gray-600 prose prose-sm max-w-none">
+                  {project.description ? (
+                    <div dangerouslySetInnerHTML={{ __html: project.description }} />
+                  ) : (
+                    <p>No description provided.</p>
+                  )}
+                </div>
               </div>
               <div className="flex items-center space-x-4">
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${

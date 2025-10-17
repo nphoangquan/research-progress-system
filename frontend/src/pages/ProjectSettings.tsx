@@ -14,10 +14,8 @@ import {
   User, 
   FileText,
   AlertCircle,
-  Settings,
   Shield,
   Clock,
-  Users,
   Archive,
   Trash2,
   X

@@ -10,7 +10,8 @@ import {
   Calendar, 
   User,
   Tag,
-  AlertCircle
+  AlertCircle,
+  CheckSquare
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/Navbar';
@@ -89,6 +90,16 @@ export default function DocumentEdit() {
 
   const handleSave = () => {
     updateDocumentMutation.mutate(editData);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateDocumentMutation.mutate(editData);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleCancel = () => {
@@ -172,103 +183,88 @@ export default function DocumentEdit() {
       
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Edit Document</h1>
-            <p className="text-gray-600 mt-1">{document.project.title}</p>
-          </div>
-          <button
-            onClick={handleCancel}
-            className="btn-secondary flex items-center space-x-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Documents</span>
-          </button>
+        <div className="page-header mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Edit Document</h1>
+          <p className="text-gray-600 mt-1">{document.project.title}</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Document Info */}
-            <div className="card">
-              <div className="card-header">
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <FileText className="w-5 h-5 mr-2" />
-                  Document Information
-                </h2>
-              </div>
-              <div className="card-body space-y-4">
-                {/* File Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    File Name
-                  </label>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <FileText className="w-5 h-5 text-gray-400" />
-                    <span className="font-medium text-gray-900">{document.fileName}</span>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={editData.description}
-                    onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                    placeholder="Add a description for this document..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    rows={4}
-                  />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  <SelectDropdown
-                    value={editData.status}
-                    onChange={(value) => setEditData({ ...editData, status: value as any })}
-                    options={[
-                      { value: 'PENDING', label: 'Pending' },
-                      { value: 'APPROVED', label: 'Approved' },
-                      { value: 'REJECTED', label: 'Rejected' }
-                    ]}
-                    placeholder="Select status"
+        <div className="card shadow-lg">
+          <div className="card-body p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* File Name */}
+              <div className="space-y-2">
+                <label htmlFor="fileName" className="block text-sm font-semibold text-gray-700">
+                  File Name *
+                </label>
+                <div className="relative">
+                  <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    id="fileName"
+                    name="fileName"
+                    type="text"
+                    required
+                    className="input pl-10 h-12 text-base"
+                    placeholder="Enter document file name"
+                    value={editData.fileName}
+                    onChange={handleChange}
                   />
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Document Details */}
-            <div className="card">
-              <div className="card-header">
+              {/* Description */}
+              <div className="space-y-2">
+                <label htmlFor="description" className="block text-sm font-semibold text-gray-700">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  rows={4}
+                  className="input"
+                  placeholder="Add a description for this document..."
+                  value={editData.description}
+                  onChange={handleChange}
+                />
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <SelectDropdown
+                  label="Status"
+                  options={[
+                    { id: 'PENDING', fullName: 'Pending' },
+                    { id: 'APPROVED', fullName: 'Approved' },
+                    { id: 'REJECTED', fullName: 'Rejected' },
+                    { id: 'ARCHIVED', fullName: 'Archived' },
+                  ]}
+                  value={editData.status}
+                  onChange={(status) => setEditData({ ...editData, status })}
+                  placeholder="Select status..."
+                  icon={<CheckSquare className="w-5 h-5" />}
+                />
+              </div>
+
+              {/* Document Details */}
+              <div className="space-y-4 pt-6 border-t border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Document Details</h3>
-              </div>
-              <div className="card-body space-y-4">
-                <div className="flex items-center space-x-3">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Uploaded by</p>
-                    <p className="text-sm text-gray-600">{document.uploader.fullName}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <User className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Uploaded by</p>
+                      <p className="text-sm text-gray-600">{document.uploader.fullName}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <Calendar className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Upload Date</p>
+                      <p className="text-sm text-gray-600">{formatDate(document.createdAt)}</p>
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex items-center space-x-3">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Upload Date</p>
-                    <p className="text-sm text-gray-600">{formatDate(document.createdAt)}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <Tag className="w-4 h-4 text-gray-400" />
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <Tag className="w-5 h-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">Current Status</p>
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(document.status)}`}>
@@ -277,32 +273,35 @@ export default function DocumentEdit() {
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Actions */}
-            <div className="card">
-              <div className="card-header">
-                <h3 className="text-lg font-semibold text-gray-900">Actions</h3>
-              </div>
-              <div className="card-body space-y-3">
+              {/* Form Actions */}
+              <div className="flex items-center justify-end space-x-4 pt-8 border-t border-gray-200">
                 <button
-                  onClick={handleSave}
-                  disabled={updateDocumentMutation.isPending}
-                  className="w-full btn-primary flex items-center justify-center space-x-2"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{updateDocumentMutation.isPending ? 'Saving...' : 'Save Changes'}</span>
-                </button>
-                
-                <button
+                  type="button"
                   onClick={handleCancel}
-                  disabled={updateDocumentMutation.isPending}
-                  className="w-full btn-secondary"
+                  className="btn-secondary px-6 py-3"
                 >
                   Cancel
                 </button>
+                <button
+                  type="submit"
+                  disabled={updateDocumentMutation.isPending}
+                  className="btn-primary px-6 py-3"
+                >
+                  {updateDocumentMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>

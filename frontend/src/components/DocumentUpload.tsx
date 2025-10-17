@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
 import type { UploadDocumentRequest } from '../types/document';
 import toast from 'react-hot-toast';
+import RichTextEditor from './RichTextEditor';
 
 interface DocumentUploadProps {
   projectId: string;
@@ -194,14 +195,10 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
           <label htmlFor="description" className="block text-sm font-medium text-gray-700">
             Description (optional)
           </label>
-          <textarea
-            id="description"
-            name="description"
-            rows={3}
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          <RichTextEditor
+            content={description}
+            onChange={setDescription}
             placeholder="Brief description of the document..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
           />
         </div>
 

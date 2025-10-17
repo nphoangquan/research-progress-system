@@ -313,15 +313,17 @@ export default function DocumentUpload() {
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                     Description (Optional)
                   </label>
                   <textarea
+                    id="description"
+                    name="description"
+                    rows={4}
+                    className="input"
+                    placeholder="Add a description for this document..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add a description for this document..."
-                    rows={4}
-                    className="input w-full"
                   />
                 </div>
 

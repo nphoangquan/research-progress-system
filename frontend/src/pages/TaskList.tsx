@@ -401,9 +401,9 @@ export default function TaskList() {
                         </div>
                         
                         {task.description && (
-                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                            {task.description}
-                          </p>
+                          <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none">
+                            <div dangerouslySetInnerHTML={{ __html: task.description }} />
+                          </div>
                         )}
                         
                         <div className="flex items-center space-x-4 text-sm text-gray-500">

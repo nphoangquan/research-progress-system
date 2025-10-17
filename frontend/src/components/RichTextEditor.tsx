@@ -23,8 +23,7 @@ import {
   AlignJustify,
   Strikethrough,
   Underline,
-  Palette,
-  Type
+  Palette
 } from 'lucide-react';
 
 interface RichTextEditorProps {
@@ -71,19 +70,22 @@ export default function RichTextEditor({
     onClick, 
     isActive = false, 
     children, 
-    title 
+    title,
+    disabled = false
   }: { 
     onClick: () => void; 
     isActive?: boolean; 
     children: React.ReactNode; 
     title: string;
+    disabled?: boolean;
   }) => (
     <button
       type="button"
       onClick={onClick}
-      className={`p-2 rounded hover:bg-gray-100 transition-colors ${
-        isActive ? 'bg-gray-200 text-gray-900' : 'text-gray-600'
-      }`}
+      disabled={disabled}
+      className={`p-2 rounded-md hover:bg-gray-200 transition-colors duration-150 ${
+        isActive ? 'bg-primary-100 text-primary-700 border border-primary-200' : 'text-gray-600 hover:text-gray-900'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       title={title}
     >
       {children}
@@ -91,14 +93,13 @@ export default function RichTextEditor({
   );
 
   return (
-    <div className={`border border-gray-300 rounded-lg bg-white shadow-sm ${className}`}>
+    <div className={`border border-gray-300 rounded-lg bg-white shadow-sm focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-all duration-200 ${className}`}>
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-3 border-b border-gray-200 bg-white rounded-t-lg">
+      <div className="flex items-center gap-1 p-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
         {/* Font Size Dropdown */}
         <div className="flex items-center space-x-2 mr-4">
-          <Type className="w-4 h-4 text-gray-500" />
           <select 
-            className="text-sm border-none bg-transparent focus:outline-none"
+            className="text-sm border-none bg-transparent focus:outline-none text-gray-700 font-medium"
             onChange={(e) => {
               const size = e.target.value;
               if (size === '14') {
@@ -241,10 +242,10 @@ export default function RichTextEditor({
       </div>
 
       {/* Editor Content */}
-      <div className="p-4">
+      <div className="p-4 bg-white rounded-b-lg">
         <EditorContent 
           editor={editor} 
-          className="focus:outline-none min-h-[200px]"
+          className="focus:outline-none min-h-[200px] prose prose-sm max-w-none"
         />
       </div>
     </div>

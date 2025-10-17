@@ -451,9 +451,9 @@ export default function TaskKanban() {
                       </div>
 
                       {task.description && (
-                        <p className="text-gray-600 text-xs mb-2 line-clamp-2">
-                          {task.description}
-                        </p>
+                        <div className="text-gray-600 text-xs mb-2 line-clamp-2 prose prose-sm max-w-none">
+                          <div dangerouslySetInnerHTML={{ __html: task.description }} />
+                        </div>
                       )}
 
                       <div className="flex items-center justify-between text-xs text-gray-500">

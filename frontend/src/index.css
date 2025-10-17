@@ -152,7 +152,7 @@
 
   /* TipTap Editor Styles */
   .ProseMirror {
-    @apply outline-none min-h-[200px] p-4;
+    @apply outline-none min-h-[200px] p-4 text-gray-800 leading-relaxed;
   }
 
   .ProseMirror p.is-editor-empty:first-child::before {
@@ -161,15 +161,15 @@
   }
 
   .ProseMirror h1 {
-    @apply text-2xl font-bold text-gray-900 mb-4;
+    @apply text-2xl font-bold text-gray-900 mb-4 mt-6;
   }
 
   .ProseMirror h2 {
-    @apply text-xl font-bold text-gray-900 mb-3;
+    @apply text-xl font-bold text-gray-900 mb-3 mt-5;
   }
 
   .ProseMirror h3 {
-    @apply text-lg font-bold text-gray-900 mb-2;
+    @apply text-lg font-bold text-gray-900 mb-2 mt-4;
   }
 
   .ProseMirror p {
@@ -193,23 +193,35 @@
   }
 
   .ProseMirror blockquote {
-    @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4;
+    @apply border-l-4 border-primary-300 pl-4 italic text-gray-600 my-4 bg-gray-50 py-2 rounded-r-md;
   }
 
   .ProseMirror strong {
-    @apply font-semibold;
+    @apply font-semibold text-gray-900;
   }
 
   .ProseMirror em {
-    @apply italic;
+    @apply italic text-gray-700;
+  }
+
+  .ProseMirror u {
+    @apply underline decoration-primary-500 decoration-2;
+  }
+
+  .ProseMirror s {
+    @apply line-through text-gray-500;
+  }
+
+  .ProseMirror a {
+    @apply text-primary-600 hover:text-primary-700 underline decoration-primary-300 hover:decoration-primary-500 transition-colors duration-150;
   }
 
   .ProseMirror code {
-    @apply bg-gray-100 px-1 py-0.5 rounded text-sm font-mono;
+    @apply bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono;
   }
 
   .ProseMirror pre {
-    @apply bg-gray-100 p-4 rounded-lg overflow-x-auto my-4;
+    @apply bg-gray-100 text-gray-800 p-4 rounded-lg overflow-x-auto my-4;
   }
 
   .ProseMirror pre code {
