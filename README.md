@@ -26,11 +26,11 @@ This system provides a complete solution for academic institutions to manage res
 - AI-powered document analysis and Q&A
 - Document search and categorization
 
-### AI-Powered Analysis
+<!-- ### AI-Powered Analysis
 - RAG (Retrieval-Augmented Generation) system for document queries
 - Intelligent question answering based on uploaded documents
 - Document indexing and semantic search
-- Feedback system for AI responses
+- Feedback system for AI responses -->
 
 ### Progress Tracking
 - Visual progress charts and analytics
@@ -199,9 +199,9 @@ research-progress-system/
 - `GET /api/documents` - List documents
 - `GET /api/documents/:id` - Get document details
 
-### AI Queries
+<!-- ### AI Queries
 - `POST /api/ai/query` - Ask question about documents
-- `POST /api/ai/feedback` - Provide feedback on AI response
+- `POST /api/ai/feedback` - Provide feedback on AI response -->
 
 ## User Roles
 
