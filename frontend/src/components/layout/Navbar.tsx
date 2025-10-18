@@ -10,6 +10,7 @@ import {
   FolderOpen, 
   CheckSquare,
   FileText,
+  BookOpen,
   User as UserIcon, 
   LogOut,
   Bell,
@@ -85,6 +86,13 @@ export default function Navbar({ user }: NavbarProps) {
                   Documents
                 </Link>
                 <Link 
+                  to="/library" 
+                  className={`nav-link ${isActive('/library') ? 'nav-link-active' : ''}`}
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Library
+                </Link>
+                <Link 
                   to="/analytics" 
                   className={`nav-link ${isActive('/analytics') ? 'nav-link-active' : ''}`}
                 >
@@ -99,6 +107,16 @@ export default function Navbar({ user }: NavbarProps) {
                   Activity
                 </Link>
               </>
+            )}
+            {/* Public Library for Students (Admin/Lecturer already have it above) */}
+            {user?.role === 'STUDENT' && (
+              <Link 
+                to="/library" 
+                className={`nav-link ${isActive('/library') ? 'nav-link-active' : ''}`}
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Library
+              </Link>
             )}
             </div>
           </div>
@@ -194,6 +212,14 @@ export default function Navbar({ user }: NavbarProps) {
                     Documents
                   </Link>
                   <Link 
+                    to="/library" 
+                    className={`nav-link-mobile ${isActive('/library') ? 'nav-link-mobile-active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Library
+                  </Link>
+                  <Link 
                     to="/analytics" 
                     className={`nav-link-mobile ${isActive('/analytics') ? 'nav-link-mobile-active' : ''}`}
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -210,6 +236,17 @@ export default function Navbar({ user }: NavbarProps) {
                     User Activity
                   </Link>
                 </>
+              )}
+              {/* Public Library for Students (Admin/Lecturer already have it above) */}
+              {user?.role === 'STUDENT' && (
+                <Link 
+                  to="/library" 
+                  className={`nav-link-mobile ${isActive('/library') ? 'nav-link-mobile-active' : ''}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Library
+                </Link>
               )}
             </div>
           </div>

@@ -27,6 +27,22 @@ async function main() {
   });
   console.log('✅ Created admin user');
 
+  // Create System Project for public documents
+  const systemProject = await prisma.project.create({
+    data: {
+      id: 'system-library-project',
+      title: 'Public Library',
+      description: 'System project for public documents, reference materials, templates, and guidelines',
+      lecturerId: admin.id,
+      status: 'COMPLETED',
+      startDate: new Date(),
+      endDate: null,
+      progress: 100,
+      isSystemProject: true,
+    },
+  });
+  console.log('✅ Created system project for public documents');
+
   // Create Lecturers
   const lecturer1 = await prisma.user.create({
     data: {
@@ -359,10 +375,50 @@ async function main() {
         description: 'IoT System Design Document',
         status: 'REJECTED',
       },
+      // System project documents (Public library)
+      {
+        projectId: systemProject.id,
+        fileName: 'Research_Paper_Template.docx',
+        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/research_template.docx',
+        fileSize: 45000,
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        uploadedBy: admin.id,
+        description: 'Mẫu báo cáo nghiên cứu khoa học chuẩn cho sinh viên',
+        status: 'APPROVED',
+        category: 'TEMPLATE',
+        accessLevel: 'STUDENT',
+        isPublic: true,
+      },
+      {
+        projectId: systemProject.id,
+        fileName: 'Thesis_Guidelines.pdf',
+        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/thesis_guidelines.pdf',
+        fileSize: 2500000,
+        mimeType: 'application/pdf',
+        uploadedBy: admin.id,
+        description: 'Hướng dẫn viết luận văn tốt nghiệp - Quy định của khoa',
+        status: 'APPROVED',
+        category: 'GUIDELINE',
+        accessLevel: 'STUDENT',
+        isPublic: true,
+      },
+      {
+        projectId: systemProject.id,
+        fileName: 'Machine_Learning_Reference.pdf',
+        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/ml_reference.pdf',
+        fileSize: 5000000,
+        mimeType: 'application/pdf',
+        uploadedBy: admin.id,
+        description: 'Tài liệu tham khảo về Machine Learning cơ bản',
+        status: 'APPROVED',
+        category: 'REFERENCE',
+        accessLevel: 'STUDENT',
+        isPublic: true,
+      },
     ],
   });
 
-  console.log('✅ Created sample documents');
+  console.log('✅ Created sample documents (including public library)');
 
   // Create Notifications
   await prisma.notification.createMany({

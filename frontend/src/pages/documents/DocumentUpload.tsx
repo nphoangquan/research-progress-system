@@ -16,9 +16,11 @@ import {
 } from 'lucide-react';
 
 interface UploadDocumentRequest {
-  projectId: string;
+  projectId?: string;
   file: File;
   description?: string;
+  category?: string;
+  accessLevel?: string;
 }
 
 export default function DocumentUpload() {
@@ -40,6 +42,8 @@ export default function DocumentUpload() {
   const [description, setDescription] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>(projectId ? [projectId] : []);
+  const [category, setCategory] = useState('PROJECT');
+  const [accessLevel, setAccessLevel] = useState('RESTRICTED');
 
 
   // Fetch project info
@@ -57,9 +61,17 @@ export default function DocumentUpload() {
     mutationFn: async (data: UploadDocumentRequest) => {
       const formData = new FormData();
       formData.append('file', data.file);
-      formData.append('projectId', data.projectId);
+      if (data.projectId) {
+        formData.append('projectId', data.projectId);
+      }
       if (data.description) {
         formData.append('description', data.description);
+      }
+      if (data.category) {
+        formData.append('category', data.category);
+      }
+      if (data.accessLevel) {
+        formData.append('accessLevel', data.accessLevel);
       }
 
       const response = await api.post('/documents/upload', formData, {
@@ -147,13 +159,22 @@ export default function DocumentUpload() {
       return;
     }
 
-    if (!projectId && selectedProjectIds.length === 0) {
-      toast.error('Please select at least one project');
-      return;
+    // Validate based on category
+    if (category === 'PROJECT') {
+      if (!projectId && selectedProjectIds.length === 0) {
+        toast.error('Please select at least one project');
+        return;
+      }
+    } else {
+      // For non-PROJECT categories, only ADMIN can upload
+      if (user.role !== 'ADMIN') {
+        toast.error('Only admins can upload reference materials, templates, and guidelines');
+        return;
+      }
     }
 
     // If multiple projects selected, upload to each one
-    if (selectedProjectIds.length > 1) {
+    if (selectedProjectIds.length > 1 && category === 'PROJECT') {
       let successCount = 0;
       let errorCount = 0;
       
@@ -162,7 +183,9 @@ export default function DocumentUpload() {
           await uploadMutation.mutateAsync({
             projectId: projectIdToUpload,
             file,
-            description: description.trim() || undefined
+            description: description.trim() || undefined,
+            category,
+            accessLevel
           });
           successCount++;
         } catch (error) {
@@ -180,11 +203,13 @@ export default function DocumentUpload() {
         toast.error('Failed to upload document to any project');
       }
     } else {
-      // Single project upload
+      // Single project upload or non-PROJECT category upload
       uploadMutation.mutate({
-        projectId: projectId || selectedProjectIds[0],
+        projectId: category === 'PROJECT' ? (projectId || selectedProjectIds[0] || undefined) : undefined,
         file,
-        description: description.trim() || undefined
+        description: description.trim() || undefined,
+        category,
+        accessLevel
       });
     }
   };
@@ -228,7 +253,7 @@ export default function DocumentUpload() {
             <div className="card-body">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Project Selection */}
-                {!projectId && (
+                {!projectId && category === 'PROJECT' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Project(s) <span className="text-error-500">*</span>
@@ -239,6 +264,71 @@ export default function DocumentUpload() {
                       multiple={true}
                       placeholder="Select project(s)..."
                     />
+                  </div>
+                )}
+
+                {/* Document Category */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Document Category <span className="text-error-500">*</span>
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      // Auto-adjust access level based on category
+                      if (e.target.value === 'REFERENCE' || e.target.value === 'TEMPLATE' || e.target.value === 'GUIDELINE') {
+                        setAccessLevel('STUDENT');
+                      } else if (e.target.value === 'SYSTEM') {
+                        setAccessLevel('PUBLIC');
+                      } else {
+                        setAccessLevel('RESTRICTED');
+                      }
+                    }}
+                    className="input"
+                  >
+                    <option value="PROJECT">Project Document</option>
+                    {user.role === 'ADMIN' && (
+                      <>
+                        <option value="REFERENCE">Reference Material</option>
+                        <option value="TEMPLATE">Template</option>
+                        <option value="GUIDELINE">Guideline</option>
+                        <option value="SYSTEM">System Document</option>
+                      </>
+                    )}
+                  </select>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {category === 'PROJECT' && 'Document specific to a project'}
+                    {category === 'REFERENCE' && 'Reference material for all students'}
+                    {category === 'TEMPLATE' && 'Template or sample document'}
+                    {category === 'GUIDELINE' && 'Guideline or instruction document'}
+                    {category === 'SYSTEM' && 'System document (admin only)'}
+                  </p>
+                </div>
+
+                {/* Access Level */}
+                {category !== 'PROJECT' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Access Level
+                    </label>
+                    <select
+                      value={accessLevel}
+                      onChange={(e) => setAccessLevel(e.target.value)}
+                      className="input"
+                      disabled={category === 'SYSTEM'}
+                    >
+                      <option value="RESTRICTED">Project Members Only</option>
+                      <option value="STUDENT">All Students</option>
+                      <option value="LECTURER">All Lecturers</option>
+                      <option value="PUBLIC">Everyone</option>
+                    </select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {accessLevel === 'RESTRICTED' && 'Only project members can access'}
+                      {accessLevel === 'STUDENT' && 'All students can access'}
+                      {accessLevel === 'LECTURER' && 'All lecturers can access'}
+                      {accessLevel === 'PUBLIC' && 'Everyone can access'}
+                    </p>
                   </div>
                 )}
 

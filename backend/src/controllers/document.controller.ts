@@ -17,7 +17,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
       });
     }
 
-    const { projectId, description } = req.body;
+    const { projectId, description, category, accessLevel } = req.body;
     const userId = req.user!.userId;
     const userRole = req.user!.role;
 
@@ -54,20 +54,53 @@ export const uploadDocument = async (req: Request, res: Response) => {
       });
     }
 
-    // Validation
-    if (!projectId) {
-      return res.status(400).json({ 
-        error: 'Project ID is required' 
-      });
+    // Determine document category and project
+    const documentCategory = category || 'PROJECT';
+    let finalProjectId = projectId;
+    let finalAccessLevel = accessLevel || 'RESTRICTED';
+    let isPublic = false;
+
+    // Handle different document categories
+    switch (documentCategory) {
+      case 'REFERENCE':
+      case 'TEMPLATE':
+      case 'GUIDELINE':
+        // These documents go to system project and are public
+        finalProjectId = 'system-library-project';
+        finalAccessLevel = 'STUDENT';
+        isPublic = true;
+        break;
+      case 'SYSTEM':
+        // Only admins can upload system documents
+        if (userRole !== 'ADMIN') {
+          return res.status(403).json({ 
+            error: 'Only admins can upload system documents' 
+          });
+        }
+        finalProjectId = 'system-library-project';
+        finalAccessLevel = 'PUBLIC';
+        isPublic = true;
+        break;
+      case 'PROJECT':
+      default:
+        // Regular project documents
+        if (!projectId) {
+          return res.status(400).json({ 
+            error: 'Project ID is required for project documents' 
+          });
+        }
+        break;
     }
 
     // Check if project exists and user has access
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
+    let project = null;
+    project = await prisma.project.findUnique({
+      where: { id: finalProjectId },
       select: { 
         id: true, 
         title: true,
         lecturerId: true,
+        isSystemProject: true,
         students: {
           select: {
             studentId: true
@@ -82,23 +115,26 @@ export const uploadDocument = async (req: Request, res: Response) => {
       });
     }
 
-    // Check permissions
-    if (userRole === 'STUDENT') {
-      const isStudentInProject = project.students.some(
-        (ps: any) => ps.studentId === userId
-      );
-      if (!isStudentInProject) {
+    // Check permissions (skip for system project)
+    if (!project.isSystemProject) {
+      if (userRole === 'STUDENT') {
+        const isStudentInProject = project.students.some(
+          (ps: any) => ps.studentId === userId
+        );
+        if (!isStudentInProject) {
+          return res.status(403).json({ 
+            error: 'Access denied to this project' 
+          });
+        }
+      }
+
+      if (userRole === 'LECTURER' && project.lecturerId !== userId) {
         return res.status(403).json({ 
           error: 'Access denied to this project' 
         });
       }
     }
-
-    if (userRole === 'LECTURER' && project.lecturerId !== userId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this project' 
-      });
-    }
+    // ADMIN has access to all projects including system project
 
     // Upload to Cloudinary
     const cloudinaryResult = await uploadFile(req.file);
@@ -107,13 +143,16 @@ export const uploadDocument = async (req: Request, res: Response) => {
       // Save to database
       const document = await prisma.document.create({
         data: {
-          projectId,
+          projectId: finalProjectId,
           fileName: req.file.originalname,
           fileUrl: cloudinaryResult.secure_url,
           fileSize: req.file.size,
           mimeType: req.file.mimetype,
           uploadedBy: userId,
           description: description || null,
+          category: documentCategory,
+          accessLevel: finalAccessLevel,
+          isPublic: isPublic,
           indexStatus: 'PENDING'
         },
         include: {
@@ -136,13 +175,15 @@ export const uploadDocument = async (req: Request, res: Response) => {
       await ActivityService.logActivity({
         userId: userId,
         type: 'DOCUMENT_UPLOADED',
-        description: `uploaded document "${req.file.originalname}"`,
-        projectId: projectId,
+        description: `uploaded ${documentCategory.toLowerCase()} document "${req.file.originalname}"`,
+        projectId: finalProjectId,
         documentId: document.id,
         metadata: {
           fileName: req.file.originalname,
           fileSize: req.file.size,
-          mimeType: req.file.mimetype
+          mimeType: req.file.mimetype,
+          category: documentCategory,
+          accessLevel: finalAccessLevel
         }
       });
 
@@ -185,9 +226,25 @@ export const uploadDocument = async (req: Request, res: Response) => {
  */
 export const getDocuments = async (req: Request, res: Response) => {
   try {
-    const { projectId, status, projectFilter, uploader, fileType, uploadDate, search } = req.query;
+    const { 
+      projectId, 
+      status, 
+      projectFilter, 
+      uploader, 
+      fileType, 
+      uploadDate, 
+      search,
+      category,
+      page = '1',
+      limit = '20'
+    } = req.query;
     const userId = req.user!.userId;
     const userRole = req.user!.role;
+
+    // Parse pagination parameters
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+    const skip = (pageNum - 1) * limitNum;
 
     // Build filter conditions
     const buildFilters = (baseWhere: any) => {
@@ -228,6 +285,11 @@ export const getDocuments = async (req: Request, res: Response) => {
         if (mimeTypeMap[fileType as string]) {
           filters.mimeType = { in: mimeTypeMap[fileType as string] };
         }
+      }
+
+      // Category filter
+      if (category) {
+        filters.category = category;
       }
 
       // Upload date filter
@@ -298,22 +360,45 @@ export const getDocuments = async (req: Request, res: Response) => {
       // Apply filters
       whereClause = buildFilters(whereClause);
 
-      const documents = await prisma.document.findMany({
-        where: whereClause,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          project: {
-            select: {
-              id: true,
-              title: true
+      const [documents, totalCount] = await Promise.all([
+        prisma.document.findMany({
+          where: whereClause,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limitNum,
+          include: {
+            project: {
+              select: {
+                id: true,
+                title: true
+              }
+            },
+            uploader: {
+              select: {
+                id: true,
+                fullName: true
+              }
             }
           }
-        }
-      });
+        }),
+        prisma.document.count({
+          where: whereClause
+        })
+      ]);
+
+      const totalPages = Math.ceil(totalCount / limitNum);
 
       return res.json({
         message: 'Documents retrieved successfully',
-        documents
+        documents,
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalCount,
+          limit: limitNum,
+          hasNext: pageNum < totalPages,
+          hasPrev: pageNum > 1
+        }
       });
     }
 
@@ -323,6 +408,7 @@ export const getDocuments = async (req: Request, res: Response) => {
       select: { 
         id: true, 
         lecturerId: true,
+        isSystemProject: true,
         students: {
           select: {
             studentId: true
@@ -337,43 +423,69 @@ export const getDocuments = async (req: Request, res: Response) => {
       });
     }
 
-    // Check permissions
-    if (userRole === 'STUDENT') {
-      const isStudentInProject = project.students.some(
-        (ps: any) => ps.studentId === userId
-      );
-      if (!isStudentInProject) {
+    // Check permissions (skip for system project)
+    if (!project.isSystemProject) {
+      if (userRole === 'STUDENT') {
+        const isStudentInProject = project.students.some(
+          (ps: any) => ps.studentId === userId
+        );
+        if (!isStudentInProject) {
+          return res.status(403).json({ 
+            error: 'Access denied to this project' 
+          });
+        }
+      }
+
+      if (userRole === 'LECTURER' && project.lecturerId !== userId) {
         return res.status(403).json({ 
           error: 'Access denied to this project' 
         });
       }
     }
-
-    if (userRole === 'LECTURER' && project.lecturerId !== userId) {
-      return res.status(403).json({ 
-        error: 'Access denied to this project' 
-      });
-    }
+    // ADMIN has access to all projects including system project
 
     // Apply filters for project-specific documents
     const whereClause = buildFilters({ projectId: projectId as string });
 
-    const documents = await prisma.document.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        project: {
-          select: {
-            id: true,
-            title: true
+    const [documents, totalCount] = await Promise.all([
+      prisma.document.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNum,
+        include: {
+          project: {
+            select: {
+              id: true,
+              title: true
+            }
+          },
+          uploader: {
+            select: {
+              id: true,
+              fullName: true
+            }
           }
         }
-      }
-    });
+      }),
+      prisma.document.count({
+        where: whereClause
+      })
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limitNum);
 
     res.json({
       message: 'Documents retrieved successfully',
-      documents
+      documents,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCount,
+        limit: limitNum,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
+      }
     });
 
   } catch (error) {
@@ -655,6 +767,133 @@ export const updateIndexStatus = async (req: Request, res: Response) => {
     console.error('Update index status error:', error);
     res.status(500).json({ 
       error: 'Failed to update index status' 
+    });
+  }
+};
+
+/**
+ * Get document statistics by category
+ */
+export const getDocumentStats = async (req: Request, res: Response) => {
+  try {
+    const { projectId } = req.query;
+    const userId = req.user!.userId;
+    const userRole = req.user!.role;
+
+    // Build base where clause
+    let whereClause: any = {};
+
+    if (projectId) {
+      // Check if project exists and user has access
+      const project = await prisma.project.findUnique({
+        where: { id: projectId as string },
+        select: { 
+          id: true, 
+          title: true,
+          lecturerId: true,
+          isSystemProject: true,
+          students: {
+            select: {
+              studentId: true
+            }
+          }
+        }
+      });
+
+      if (!project) {
+        return res.status(404).json({ 
+          error: 'Project not found' 
+        });
+      }
+
+      // Check permissions (skip for system project)
+      if (!project.isSystemProject) {
+        if (userRole === 'STUDENT') {
+          const isStudentInProject = project.students.some(
+            (ps: any) => ps.studentId === userId
+          );
+          if (!isStudentInProject) {
+            return res.status(403).json({ 
+              error: 'Access denied to this project' 
+            });
+          }
+        }
+
+        if (userRole === 'LECTURER' && project.lecturerId !== userId) {
+          return res.status(403).json({ 
+            error: 'Access denied to this project' 
+          });
+        }
+      }
+
+      whereClause.projectId = projectId as string;
+    } else {
+      // For all documents, apply role-based filtering
+      if (userRole === 'STUDENT') {
+        // Students can only see documents from their projects + public documents
+        const studentProjects = await prisma.projectStudent.findMany({
+          where: { studentId: userId },
+          select: { projectId: true }
+        });
+        
+        const projectIds = studentProjects.map(p => p.projectId);
+        projectIds.push('system-library-project'); // Include system project for public docs
+        
+        whereClause.projectId = { in: projectIds };
+      } else if (userRole === 'LECTURER') {
+        // Lecturers can see documents from their projects + public documents
+        const lecturerProjects = await prisma.project.findMany({
+          where: { lecturerId: userId },
+          select: { id: true }
+        });
+        
+        const projectIds = lecturerProjects.map(p => p.id);
+        projectIds.push('system-library-project'); // Include system project for public docs
+        
+        whereClause.projectId = { in: projectIds };
+      }
+      // ADMIN can see all documents
+    }
+
+    // Get statistics by category
+    const stats = await prisma.document.groupBy({
+      by: ['category'],
+      where: whereClause,
+      _count: {
+        id: true
+      }
+    });
+
+    // Get total count
+    const totalCount = await prisma.document.count({
+      where: whereClause
+    });
+
+    // Format stats
+    const categoryStats = stats.map(stat => ({
+      category: stat.category,
+      count: stat._count.id
+    }));
+
+    // Add missing categories with 0 count
+    const allCategories = ['PROJECT', 'REFERENCE', 'TEMPLATE', 'GUIDELINE', 'SYSTEM'];
+    const completeStats = allCategories.map(category => {
+      const existingStat = categoryStats.find(stat => stat.category === category);
+      return {
+        category,
+        count: existingStat ? existingStat.count : 0
+      };
+    });
+
+    res.json({
+      totalCount,
+      categoryStats: completeStats
+    });
+
+  } catch (error) {
+    console.error('Get document stats error:', error);
+    res.status(500).json({ 
+      error: 'Failed to get document statistics' 
     });
   }
 };

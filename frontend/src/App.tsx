@@ -26,6 +26,7 @@ import ProjectDocumentList from './pages/projects/ProjectDocumentList';
 import DocumentDetail from './pages/documents/DocumentDetail';
 import DocumentUpload from './pages/documents/DocumentUpload';
 import DocumentEdit from './pages/documents/DocumentEdit';
+import PublicLibrary from './pages/documents/PublicLibrary';
 import Analytics from './pages/Analytics';
 import UserActivity from './pages/UserActivity';
 import ProjectProgress from './pages/projects/ProjectProgress';
@@ -257,6 +258,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <DocumentDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/library" 
+            element={
+              <ProtectedRoute>
+                <PublicLibrary />
               </ProtectedRoute>
             } 
           />

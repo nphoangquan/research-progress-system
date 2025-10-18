@@ -7,12 +7,13 @@ import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import ProjectFilterSelector from '../../components/ui/ProjectFilterSelector';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
+import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { 
   Plus, 
   Search, 
-  FileText, 
+  FileText,
   Download, 
   Eye, 
   Edit, 
@@ -37,6 +38,9 @@ interface Document {
   mimeType: string;
   uploadedBy: string;
   description?: string;
+  category: 'PROJECT' | 'REFERENCE' | 'TEMPLATE' | 'GUIDELINE' | 'SYSTEM';
+  accessLevel: 'RESTRICTED' | 'STUDENT' | 'LECTURER' | 'PUBLIC';
+  isPublic: boolean;
   indexStatus: 'PENDING' | 'PROCESSING' | 'INDEXED' | 'FAILED';
   indexedAt?: string;
   chunkCount?: number;
@@ -70,12 +74,15 @@ export default function DocumentList() {
     uploader: [] as string[],
     fileType: '',
     uploadDate: '',
-    search: ''
+    search: '',
+    category: ''
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Fetch documents
-  const { data: documents, isLoading } = useQuery({
-    queryKey: ['documents', projectId, filters],
+  const { data: documentsData, isLoading } = useQuery({
+    queryKey: ['documents', projectId, filters, currentPage, pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (projectId) params.append('projectId', projectId);
@@ -89,11 +96,31 @@ export default function DocumentList() {
       if (filters.fileType) params.append('fileType', filters.fileType);
       if (filters.uploadDate) params.append('uploadDate', filters.uploadDate);
       if (filters.search) params.append('search', filters.search);
+      if (filters.category) params.append('category', filters.category);
+
+      // Add pagination parameters
+      params.append('page', currentPage.toString());
+      params.append('limit', pageSize.toString());
 
       const response = await api.get(`/documents?${params.toString()}`);
-      return response.data.documents;
+      return response.data;
     },
   });
+
+  // Fetch document statistics
+  const { data: statsData } = useQuery({
+    queryKey: ['document-stats', projectId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (projectId) params.append('projectId', projectId);
+      
+      const response = await api.get(`/documents/stats?${params.toString()}`);
+      return response.data;
+    },
+  });
+
+  const documents = documentsData?.documents || [];
+  const pagination = documentsData?.pagination;
 
   // Fetch project info
   const { data: project } = useQuery({
@@ -120,20 +147,20 @@ export default function DocumentList() {
     },
   });
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <Clock className="w-4 h-4 text-yellow-500" />;
-      case 'PROCESSING':
-        return <Clock className="w-4 h-4 text-blue-500" />;
-      case 'INDEXED':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'FAILED':
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      default:
-        return <AlertCircle className="w-4 h-4 text-gray-500" />;
-    }
-  };
+  // const getStatusIcon = (status: string) => {
+  //   switch (status) {
+  //     case 'PENDING':
+  //       return <Clock className="w-4 h-4 text-yellow-500" />;
+  //     case 'PROCESSING':
+  //       return <Clock className="w-4 h-4 text-blue-500" />;
+  //     case 'INDEXED':
+  //       return <CheckCircle className="w-4 h-4 text-green-500" />;
+  //     case 'FAILED':
+  //       return <XCircle className="w-4 h-4 text-red-500" />;
+  //     default:
+  //       return <AlertCircle className="w-4 h-4 text-gray-500" />;
+  //   }
+  // };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -147,6 +174,40 @@ export default function DocumentList() {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'PROJECT':
+        return 'bg-blue-50 text-blue-700 border border-blue-200';
+      case 'REFERENCE':
+        return 'bg-blue-50 text-blue-700 border border-blue-200';
+      case 'TEMPLATE':
+        return 'bg-gray-50 text-gray-700 border border-gray-200';
+      case 'GUIDELINE':
+        return 'bg-slate-50 text-slate-700 border border-slate-200';
+      case 'SYSTEM':
+        return 'bg-indigo-50 text-indigo-700 border border-indigo-200';
+      default:
+        return 'bg-gray-50 text-gray-700 border border-gray-200';
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case 'PROJECT':
+        return 'Project';
+      case 'REFERENCE':
+        return 'Reference';
+      case 'TEMPLATE':
+        return 'Template';
+      case 'GUIDELINE':
+        return 'Guideline';
+      case 'SYSTEM':
+        return 'System';
+      default:
+        return category;
     }
   };
 
@@ -192,7 +253,7 @@ export default function DocumentList() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user} />
-        <div className="container py-8">
+        <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading documents...</p>
@@ -206,7 +267,7 @@ export default function DocumentList() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
       
-      <div className="container py-8">
+      <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -240,6 +301,29 @@ export default function DocumentList() {
           </div>
         </div>
 
+        {/* Statistics - Compact Horizontal Design */}
+        {statsData && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-4 sm:gap-8">
+                <div className="flex items-center space-x-2">
+                  <FileText className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm text-gray-500">Total:</span>
+                  <span className="text-lg font-semibold text-gray-900">{statsData.totalCount}</span>
+                </div>
+                
+                {statsData.categoryStats.map((stat: any) => (
+                  <div key={stat.category} className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-500">{getCategoryLabel(stat.category)}:</span>
+                    <span className="text-lg font-semibold text-gray-900">{stat.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="card mb-6">
           <div className="card-body p-4">
@@ -267,15 +351,18 @@ export default function DocumentList() {
 
                 {/* Clear Filters */}
                 <button
-                  onClick={() => setFilters({ status: '', projectFilter: [], uploader: [], fileType: '', uploadDate: '', search: '' })}
+                  onClick={() => {
+                    setFilters({ status: '', projectFilter: [], uploader: [], fileType: '', uploadDate: '', search: '', category: '' });
+                    setCurrentPage(1);
+                  }}
                   className="btn-ghost whitespace-nowrap h-10 px-4"
                 >
                   Clear Filters
                 </button>
               </div>
 
-              {/* First Filter Row - Status, Dates, File Types */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* First Filter Row - Status, Dates, File Types, Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Status Filter */}
                 <SelectDropdown
                   label=""
@@ -322,6 +409,22 @@ export default function DocumentList() {
                   onChange={(fileType) => setFilters(prev => ({ ...prev, fileType }))}
                   placeholder="All File Types"
                 />
+
+                {/* Category Filter */}
+                <SelectDropdown
+                  label=""
+                  options={[
+                    { id: '', fullName: 'All Categories' },
+                    { id: 'PROJECT', fullName: 'Project Documents' },
+                    { id: 'REFERENCE', fullName: 'Reference Materials' },
+                    { id: 'TEMPLATE', fullName: 'Templates' },
+                    { id: 'GUIDELINE', fullName: 'Guidelines' },
+                    { id: 'SYSTEM', fullName: 'System Documents' }
+                  ]}
+                  value={filters.category}
+                  onChange={(category) => setFilters(prev => ({ ...prev, category }))}
+                  placeholder="All Categories"
+                />
               </div>
 
               {/* Second Filter Row - Projects, Uploaders */}
@@ -350,7 +453,7 @@ export default function DocumentList() {
         <div className="card">
           <div className="card-body">
             {documents && documents.length > 0 ? (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {documents.map((document: Document) => (
                   <div
                     key={document.id}
@@ -363,9 +466,14 @@ export default function DocumentList() {
                             <FileText className="w-5 h-5 text-gray-500" />
                           </div>
                           <h3 className="font-medium text-gray-900 flex-1">{document.fileName}</h3>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${getStatusColor(document.indexStatus)}`}>
-                            {document.indexStatus}
-                          </span>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(document.category)}`}>
+                              {getCategoryLabel(document.category)}
+                            </span>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(document.indexStatus)}`}>
+                              {document.indexStatus}
+                            </span>
+                          </div>
                         </div>
                         
                         {document.description && (
@@ -450,6 +558,18 @@ export default function DocumentList() {
             )}
           </div>
         </div>
+
+        {/* Pagination */}
+        {pagination && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalCount={pagination.totalCount}
+            limit={pagination.limit}
+            onPageChange={setCurrentPage}
+            className="mt-8"
+          />
+        )}
       </div>
     </div>
   );

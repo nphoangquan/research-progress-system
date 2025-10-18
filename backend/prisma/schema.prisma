@@ -58,6 +58,7 @@ model Project {
   startDate       DateTime  @map("start_date")
   endDate         DateTime? @map("end_date")
   progress        Int       @default(0)
+  isSystemProject Boolean   @default(false) @map("is_system_project")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -71,6 +72,7 @@ model Project {
   activities      Activity[]
 
   @@index([lecturerId])
+  @@index([isSystemProject])
   @@map("projects")
 }
 
@@ -162,6 +164,11 @@ model Document {
   description     String?   @db.Text
   status          DocumentStatus @default(PENDING)
   
+  // Document Categories & Access Control
+  category        DocumentCategory @default(PROJECT)
+  accessLevel     AccessLevel @default(RESTRICTED) @map("access_level")
+  isPublic        Boolean   @default(false) @map("is_public")
+  
   // AI Processing Status
   indexStatus     IndexStatus @default(PENDING) @map("index_status")
   indexedAt       DateTime?   @map("indexed_at")
@@ -179,6 +186,9 @@ model Document {
 
   @@index([projectId])
   @@index([uploadedBy])
+  @@index([category])
+  @@index([accessLevel])
+  @@index([isPublic])
   @@map("documents")
 }
 
@@ -193,6 +203,21 @@ enum DocumentStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum DocumentCategory {
+  PROJECT
+  REFERENCE
+  TEMPLATE
+  GUIDELINE
+  SYSTEM
+}
+
+enum AccessLevel {
+  RESTRICTED
+  STUDENT
+  LECTURER
+  PUBLIC
 }
 
 // ============================================================================

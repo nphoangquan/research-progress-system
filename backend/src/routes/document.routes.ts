@@ -5,7 +5,8 @@ import {
   getDocumentById,
   updateDocument,
   deleteDocument,
-  updateIndexStatus
+  updateIndexStatus,
+  getDocumentStats
 } from '../controllers/document.controller';
 import { verifyToken } from '../middleware/auth.middleware';
 import { upload, handleUploadError } from '../middleware/upload.middleware';
@@ -31,6 +32,14 @@ router.post('/upload', upload.single('file'), handleUploadError, uploadDocument)
  * @query   { projectId }
  */
 router.get('/', getDocuments);
+
+/**
+ * @route   GET /api/documents/stats
+ * @desc    Get document statistics by category
+ * @access  Private (Project member)
+ * @query   { projectId? }
+ */
+router.get('/stats', getDocumentStats);
 
 /**
  * @route   GET /api/documents/:id
