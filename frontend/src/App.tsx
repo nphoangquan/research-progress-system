@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { queryClient } from './lib/queryClient';
 import { WebSocketProvider } from './contexts/WebSocketContext';
+import ErrorBoundary from './components/ErrorBoundary';
 // import { useAuth } from './hooks/useAuth';
 
 // Pages
@@ -337,9 +338,11 @@ function AppContent() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppContent />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AppContent />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

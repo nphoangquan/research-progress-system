@@ -115,26 +115,27 @@ export const uploadDocument = async (req: Request, res: Response) => {
       });
     }
 
-    // Check permissions (skip for system project)
-    if (!project.isSystemProject) {
-      if (userRole === 'STUDENT') {
-        const isStudentInProject = project.students.some(
-          (ps: any) => ps.studentId === userId
-        );
-        if (!isStudentInProject) {
+    // Check permissions (ADMIN has access to all projects)
+    if (userRole !== 'ADMIN') {
+      if (!project.isSystemProject) {
+        if (userRole === 'STUDENT') {
+          const isStudentInProject = project.students.some(
+            (ps: any) => ps.studentId === userId
+          );
+          if (!isStudentInProject) {
+            return res.status(403).json({ 
+              error: 'Access denied to this project' 
+            });
+          }
+        }
+
+        if (userRole === 'LECTURER' && project.lecturerId !== userId) {
           return res.status(403).json({ 
             error: 'Access denied to this project' 
           });
         }
       }
-
-      if (userRole === 'LECTURER' && project.lecturerId !== userId) {
-        return res.status(403).json({ 
-          error: 'Access denied to this project' 
-        });
-      }
     }
-    // ADMIN has access to all projects including system project
 
     // Upload to Cloudinary
     const cloudinaryResult = await uploadFile(req.file);
@@ -423,26 +424,27 @@ export const getDocuments = async (req: Request, res: Response) => {
       });
     }
 
-    // Check permissions (skip for system project)
-    if (!project.isSystemProject) {
-      if (userRole === 'STUDENT') {
-        const isStudentInProject = project.students.some(
-          (ps: any) => ps.studentId === userId
-        );
-        if (!isStudentInProject) {
+    // Check permissions (ADMIN has access to all projects)
+    if (userRole !== 'ADMIN') {
+      if (!project.isSystemProject) {
+        if (userRole === 'STUDENT') {
+          const isStudentInProject = project.students.some(
+            (ps: any) => ps.studentId === userId
+          );
+          if (!isStudentInProject) {
+            return res.status(403).json({ 
+              error: 'Access denied to this project' 
+            });
+          }
+        }
+
+        if (userRole === 'LECTURER' && project.lecturerId !== userId) {
           return res.status(403).json({ 
             error: 'Access denied to this project' 
           });
         }
       }
-
-      if (userRole === 'LECTURER' && project.lecturerId !== userId) {
-        return res.status(403).json({ 
-          error: 'Access denied to this project' 
-        });
-      }
     }
-    // ADMIN has access to all projects including system project
 
     // Apply filters for project-specific documents
     const whereClause = buildFilters({ projectId: projectId as string });
@@ -806,23 +808,25 @@ export const getDocumentStats = async (req: Request, res: Response) => {
         });
       }
 
-      // Check permissions (skip for system project)
-      if (!project.isSystemProject) {
-        if (userRole === 'STUDENT') {
-          const isStudentInProject = project.students.some(
-            (ps: any) => ps.studentId === userId
-          );
-          if (!isStudentInProject) {
+      // Check permissions (ADMIN has access to all projects)
+      if (userRole !== 'ADMIN') {
+        if (!project.isSystemProject) {
+          if (userRole === 'STUDENT') {
+            const isStudentInProject = project.students.some(
+              (ps: any) => ps.studentId === userId
+            );
+            if (!isStudentInProject) {
+              return res.status(403).json({ 
+                error: 'Access denied to this project' 
+              });
+            }
+          }
+
+          if (userRole === 'LECTURER' && project.lecturerId !== userId) {
             return res.status(403).json({ 
               error: 'Access denied to this project' 
             });
           }
-        }
-
-        if (userRole === 'LECTURER' && project.lecturerId !== userId) {
-          return res.status(403).json({ 
-            error: 'Access denied to this project' 
-          });
         }
       }
 
@@ -837,7 +841,16 @@ export const getDocumentStats = async (req: Request, res: Response) => {
         });
         
         const projectIds = studentProjects.map(p => p.projectId);
-        projectIds.push('system-library-project'); // Include system project for public docs
+        
+        // Ensure system project exists
+        const systemProject = await prisma.project.findUnique({
+          where: { id: 'system-library-project' },
+          select: { id: true }
+        });
+        
+        if (systemProject) {
+          projectIds.push('system-library-project');
+        }
         
         whereClause.projectId = { in: projectIds };
       } else if (userRole === 'LECTURER') {
@@ -848,7 +861,16 @@ export const getDocumentStats = async (req: Request, res: Response) => {
         });
         
         const projectIds = lecturerProjects.map(p => p.id);
-        projectIds.push('system-library-project'); // Include system project for public docs
+        
+        // Ensure system project exists
+        const systemProject = await prisma.project.findUnique({
+          where: { id: 'system-library-project' },
+          select: { id: true }
+        });
+        
+        if (systemProject) {
+          projectIds.push('system-library-project');
+        }
         
         whereClause.projectId = { in: projectIds };
       }

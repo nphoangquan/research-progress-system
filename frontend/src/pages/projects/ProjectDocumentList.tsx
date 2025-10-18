@@ -27,6 +27,13 @@ import {
   Filter,
   ArrowLeft
 } from 'lucide-react';
+import { 
+  useCategoryOptions, 
+  useStatusOptions, 
+  useFileTypeOptions, 
+  useUploadDateOptions,
+  useDebounce
+} from '../../hooks/useDocumentOptimization';
 
 interface Document {
   id: string;
@@ -137,7 +144,7 @@ export default function ProjectDocumentList() {
   const pagination = documentsData?.pagination;
 
   // Fetch document statistics
-  const { data: statsData } = useQuery({
+  const { data: statsData, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['document-stats', projectId],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -147,6 +154,10 @@ export default function ProjectDocumentList() {
       return response.data;
     },
     enabled: !!projectId,
+    retry: 2,
+    onError: (error) => {
+      console.error('Failed to load document statistics:', error);
+    }
   });
 
   // Delete document mutation
@@ -314,7 +325,25 @@ export default function ProjectDocumentList() {
         </div>
 
         {/* Statistics - Compact Horizontal Design */}
-        {statsData && (
+        {statsLoading && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+              <span className="text-sm text-gray-500">Loading statistics...</span>
+            </div>
+          </div>
+        )}
+
+        {statsError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <div className="text-red-600 mr-2">⚠️</div>
+              <span className="text-sm text-red-700">Failed to load statistics. Please try again.</span>
+            </div>
+          </div>
+        )}
+
+        {statsData && !statsError && (
           <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-4 sm:gap-8">

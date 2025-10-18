@@ -1,4 +1,3 @@
-import React from 'react';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +10,6 @@ import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { 
-  Plus, 
   Search, 
   FileText,
   Download, 
@@ -19,15 +17,16 @@ import {
   Edit, 
   Trash2, 
   Calendar, 
-  User,
-  AlertCircle,
-  Clock,
-  CheckCircle,
-  XCircle,
   Upload,
-  Filter,
   ArrowLeft
 } from 'lucide-react';
+import { 
+  useCategoryOptions, 
+  useStatusOptions, 
+  useFileTypeOptions, 
+  useUploadDateOptions,
+  useDebounce
+} from '../../hooks/useDocumentOptimization';
 
 interface Document {
   id: string;
@@ -80,9 +79,18 @@ export default function DocumentList() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  // Fetch documents
+  // Memoized options for better performance
+  const categoryOptions = useCategoryOptions();
+  const statusOptions = useStatusOptions();
+  const fileTypeOptions = useFileTypeOptions();
+  const uploadDateOptions = useUploadDateOptions();
+
+  // Debounced search for better performance
+  const debouncedSearch = useDebounce(filters.search, 300);
+
+  // Fetch documents and statistics in parallel
   const { data: documentsData, isLoading } = useQuery({
-    queryKey: ['documents', projectId, filters, currentPage, pageSize],
+    queryKey: ['documents', projectId, filters, currentPage, pageSize, debouncedSearch],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (projectId) params.append('projectId', projectId);
@@ -95,7 +103,7 @@ export default function DocumentList() {
       }
       if (filters.fileType) params.append('fileType', filters.fileType);
       if (filters.uploadDate) params.append('uploadDate', filters.uploadDate);
-      if (filters.search) params.append('search', filters.search);
+      if (debouncedSearch) params.append('search', debouncedSearch);
       if (filters.category) params.append('category', filters.category);
 
       // Add pagination parameters
@@ -108,7 +116,7 @@ export default function DocumentList() {
   });
 
   // Fetch document statistics
-  const { data: statsData } = useQuery({
+  const { data: statsData, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['document-stats', projectId],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -117,6 +125,7 @@ export default function DocumentList() {
       const response = await api.get(`/documents/stats?${params.toString()}`);
       return response.data;
     },
+    retry: 2,
   });
 
   const documents = documentsData?.documents || [];
@@ -302,17 +311,35 @@ export default function DocumentList() {
         </div>
 
         {/* Statistics - Compact Horizontal Design */}
-        {statsData && (
+        {statsLoading && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+              <span className="text-sm text-gray-500">Loading statistics...</span>
+            </div>
+          </div>
+        )}
+
+        {statsError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <div className="text-red-600 mr-2">⚠️</div>
+              <span className="text-sm text-red-700">Failed to load statistics. Please try again.</span>
+            </div>
+          </div>
+        )}
+
+        {statsData && !statsError && (
           <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-4 sm:gap-8">
                 <div className="flex items-center space-x-2">
                   <FileText className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-500">Total:</span>
-                  <span className="text-lg font-semibold text-gray-900">{statsData.totalCount}</span>
+                  <span className="text-lg font-semibold text-gray-900">{(statsData as any).totalCount}</span>
                 </div>
                 
-                {statsData.categoryStats.map((stat: any) => (
+                {statsData && (statsData as any).categoryStats.map((stat: any) => (
                   <div key={stat.category} className="flex items-center space-x-2">
                     <FileText className="w-4 h-4 text-gray-600" />
                     <span className="text-sm text-gray-500">{getCategoryLabel(stat.category)}:</span>
@@ -366,13 +393,7 @@ export default function DocumentList() {
                 {/* Status Filter */}
                 <SelectDropdown
                   label=""
-                  options={[
-                    { id: '', fullName: 'All Status' },
-                    { id: 'PENDING', fullName: 'Pending' },
-                    { id: 'PROCESSING', fullName: 'Processing' },
-                    { id: 'INDEXED', fullName: 'Indexed' },
-                    { id: 'FAILED', fullName: 'Failed' }
-                  ]}
+                  options={statusOptions}
                   value={filters.status}
                   onChange={(status) => setFilters(prev => ({ ...prev, status }))}
                   placeholder="All Status"
@@ -381,13 +402,7 @@ export default function DocumentList() {
                 {/* Upload Date Filter */}
                 <SelectDropdown
                   label=""
-                  options={[
-                    { id: '', fullName: 'All Dates' },
-                    { id: 'today', fullName: 'Today' },
-                    { id: 'this_week', fullName: 'This Week' },
-                    { id: 'this_month', fullName: 'This Month' },
-                    { id: 'last_month', fullName: 'Last Month' }
-                  ]}
+                  options={uploadDateOptions}
                   value={filters.uploadDate}
                   onChange={(uploadDate) => setFilters(prev => ({ ...prev, uploadDate }))}
                   placeholder="All Dates"
@@ -396,15 +411,7 @@ export default function DocumentList() {
                 {/* File Type Filter */}
                 <SelectDropdown
                   label=""
-                  options={[
-                    { id: '', fullName: 'All File Types' },
-                    { id: 'pdf', fullName: 'PDF' },
-                    { id: 'doc', fullName: 'Word Documents' },
-                    { id: 'xls', fullName: 'Excel Files' },
-                    { id: 'ppt', fullName: 'PowerPoint' },
-                    { id: 'image', fullName: 'Images' },
-                    { id: 'archive', fullName: 'Archives' }
-                  ]}
+                  options={fileTypeOptions}
                   value={filters.fileType}
                   onChange={(fileType) => setFilters(prev => ({ ...prev, fileType }))}
                   placeholder="All File Types"
@@ -413,14 +420,7 @@ export default function DocumentList() {
                 {/* Category Filter */}
                 <SelectDropdown
                   label=""
-                  options={[
-                    { id: '', fullName: 'All Categories' },
-                    { id: 'PROJECT', fullName: 'Project Documents' },
-                    { id: 'REFERENCE', fullName: 'Reference Materials' },
-                    { id: 'TEMPLATE', fullName: 'Templates' },
-                    { id: 'GUIDELINE', fullName: 'Guidelines' },
-                    { id: 'SYSTEM', fullName: 'System Documents' }
-                  ]}
+                  options={categoryOptions}
                   value={filters.category}
                   onChange={(category) => setFilters(prev => ({ ...prev, category }))}
                   placeholder="All Categories"
