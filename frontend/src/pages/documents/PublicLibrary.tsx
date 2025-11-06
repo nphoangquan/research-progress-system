@@ -115,7 +115,7 @@ export default function PublicLibrary() {
   };
 
   const getCategoryIcon = (category: string) => {
-    const iconClass = "w-6 h-6 text-gray-600";
+    const iconClass = "w-6 h-6 text-gray-900";
     switch (category) {
       case 'REFERENCE':
         return <BookMarked className={iconClass} />;
@@ -185,9 +185,7 @@ export default function PublicLibrary() {
         <div className="page-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary-100 rounded-lg">
-                <BookOpen className="w-6 h-6 text-primary-600" />
-              </div>
+              <BookOpen className="w-6 h-6 text-gray-900" />
               <div>
                 <h1 className="page-title">Public Library</h1>
                 <p className="page-subtitle">

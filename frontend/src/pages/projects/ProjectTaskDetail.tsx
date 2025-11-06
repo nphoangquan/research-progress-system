@@ -8,7 +8,9 @@ import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import TaskSubmission from '../../components/features/TaskSubmission';
 import DatePicker from '../../components/ui/DatePicker';
+import LabelChip from '../../components/ui/LabelChip';
 import api from '../../lib/axios';
+import type { Label } from '../../types/label';
 import toast from 'react-hot-toast';
 import { 
   ArrowLeft, 
@@ -51,6 +53,7 @@ interface TaskData {
     id: string;
     title: string;
   };
+  labels?: Label[];
   createdAt: string;
   updatedAt: string;
 }
@@ -1096,6 +1099,20 @@ export default function ProjectTaskDetail() {
                         {formatDate(task.dueDate)}
                       </span>
                     </div>
+                  )}
+                </div>
+
+                {/* Labels */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Labels</label>
+                  {task.labels && task.labels.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {task.labels.map(label => (
+                        <LabelChip key={label.id} label={label} size="sm" />
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-500">No labels</span>
                   )}
                 </div>
 

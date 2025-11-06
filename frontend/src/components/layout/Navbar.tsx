@@ -1,10 +1,10 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import ConnectionStatus from '../ConnectionStatus';
 import GlobalSearch from '../GlobalSearch';
 import type { User } from '../../types/auth';
+import researchLogo from '../../assets/images/research_logo.png';
 import { 
   LayoutDashboard, 
   FolderOpen, 
@@ -42,13 +42,12 @@ export default function Navbar({ user }: NavbarProps) {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center flex-shrink-0">
-            <Link to="/dashboard" className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">R</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">
-                Research Progress
-              </span>
+            <Link to="/dashboard" className="flex items-center">
+              <img 
+                src={researchLogo} 
+                alt="Research Progress" 
+                className="h-56 object-contain"
+              />
             </Link>
           </div>
           

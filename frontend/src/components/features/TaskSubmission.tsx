@@ -305,7 +305,7 @@ export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSub
               disabled={submitTaskMutation.isPending || isSubmitting || isOverdue}
               className={`flex items-center space-x-2 ${
                 isOverdue 
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  ? 'text-gray-500 cursor-not-allowed' 
                   : 'btn-primary'
               }`}
             >

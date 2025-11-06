@@ -35,6 +35,7 @@ model User {
   documents           Document[]
   filterPresets       FilterPreset[]
   activities          Activity[]
+  createdLabels       Label[] @relation("CreatedLabels")
 
   @@map("users")
 }
@@ -70,6 +71,7 @@ model Project {
   aiQueries       AIQuery[]
   notifications   Notification[]
   activities      Activity[]
+  labels          Label[]
 
   @@index([lecturerId])
   @@index([isSystemProject])
@@ -129,6 +131,7 @@ model Task {
   comments        Comment[]
   attachments     TaskAttachment[]
   activities      Activity[]
+  labels          TaskLabel[]
 
   @@index([projectId])
   @@index([assigneeId])
@@ -147,6 +150,46 @@ enum Priority {
   MEDIUM
   HIGH
   URGENT
+}
+
+// ============================================================================
+// LABELS & TAGS
+// ============================================================================
+
+model Label {
+  id          String    @id @default(uuid())
+  name        String
+  color       String    @default("#3B82F6") // Hex color code
+  projectId   String?   @map("project_id") // null = global label (admin only)
+  createdBy   String    @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator     User      @relation("CreatedLabels", fields: [createdBy], references: [id], onDelete: Restrict)
+  tasks       TaskLabel[]
+
+  @@unique([projectId, name]) // Unique name per project (or global)
+  @@index([projectId])
+  @@index([createdBy])
+  @@map("labels")
+}
+
+model TaskLabel {
+  id        String   @id @default(uuid())
+  taskId    String   @map("task_id")
+  labelId   String   @map("label_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label     Label    @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+  @@index([taskId])
+  @@index([labelId])
+  @@map("task_labels")
 }
 
 // ============================================================================

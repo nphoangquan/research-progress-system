@@ -193,7 +193,7 @@ export const createTask = async (req: Request, res: Response) => {
  */
 export const getTasks = async (req: Request, res: Response) => {
   try {
-    const { projectId, status, priority, assignee, dueDate, search } = req.query;
+    const { projectId, status, priority, assignee, dueDate, search, labelIds } = req.query;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
@@ -294,6 +294,18 @@ export const getTasks = async (req: Request, res: Response) => {
       // Apply filters
       whereClause = buildFilters(whereClause);
 
+      // Label filter
+      if (labelIds) {
+        const labelIdArray = Array.isArray(labelIds) ? labelIds : [labelIds];
+        whereClause.labels = {
+          some: {
+            labelId: {
+              in: labelIdArray
+            }
+          }
+        };
+      }
+
       const tasks = await prisma.task.findMany({
         where: whereClause,
         include: {
@@ -309,6 +321,26 @@ export const getTasks = async (req: Request, res: Response) => {
               fullName: true,
               email: true
             }
+          },
+          labels: {
+            include: {
+              label: {
+                include: {
+                  creator: {
+                    select: {
+                      id: true,
+                      fullName: true
+                    }
+                  },
+                  project: {
+                    select: {
+                      id: true,
+                      title: true
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         orderBy: [
@@ -320,7 +352,10 @@ export const getTasks = async (req: Request, res: Response) => {
 
       return res.json({
         message: 'Tasks retrieved successfully',
-        tasks
+        tasks: tasks.map(task => ({
+          ...task,
+          labels: task.labels.map(tl => tl.label)
+        }))
       });
     }
 
@@ -368,6 +403,18 @@ export const getTasks = async (req: Request, res: Response) => {
     // Apply filters for project-specific tasks
     const whereClause = buildFilters({ projectId: projectId as string });
 
+    // Label filter
+    if (labelIds) {
+      const labelIdArray = Array.isArray(labelIds) ? labelIds : [labelIds];
+      whereClause.labels = {
+        some: {
+          labelId: {
+            in: labelIdArray
+          }
+        }
+      };
+    }
+
     const tasks = await prisma.task.findMany({
       where: whereClause,
       include: {
@@ -376,6 +423,26 @@ export const getTasks = async (req: Request, res: Response) => {
             id: true,
             fullName: true,
             email: true
+          }
+        },
+        labels: {
+          include: {
+            label: {
+              include: {
+                creator: {
+                  select: {
+                    id: true,
+                    fullName: true
+                  }
+                },
+                project: {
+                  select: {
+                    id: true,
+                    title: true
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -388,7 +455,10 @@ export const getTasks = async (req: Request, res: Response) => {
 
     res.json({
       message: 'Tasks retrieved successfully',
-      tasks
+      tasks: tasks.map(task => ({
+        ...task,
+        labels: task.labels.map(tl => tl.label)
+      }))
     });
 
   } catch (error) {
@@ -436,6 +506,26 @@ export const getTaskById = async (req: Request, res: Response) => {
             fullName: true,
             email: true
           }
+        },
+        labels: {
+          include: {
+            label: {
+              include: {
+                creator: {
+                  select: {
+                    id: true,
+                    fullName: true
+                  }
+                },
+                project: {
+                  select: {
+                    id: true,
+                    title: true
+                  }
+                }
+              }
+            }
+          }
         }
       }
     });
@@ -468,7 +558,10 @@ export const getTaskById = async (req: Request, res: Response) => {
 
     res.json({
       message: 'Task retrieved successfully',
-      task
+      task: {
+        ...task,
+        labels: task.labels.map(tl => tl.label)
+      }
     });
 
   } catch (error) {

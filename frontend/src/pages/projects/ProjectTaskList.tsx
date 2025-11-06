@@ -6,7 +6,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { useWebSocketEvents } from '../../hooks/useWebSocketEvents';
 import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
+import LabelChip from '../../components/ui/LabelChip';
 import api from '../../lib/axios';
+import type { Label } from '../../types/label';
 import toast from 'react-hot-toast';
 import { 
   Plus, 
@@ -38,6 +40,7 @@ interface Task {
     id: string;
     title: string;
   };
+  labels?: Label[];
   createdAt: string;
   updatedAt: string;
 }
@@ -373,6 +376,15 @@ export default function ProjectTaskList() {
                         {task.description && (
                           <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none">
                             <div dangerouslySetInnerHTML={{ __html: task.description }} />
+                          </div>
+                        )}
+                        
+                        {/* Labels */}
+                        {task.labels && task.labels.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {task.labels.map(label => (
+                              <LabelChip key={label.id} label={label} size="sm" />
+                            ))}
                           </div>
                         )}
                         

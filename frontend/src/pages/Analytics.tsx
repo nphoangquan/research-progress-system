@@ -137,18 +137,18 @@ export default function Analytics() {
 
   const getPerformanceIcon = (value: number, type: 'rate' | 'count') => {
     if (type === 'rate') {
-      if (value >= 80) return <CheckCircle className="w-5 h-5 text-green-600" />;
-      if (value >= 60) return <AlertCircle className="w-5 h-5 text-yellow-600" />;
-      return <AlertCircle className="w-5 h-5 text-red-600" />;
+      if (value >= 80) return <CheckCircle className="w-5 h-5 text-gray-900" />;
+      if (value >= 60) return <AlertCircle className="w-5 h-5 text-gray-900" />;
+      return <AlertCircle className="w-5 h-5 text-gray-900" />;
     }
-    return <TrendingUp className="w-5 h-5 text-blue-600" />;
+    return <TrendingUp className="w-5 h-5 text-gray-900" />;
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user} />
-        <div className="container py-8">
+        <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading analytics...</p>
@@ -162,7 +162,7 @@ export default function Analytics() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user} />
-        <div className="container py-8">
+        <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <BarChart3 className="w-8 h-8 text-gray-400" />
@@ -179,7 +179,7 @@ export default function Analytics() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
       
-      <div className="container py-8">
+      <div className="w-full px-6 py-8">
         {/* Page Header */}
         <div className="page-header">
           <div className="flex justify-between items-start">
@@ -221,9 +221,7 @@ export default function Analytics() {
                   <p className="text-sm font-medium text-gray-600">Total Projects</p>
                   <p className="text-2xl font-bold text-gray-900">{analytics.projects.total}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <FolderOpen className="w-6 h-6 text-blue-600" />
-                </div>
+                <FolderOpen className="w-6 h-6 text-gray-900" />
               </div>
             </div>
           </div>
@@ -236,9 +234,7 @@ export default function Analytics() {
                   <p className="text-sm font-medium text-gray-600">Total Tasks</p>
                   <p className="text-2xl font-bold text-gray-900">{analytics.tasks.total}</p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CheckSquare className="w-6 h-6 text-green-600" />
-                </div>
+                <CheckSquare className="w-6 h-6 text-gray-900" />
               </div>
             </div>
           </div>
@@ -251,9 +247,7 @@ export default function Analytics() {
                   <p className="text-sm font-medium text-gray-600">Total Documents</p>
                   <p className="text-2xl font-bold text-gray-900">{analytics.documents.total}</p>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <FileText className="w-6 h-6 text-purple-600" />
-                </div>
+                <FileText className="w-6 h-6 text-gray-900" />
               </div>
             </div>
           </div>
@@ -266,9 +260,7 @@ export default function Analytics() {
                   <p className="text-sm font-medium text-gray-600">Total Users</p>
                   <p className="text-2xl font-bold text-gray-900">{analytics.users.total}</p>
                 </div>
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <Users className="w-6 h-6 text-orange-600" />
-                </div>
+                <Users className="w-6 h-6 text-gray-900" />
               </div>
             </div>
           </div>
@@ -351,21 +343,21 @@ export default function Analytics() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <CheckCircle className="w-5 h-5 text-gray-900" />
                     <span className="text-sm font-medium">Completed Tasks</span>
                   </div>
                   <span className="font-semibold">{analytics.tasks.completed}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <AlertCircle className="w-5 h-5 text-gray-900" />
                     <span className="text-sm font-medium">Overdue Tasks</span>
                   </div>
                   <span className="font-semibold">{analytics.tasks.overdue}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-blue-600" />
+                    <Clock className="w-5 h-5 text-gray-900" />
                     <span className="text-sm font-medium">Completion Rate</span>
                   </div>
                   <span className="font-semibold">
@@ -472,7 +464,7 @@ export default function Analytics() {
                         {analytics.performance.tasksCompletedThisPeriod}
                       </p>
                     </div>
-                    <CheckCircle className="w-5 h-5 text-purple-600" />
+                    <CheckCircle className="w-5 h-5 text-gray-900" />
                   </div>
                 </div>
 
@@ -485,7 +477,7 @@ export default function Analytics() {
                         {analytics.performance.documentsUploadedThisPeriod}
                       </p>
                     </div>
-                    <FileText className="w-5 h-5 text-orange-600" />
+                    <FileText className="w-5 h-5 text-gray-900" />
                   </div>
                 </div>
 
@@ -499,8 +491,8 @@ export default function Analytics() {
                       </p>
                     </div>
                     {analytics.performance.overdueTaskRate > 20 ? 
-                      <AlertCircle className="w-5 h-5 text-red-600" /> : 
-                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <AlertCircle className="w-5 h-5 text-gray-900" /> : 
+                      <CheckCircle className="w-5 h-5 text-gray-900" />
                     }
                   </div>
                 </div>

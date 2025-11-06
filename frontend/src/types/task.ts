@@ -1,5 +1,6 @@
 import React from 'react';
 import { User } from './auth';
+import { Label } from './label';
 
 export interface Task {
   id: string;
@@ -7,8 +8,8 @@ export interface Task {
   title: string;
   description?: string;
   assigneeId: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   dueDate?: string;
   completedAt?: string;
   createdAt: string;
@@ -18,6 +19,7 @@ export interface Task {
     id: string;
     title: string;
   };
+  labels?: Label[];
 }
 
 export interface CreateTaskRequest {

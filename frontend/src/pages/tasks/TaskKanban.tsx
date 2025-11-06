@@ -7,7 +7,10 @@ import { useWebSocketEvents } from '../../hooks/useWebSocketEvents';
 import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
+import LabelChip from '../../components/ui/LabelChip';
 import api from '../../lib/axios';
+import { getLabels } from '../../lib/labelApi';
+import type { Label } from '../../types/label';
 import toast from "react-hot-toast";
 import {
   Plus,
@@ -38,6 +41,7 @@ interface Task {
     id: string;
     title: string;
   };
+  labels?: Label[];
   createdAt: string;
   updatedAt: string;
 }
@@ -106,6 +110,7 @@ export default function TaskKanban() {
   const [filters, setFilters] = useState({
     assignee: "",
     search: "",
+    labelIds: [] as string[]
   });
 
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
@@ -129,10 +134,19 @@ export default function TaskKanban() {
         }
       }
       if (filters.search) params.append("search", filters.search);
+      if (filters.labelIds.length > 0) {
+        filters.labelIds.forEach(labelId => params.append('labelIds', labelId));
+      }
 
       const response = await api.get(`/tasks?${params.toString()}`);
       return response.data.tasks;
     },
+  });
+
+  // Fetch labels for label filter
+  const { data: availableLabels = [] } = useQuery({
+    queryKey: ['labels', projectId],
+    queryFn: () => getLabels(projectId),
   });
 
   // Fetch project members for assignee filter (only for admin/lecturer)
@@ -358,7 +372,7 @@ export default function TaskKanban() {
 
                 {/* Clear Filters */}
                 <button
-                  onClick={() => setFilters({ assignee: "", search: "" })}
+                  onClick={() => setFilters({ assignee: "", search: "", labelIds: [] })}
                   className="btn-ghost whitespace-nowrap h-10 px-4"
                 >
                   Clear Filters
@@ -375,6 +389,58 @@ export default function TaskKanban() {
                     placeholder="All Assignees"
                     className="w-full"
                   />
+                </div>
+              </div>
+
+              {/* Label Filter Row */}
+              <div className="flex justify-start">
+                <div className="w-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Labels
+                  </label>
+                  <div className="flex flex-wrap gap-2 min-h-[42px] p-2 border border-gray-300 rounded-lg">
+                    {filters.labelIds.length === 0 ? (
+                      <span className="text-sm text-gray-500">All labels</span>
+                    ) : (
+                      filters.labelIds.map(labelId => {
+                        const label = availableLabels.find(l => l.id === labelId);
+                        return label ? (
+                          <LabelChip
+                            key={label.id}
+                            label={label}
+                            size="sm"
+                            showRemove
+                            onRemove={(id) => {
+                              setFilters(prev => ({
+                                ...prev,
+                                labelIds: prev.labelIds.filter(lid => lid !== id)
+                              }));
+                            }}
+                          />
+                        ) : null;
+                      })
+                    )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {availableLabels
+                      .filter(label => !filters.labelIds.includes(label.id))
+                      .slice(0, 10)
+                      .map(label => (
+                        <button
+                          key={label.id}
+                          type="button"
+                          onClick={() => {
+                            setFilters(prev => ({
+                              ...prev,
+                              labelIds: [...prev.labelIds, label.id]
+                            }));
+                          }}
+                          className="text-xs"
+                        >
+                          <LabelChip label={label} size="sm" />
+                        </button>
+                      ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -457,6 +523,15 @@ export default function TaskKanban() {
                         </div>
                       )}
 
+                      {/* Labels */}
+                      {task.labels && task.labels.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {task.labels.map(label => (
+                            <LabelChip key={label.id} label={label} size="sm" />
+                          ))}
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <div className="flex items-center">
                           <User className="w-3 h-3 mr-1" />
@@ -509,7 +584,7 @@ export default function TaskKanban() {
                 No tasks found
               </h3>
               <p className="text-gray-600 mb-6">
-                {filters.search || filters.assignee
+                {filters.search || filters.assignee || filters.labelIds.length > 0
                   ? "Try adjusting your filters to see more tasks."
                   : "Get started by creating your first task."}
               </p>

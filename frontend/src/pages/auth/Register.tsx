@@ -1,4 +1,3 @@
-import React from 'react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -42,8 +41,8 @@ export default function Register() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="w-16 h-16 bg-primary-600 rounded-xl flex items-center justify-center mx-auto mb-6">
-            <span className="text-white font-bold text-2xl">R</span>
+          <div className="flex items-center justify-center mx-auto mb-6">
+            <GraduationCap className="w-12 h-12 text-gray-900" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
             Create your account

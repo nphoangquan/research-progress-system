@@ -7,6 +7,11 @@ import {
   deleteTask,
   submitTask
 } from '../controllers/task.controller';
+import {
+  getTaskLabels,
+  addLabelToTask,
+  removeLabelFromTask
+} from '../controllers/label.controller';
 import { verifyToken } from '../middleware/auth.middleware';
 import { uploadMultiple } from '../middleware/upload.middleware';
 
@@ -32,6 +37,36 @@ router.post('/', createTask);
 router.get('/', getTasks);
 
 /**
+ * @route   POST /api/tasks/submit
+ * @desc    Submit task completion by student
+ * @access  Private (Student)
+ * @body    { taskId, content, files? }
+ */
+router.post('/submit', uploadMultiple.array('files', 10), submitTask);
+
+/**
+ * @route   GET /api/tasks/:taskId/labels
+ * @desc    Get labels for a specific task
+ * @access  Private (Project member)
+ */
+router.get('/:taskId/labels', getTaskLabels);
+
+/**
+ * @route   POST /api/tasks/:taskId/labels
+ * @desc    Add a label to a task
+ * @access  Private (Project member)
+ * @body    { labelId }
+ */
+router.post('/:taskId/labels', addLabelToTask);
+
+/**
+ * @route   DELETE /api/tasks/:taskId/labels/:labelId
+ * @desc    Remove a label from a task
+ * @access  Private (Project member)
+ */
+router.delete('/:taskId/labels/:labelId', removeLabelFromTask);
+
+/**
  * @route   GET /api/tasks/:id
  * @desc    Get task by ID
  * @access  Private (Project member)
@@ -52,13 +87,5 @@ router.put('/:id', updateTask);
  * @access  Private (Project member)
  */
 router.delete('/:id', deleteTask);
-
-/**
- * @route   POST /api/tasks/submit
- * @desc    Submit task completion by student
- * @access  Private (Student)
- * @body    { taskId, content, files? }
- */
-router.post('/submit', uploadMultiple.array('files', 10), submitTask);
 
 export default router;

@@ -7,6 +7,7 @@ import Navbar from '../../components/layout/Navbar';
 import MultiSelectDropdown from '../../components/ui/MultiSelectDropdown';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import DatePicker from '../../components/ui/DatePicker';
+import LabelManager from '../../components/ui/LabelManager';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { 
@@ -407,6 +408,11 @@ export default function ProjectSettings() {
                         <p className="text-gray-500 text-sm py-2">No students assigned to this project</p>
                       )}
                     </div>
+                  </div>
+
+                  {/* Labels Management */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <LabelManager projectId={id} />
                   </div>
 
                   {/* Status and Progress */}

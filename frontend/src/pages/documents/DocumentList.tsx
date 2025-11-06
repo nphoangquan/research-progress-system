@@ -437,13 +437,15 @@ export default function DocumentList() {
                   placeholder="All Projects"
                 />
 
-                {/* Uploader Filter */}
-                <UserFilterSelector
-                  selectedUsers={filters.uploader}
-                  onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, uploader: userIds }))}
-                  multiple={true}
-                  placeholder="All Uploaders"
-                />
+                {/* Uploader Filter - Only for ADMIN and LECTURER */}
+                {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+                  <UserFilterSelector
+                    selectedUsers={filters.uploader}
+                    onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, uploader: userIds }))}
+                    multiple={true}
+                    placeholder="All Uploaders"
+                  />
+                )}
               </div>
             </div>
           </div>

@@ -1,12 +1,14 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import ProjectSelector from '../../components/ui/ProjectSelector';
 import DatePicker from '../../components/ui/DatePicker';
+import LabelSelector from '../../components/ui/LabelSelector';
+import { addLabelToTask, removeLabelFromTask, createLabel } from '../../lib/labelApi';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { 
@@ -27,6 +29,7 @@ interface TaskFormData {
   assigneeId: string;
   projectIds: string[];
   dueDate: string;
+  labelIds: string[];
 }
 
 export default function TaskForm() {
@@ -34,6 +37,7 @@ export default function TaskForm() {
   const navigate = useNavigate();
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
+  const queryClient = useQueryClient();
   const isEditing = !!id;
 
   const [formData, setFormData] = useState<TaskFormData>({
@@ -43,7 +47,8 @@ export default function TaskForm() {
     priority: 'MEDIUM',
     assigneeId: '',
     projectIds: projectId ? [projectId] : [],
-    dueDate: ''
+    dueDate: '',
+    labelIds: []
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof TaskFormData, string>>>({});
@@ -124,7 +129,8 @@ export default function TaskForm() {
         priority: task.priority || 'MEDIUM',
         assigneeId: task.assignee?.id || '',
         projectIds: task.project?.id ? [task.project.id] : [],
-        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
+        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+        labelIds: task.labels?.map(l => l.id) || []
       });
     }
   }, [task]);
@@ -143,7 +149,33 @@ export default function TaskForm() {
         const responses = await Promise.all(
           tasks.map(task => api.post('/tasks', task))
         );
-        return responses.map(r => r.data);
+        const createdTasks = responses.map(r => r.data.task);
+        
+        // Add labels to all created tasks
+        if (data.labelIds.length > 0) {
+          const labelErrors: string[] = [];
+          await Promise.allSettled(
+            createdTasks.map(async (task) => {
+              await Promise.allSettled(
+                data.labelIds.map(async (labelId) => {
+                  try {
+                    await addLabelToTask(task.id, labelId);
+                  } catch (error: any) {
+                    labelErrors.push(`Failed to add label to task "${task.title}": ${error.response?.data?.error || 'Unknown error'}`);
+                  }
+                })
+              );
+            })
+          );
+          
+          if (labelErrors.length > 0) {
+            console.warn('Some labels could not be added:', labelErrors);
+            // Still show success but warn about partial failure
+            toast.error(`Tasks created but some labels could not be added. Check console for details.`);
+          }
+        }
+        
+        return createdTasks;
       } else {
         // Single task creation
         const response = await api.post('/tasks', {
@@ -151,11 +183,35 @@ export default function TaskForm() {
           projectId: data.projectIds[0],
           assigneeId: data.assigneeId || null
         });
-        return response.data;
+        const createdTask = response.data.task;
+        
+        // Add labels to task
+        if (data.labelIds.length > 0) {
+          const labelErrors: string[] = [];
+          await Promise.allSettled(
+            data.labelIds.map(async (labelId) => {
+              try {
+                await addLabelToTask(createdTask.id, labelId);
+              } catch (error: any) {
+                labelErrors.push(error.response?.data?.error || 'Unknown error');
+              }
+            })
+          );
+          
+          if (labelErrors.length > 0) {
+            console.warn('Some labels could not be added:', labelErrors);
+            toast.error(`Task created but some labels could not be added. Check console for details.`);
+          }
+        }
+        
+        return createdTask;
       }
     },
     onSuccess: (data) => {
       const taskCount = Array.isArray(data) ? data.length : 1;
+      // Invalidate queries to refresh task lists
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['labels'] });
       toast.success(`Task${taskCount > 1 ? 's' : ''} created successfully!`);
       navigate(projectId ? `/projects/${projectId}/tasks` : '/tasks');
     },
@@ -167,10 +223,28 @@ export default function TaskForm() {
   // Update task mutation
   const updateTaskMutation = useMutation({
     mutationFn: async (data: Partial<TaskFormData>) => {
-      const response = await api.put(`/tasks/${id}`, data);
+      const { labelIds, ...taskData } = data;
+      const response = await api.put(`/tasks/${id}`, taskData);
+      
+      // Update labels if changed
+      if (labelIds !== undefined && id) {
+        const currentLabelIds = task?.labels?.map(l => l.id) || [];
+        const labelsToAdd = labelIds.filter(id => !currentLabelIds.includes(id));
+        const labelsToRemove = currentLabelIds.filter(id => !labelIds.includes(id));
+        
+        await Promise.all([
+          ...labelsToAdd.map(labelId => addLabelToTask(id, labelId)),
+          ...labelsToRemove.map(labelId => removeLabelFromTask(id, labelId))
+        ]);
+      }
+      
       return response.data;
     },
     onSuccess: () => {
+      // Invalidate queries to refresh task data
+      queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['labels'] });
       toast.success('Task updated successfully!');
       navigate(projectId ? `/projects/${projectId}/tasks` : '/tasks');
     },
@@ -423,6 +497,31 @@ export default function TaskForm() {
                     <p className="text-sm text-error-600 flex items-center">
                       <AlertCircle className="w-4 h-4 mr-1" />
                       {errors.dueDate}
+                    </p>
+                  )}
+                </div>
+
+                {/* Labels */}
+                <div className="space-y-2">
+                  <LabelSelector
+                    projectId={projectId || formData.projectIds[0]}
+                    selectedLabelIds={formData.labelIds}
+                    onSelectionChange={(labelIds) => setFormData(prev => ({ ...prev, labelIds }))}
+                    allowCreate={user?.role === 'ADMIN' || user?.role === 'LECTURER'}
+                    onCreateLabel={async (name, color) => {
+                      const newLabel = await createLabel({
+                        name,
+                        color,
+                        projectId: projectId || formData.projectIds[0] || null
+                      });
+                      return newLabel;
+                    }}
+                    className={errors.labelIds ? 'border-red-500' : ''}
+                  />
+                  {errors.labelIds && (
+                    <p className="text-sm text-error-600 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.labelIds}
                     </p>
                   )}
                 </div>

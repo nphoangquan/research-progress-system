@@ -63,19 +63,19 @@ export default function UserActivity() {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'task_created':
-        return <CheckSquare className="w-4 h-4 text-blue-600" />;
+        return <CheckSquare className="w-4 h-4 text-gray-900" />;
       case 'task_completed':
-        return <CheckSquare className="w-4 h-4 text-green-600" />;
+        return <CheckSquare className="w-4 h-4 text-gray-900" />;
       case 'document_uploaded':
-        return <FileText className="w-4 h-4 text-purple-600" />;
+        return <FileText className="w-4 h-4 text-gray-900" />;
       case 'comment_added':
-        return <MessageSquare className="w-4 h-4 text-orange-600" />;
+        return <MessageSquare className="w-4 h-4 text-gray-900" />;
       case 'project_created':
-        return <TrendingUp className="w-4 h-4 text-indigo-600" />;
+        return <TrendingUp className="w-4 h-4 text-gray-900" />;
       case 'project_updated':
-        return <TrendingUp className="w-4 h-4 text-yellow-600" />;
+        return <TrendingUp className="w-4 h-4 text-gray-900" />;
       default:
-        return <Activity className="w-4 h-4 text-gray-600" />;
+        return <Activity className="w-4 h-4 text-gray-900" />;
     }
   };
 
@@ -114,7 +114,7 @@ export default function UserActivity() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user} />
-        <div className="container py-8">
+        <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading user activity...</p>
@@ -128,7 +128,7 @@ export default function UserActivity() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user} />
-        <div className="container py-8">
+        <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Activity className="w-8 h-8 text-gray-400" />
@@ -145,7 +145,7 @@ export default function UserActivity() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
       
-      <div className="container py-8">
+      <div className="w-full px-6 py-8">
         {/* Page Header */}
         <div className="page-header">
           <div className="flex justify-between items-start">
@@ -186,9 +186,7 @@ export default function UserActivity() {
                   <p className="text-sm font-medium text-gray-600">Total Tasks</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.totalTasks}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <CheckSquare className="w-6 h-6 text-blue-600" />
-                </div>
+                <CheckSquare className="w-6 h-6 text-gray-900" />
               </div>
             </div>
           </div>
@@ -200,9 +198,7 @@ export default function UserActivity() {
                   <p className="text-sm font-medium text-gray-600">Completed Tasks</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.completedTasks}</p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CheckSquare className="w-6 h-6 text-green-600" />
-                </div>
+                <CheckSquare className="w-6 h-6 text-gray-900" />
               </div>
             </div>
           </div>
@@ -214,9 +210,7 @@ export default function UserActivity() {
                   <p className="text-sm font-medium text-gray-600">Documents Uploaded</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.uploadedDocuments}</p>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <FileText className="w-6 h-6 text-purple-600" />
-                </div>
+                <FileText className="w-6 h-6 text-gray-900" />
               </div>
             </div>
           </div>
@@ -228,9 +222,7 @@ export default function UserActivity() {
                   <p className="text-sm font-medium text-gray-600">Comments Added</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.commentsAdded}</p>
                 </div>
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <MessageSquare className="w-6 h-6 text-orange-600" />
-                </div>
+                <MessageSquare className="w-6 h-6 text-gray-900" />
               </div>
             </div>
           </div>
@@ -242,9 +234,7 @@ export default function UserActivity() {
                   <p className="text-sm font-medium text-gray-600">Projects Involved</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.projectsInvolved}</p>
                 </div>
-                <div className="p-3 bg-indigo-100 rounded-full">
-                  <TrendingUp className="w-6 h-6 text-indigo-600" />
-                </div>
+                <TrendingUp className="w-6 h-6 text-gray-900" />
               </div>
             </div>
           </div>
@@ -313,7 +303,7 @@ export default function UserActivity() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      <TrendingUp className="w-4 h-4 text-gray-900" />
                     </div>
                   </div>
                 ))}
@@ -333,8 +323,8 @@ export default function UserActivity() {
                 {activityData.activityByDay.slice(0, 7).map((day, index) => (
                   <div key={day.date} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-blue-600">{index + 1}</span>
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">

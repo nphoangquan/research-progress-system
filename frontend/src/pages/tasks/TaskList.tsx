@@ -8,7 +8,10 @@ import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import AdvancedFilter from '../../components/ui/AdvancedFilter';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
+import LabelChip from '../../components/ui/LabelChip';
 import api from '../../lib/axios';
+import { getLabels } from '../../lib/labelApi';
+import type { Label } from '../../types/label';
 import toast from 'react-hot-toast';
 import { 
   Plus, 
@@ -43,6 +46,7 @@ interface Task {
     id: string;
     title: string;
   };
+  labels?: Label[];
   createdAt: string;
   updatedAt: string;
 }
@@ -65,7 +69,8 @@ export default function TaskList() {
     priority: '',
     assignee: '',
     dueDate: '',
-    search: ''
+    search: '',
+    labelIds: [] as string[]
   });
 
   // State for advanced filters
@@ -90,6 +95,9 @@ export default function TaskList() {
       }
       if (filters.dueDate) params.append('dueDate', filters.dueDate);
       if (filters.search) params.append('search', filters.search);
+      if (filters.labelIds.length > 0) {
+        filters.labelIds.forEach(labelId => params.append('labelIds', labelId));
+      }
       
       // Advanced filters
       Object.keys(advancedFilters).forEach(key => {
@@ -101,6 +109,12 @@ export default function TaskList() {
       const response = await api.get(`/tasks?${params.toString()}`);
       return response.data.tasks;
     },
+  });
+
+  // Fetch labels for label filter
+  const { data: availableLabels = [] } = useQuery({
+    queryKey: ['labels', projectId],
+    queryFn: () => getLabels(projectId),
   });
 
   // Fetch project members for assignee filter (only for admin/lecturer)
@@ -302,7 +316,7 @@ export default function TaskList() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setFilters({ status: '', priority: '', assignee: '', dueDate: '', search: '' })}
+                  onClick={() => setFilters({ status: '', priority: '', assignee: '', dueDate: '', search: '', labelIds: [] })}
                   className="btn-ghost whitespace-nowrap"
                 >
                   Clear Filters
@@ -371,6 +385,58 @@ export default function TaskList() {
                   />
                 </div>
               </div>
+
+              {/* Label Filter Row */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Labels
+                  </label>
+                  <div className="flex flex-wrap gap-2 min-h-[42px] p-2 border border-gray-300 rounded-lg">
+                    {filters.labelIds.length === 0 ? (
+                      <span className="text-sm text-gray-500">All labels</span>
+                    ) : (
+                      filters.labelIds.map(labelId => {
+                        const label = availableLabels.find(l => l.id === labelId);
+                        return label ? (
+                          <LabelChip
+                            key={label.id}
+                            label={label}
+                            size="sm"
+                            showRemove
+                            onRemove={(id) => {
+                              setFilters(prev => ({
+                                ...prev,
+                                labelIds: prev.labelIds.filter(lid => lid !== id)
+                              }));
+                            }}
+                          />
+                        ) : null;
+                      })
+                    )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {availableLabels
+                      .filter(label => !filters.labelIds.includes(label.id))
+                      .slice(0, 10)
+                      .map(label => (
+                        <button
+                          key={label.id}
+                          type="button"
+                          onClick={() => {
+                            setFilters(prev => ({
+                              ...prev,
+                              labelIds: [...prev.labelIds, label.id]
+                            }));
+                          }}
+                          className="text-xs"
+                        >
+                          <LabelChip label={label} size="sm" />
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -404,6 +470,15 @@ export default function TaskList() {
                         {task.description && (
                           <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none">
                             <div dangerouslySetInnerHTML={{ __html: task.description }} />
+                          </div>
+                        )}
+                        
+                        {/* Labels */}
+                        {task.labels && task.labels.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {task.labels.map(label => (
+                              <LabelChip key={label.id} label={label} size="sm" />
+                            ))}
                           </div>
                         )}
                         
