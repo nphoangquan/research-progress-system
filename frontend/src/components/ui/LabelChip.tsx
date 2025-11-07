@@ -23,35 +23,9 @@ export default function LabelChip({
     lg: 'text-base px-3 py-1.5'
   };
 
-  const getTextColor = (bgColor: string): string => {
-    // Convert hex to RGB
-    let hex = bgColor.replace('#', '');
-    
-    // Handle 3-character hex colors (#RGB -> #RRGGBB)
-    if (hex.length === 3) {
-      hex = hex.split('').map(char => char + char).join('');
-    }
-    
-    // Validate hex length
-    if (hex.length !== 6) {
-      return 'text-gray-900'; // Default to dark text if invalid
-    }
-    
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    
-    // Calculate luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    
-    // Return white text for dark backgrounds, dark text for light backgrounds
-    return luminance > 0.5 ? 'text-gray-900' : 'text-white';
-  };
-
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-medium ${sizeClasses[size]} ${getTextColor(label.color)} ${className}`}
-      style={{ backgroundColor: label.color }}
+      className={`inline-flex items-center gap-1.5 rounded-md font-medium text-gray-700 bg-gray-100 border border-gray-200 ${sizeClasses[size]} ${className}`}
     >
       {label.name}
       {showRemove && onRemove && (
@@ -61,7 +35,7 @@ export default function LabelChip({
             e.stopPropagation();
             onRemove(label.id);
           }}
-          className={`${getTextColor(label.color)} hover:opacity-70 transition-opacity rounded-full p-0.5`}
+          className="text-gray-500 hover:text-gray-700 transition-colors rounded-full p-0.5"
           aria-label={`Remove ${label.name} label`}
         >
           <X className="w-3 h-3" />

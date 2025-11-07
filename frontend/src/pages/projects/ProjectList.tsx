@@ -1,10 +1,11 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
+import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
 import type { Project } from '../../types/project';
 import { 
@@ -32,8 +33,12 @@ export default function ProjectList() {
     showArchived: false
   });
 
-  const { data: projects, isLoading, error } = useQuery({
-    queryKey: ['projects', filters],
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 12;
+
+  const { data: projectsData, isLoading, error } = useQuery({
+    queryKey: ['projects', filters, currentPage, pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.status) params.append('status', filters.status);
@@ -43,10 +48,22 @@ export default function ProjectList() {
       if (filters.search) params.append('search', filters.search);
       if (filters.showArchived) params.append('includeArchived', 'true');
 
+      // Pagination parameters
+      params.append('page', currentPage.toString());
+      params.append('limit', pageSize.toString());
+
       const response = await api.get(`/projects?${params.toString()}`);
-      return response.data.projects;
+      return response.data;
     },
   });
+
+  const projects = projectsData?.projects || [];
+  const pagination = projectsData?.pagination;
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.status, filters.lecturer, filters.progress, filters.dateRange, filters.search, filters.showArchived]);
 
   if (!user) {
     return (
@@ -60,7 +77,7 @@ export default function ProjectList() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
       
-      <div className="container py-8">
+      <div className="w-full px-6 py-8">
         {/* Page Header */}
         <div className="page-header">
           <div className="flex justify-between items-start">
@@ -108,7 +125,10 @@ export default function ProjectList() {
                   />
                 </div>
                 <button
-                  onClick={() => setFilters({ status: '', lecturer: '', progress: '', dateRange: '', search: '', showArchived: false })}
+                  onClick={() => {
+                    setFilters({ status: '', lecturer: '', progress: '', dateRange: '', search: '', showArchived: false });
+                    setCurrentPage(1);
+                  }}
                   className="btn-ghost whitespace-nowrap"
                 >
                   Clear Filters
@@ -333,6 +353,22 @@ export default function ProjectList() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.pages}
+              totalCount={pagination.total}
+              limit={pagination.limit}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
           </div>
         )}
       </div>

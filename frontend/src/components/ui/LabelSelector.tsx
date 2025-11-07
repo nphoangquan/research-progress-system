@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Tag, X, ChevronDown, Plus, Loader2 } from 'lucide-react';
+import { Tag, ChevronDown, Plus, Loader2 } from 'lucide-react';
 import { getLabels } from '../../lib/labelApi';
 import LabelChip from './LabelChip';
 import type { Label } from '../../types/label';
@@ -32,7 +32,7 @@ export default function LabelSelector({
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newLabelName, setNewLabelName] = useState('');
-  const [newLabelColor, setNewLabelColor] = useState('#3B82F6');
+  const [newLabelColor, setNewLabelColor] = useState('#9CA3AF'); // Default gray color (not displayed)
   const [isCreating, setIsCreating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -90,7 +90,7 @@ export default function LabelSelector({
       queryClient.invalidateQueries({ queryKey: ['labels'] });
       onSelectionChange([...selectedLabelIds, newLabel.id]);
       setNewLabelName('');
-      setNewLabelColor('#3B82F6');
+      setNewLabelColor('#9CA3AF'); // Default gray color (not displayed)
       setShowCreateForm(false);
       setSearchQuery('');
     } catch (error: any) {
@@ -101,10 +101,7 @@ export default function LabelSelector({
     }
   };
 
-  const predefinedColors = [
-    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-    '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
-  ];
+  // Color is stored but not displayed in minimalist design
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -114,12 +111,12 @@ export default function LabelSelector({
 
       {/* Selected labels display */}
       <div
-        className={`border border-gray-300 rounded-lg p-2 min-h-[42px] cursor-pointer transition-colors ${
+        className={`border border-gray-300 rounded-lg p-2 min-h-[42px] cursor-pointer transition-colors relative ${
           error ? 'border-error-300' : 'hover:border-gray-400'
         } ${isOpen ? 'border-primary-300 ring-1 ring-primary-200' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center pr-8">
           {selectedLabels.length > 0 ? (
             selectedLabels.map(label => (
               <LabelChip
@@ -136,7 +133,7 @@ export default function LabelSelector({
             <span className="text-sm text-gray-500">{placeholder}</span>
           )}
         </div>
-        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none flex-shrink-0" />
       </div>
 
       {/* Dropdown */}
@@ -188,10 +185,6 @@ export default function LabelSelector({
                     className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
                     onClick={() => handleToggleLabel(label.id)}
                   >
-                    <div
-                      className="w-4 h-4 rounded-full border-2 border-gray-300"
-                      style={{ backgroundColor: label.color }}
-                    />
                     <span className="text-sm text-gray-900 flex-1">{label.name}</span>
                     {label.projectId === null && (
                       <span className="text-xs text-gray-400">Global</span>
@@ -212,24 +205,6 @@ export default function LabelSelector({
                         className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
                         autoFocus
                       />
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600">Color:</span>
-                        <div className="flex gap-1 flex-1">
-                          {predefinedColors.map((color) => (
-                            <button
-                              key={color}
-                              type="button"
-                              onClick={() => setNewLabelColor(color)}
-                              className={`w-6 h-6 rounded-full border-2 ${
-                                newLabelColor === color
-                                  ? 'border-gray-900 scale-110'
-                                  : 'border-gray-300'
-                              }`}
-                              style={{ backgroundColor: color }}
-                            />
-                          ))}
-                        </div>
-                      </div>
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -244,7 +219,7 @@ export default function LabelSelector({
                           onClick={() => {
                             setShowCreateForm(false);
                             setNewLabelName('');
-                            setNewLabelColor('#3B82F6');
+                            setNewLabelColor('#9CA3AF'); // Default gray color
                           }}
                           className="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                         >

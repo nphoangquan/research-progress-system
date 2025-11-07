@@ -16,9 +16,9 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newLabelName, setNewLabelName] = useState('');
-  const [newLabelColor, setNewLabelColor] = useState('#3B82F6');
+  const [newLabelColor, setNewLabelColor] = useState('#9CA3AF'); // Default gray color (not displayed)
   const [editLabelName, setEditLabelName] = useState('');
-  const [editLabelColor, setEditLabelColor] = useState('#3B82F6');
+  const [editLabelColor, setEditLabelColor] = useState('#9CA3AF'); // Default gray color (not displayed)
 
   // Fetch labels
   const { data: labels = [], isLoading } = useQuery({
@@ -34,7 +34,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       queryClient.invalidateQueries({ queryKey: ['labels'] });
       setIsCreating(false);
       setNewLabelName('');
-      setNewLabelColor('#3B82F6');
+      setNewLabelColor('#9CA3AF'); // Default gray color (not displayed)
       toast.success('Label created successfully');
     },
     onError: (error: any) => {
@@ -52,7 +52,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       queryClient.invalidateQueries({ queryKey: ['tasks'] }); // Tasks may display labels
       setEditingId(null);
       setEditLabelName('');
-      setEditLabelColor('#3B82F6');
+      setEditLabelColor('#9CA3AF'); // Default gray color (not displayed)
       toast.success('Label updated successfully');
     },
     onError: (error: any) => {
@@ -116,10 +116,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
     }
   };
 
-  const predefinedColors = [
-    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-    '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
-  ];
+  // Color picker removed for minimalist design - using default gray color
 
   const projectLabels = labels.filter(label => label.projectId === projectId);
   const globalLabels = labels.filter(label => label.projectId === null);
@@ -168,26 +165,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
                     maxLength={50}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Color
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {predefinedColors.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => setNewLabelColor(color)}
-                        className={`w-8 h-8 rounded-full border-2 transition-transform ${
-                          newLabelColor === color
-                            ? 'border-gray-900 scale-110'
-                            : 'border-gray-300 hover:scale-105'
-                        }`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                </div>
+                {/* Color picker removed for minimalist design */}
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -202,7 +180,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
                     onClick={() => {
                       setIsCreating(false);
                       setNewLabelName('');
-                      setNewLabelColor('#3B82F6');
+                      setNewLabelColor('#9CA3AF'); // Default gray color (not displayed)
                     }}
                     className="btn-secondary"
                   >
@@ -238,9 +216,9 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
                     onCancelEdit={() => {
                       setEditingId(null);
                       setEditLabelName('');
-                      setEditLabelColor('#3B82F6');
+                      setEditLabelColor('#9CA3AF'); // Default gray color (not displayed)
                     }}
-                    predefinedColors={predefinedColors}
+                    predefinedColors={[]}
                     isUpdating={updateMutation.isPending}
                     isDeleting={deleteMutation.isPending}
                   />
@@ -271,9 +249,9 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
                     onCancelEdit={() => {
                       setEditingId(null);
                       setEditLabelName('');
-                      setEditLabelColor('#3B82F6');
+                      setEditLabelColor('#9CA3AF'); // Default gray color (not displayed)
                     }}
-                    predefinedColors={predefinedColors}
+                    predefinedColors={[]}
                     isUpdating={updateMutation.isPending}
                     isDeleting={deleteMutation.isPending}
                   />
@@ -298,7 +276,7 @@ interface LabelItemProps {
   onUpdate: (id: string) => void;
   onDelete: (id: string) => void;
   onCancelEdit: () => void;
-  predefinedColors: string[];
+  predefinedColors: string[]; // Not used in minimalist design, kept for compatibility
   isUpdating: boolean;
   isDeleting: boolean;
 }
@@ -334,23 +312,7 @@ function LabelItem({
               maxLength={50}
             />
           </div>
-          <div>
-            <div className="flex gap-2 flex-wrap">
-              {predefinedColors.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => onEditColorChange(color)}
-                  className={`w-6 h-6 rounded-full border-2 ${
-                    editLabelColor === color
-                      ? 'border-gray-900 scale-110'
-                      : 'border-gray-300'
-                  }`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-          </div>
+          {/* Color picker removed for minimalist design */}
           <div className="flex gap-2">
             <button
               type="button"

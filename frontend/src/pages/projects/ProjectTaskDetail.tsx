@@ -668,7 +668,7 @@ export default function ProjectTaskDetail() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user!} />
-        <div className="container py-8">
+        <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading task...</p>
@@ -682,7 +682,7 @@ export default function ProjectTaskDetail() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user!} />
-        <div className="container py-8">
+        <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-gray-900 mb-2">Task not found</h3>
             <p className="text-gray-600 mb-6">The task you're looking for doesn't exist or you don't have access to it.</p>
@@ -702,7 +702,7 @@ export default function ProjectTaskDetail() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user!} />
       
-      <div className="container py-8">
+      <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -776,7 +776,7 @@ export default function ProjectTaskDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Task Details */}

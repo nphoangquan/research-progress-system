@@ -1,12 +1,14 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { useWebSocketEvents } from '../../hooks/useWebSocketEvents';
 import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
+import LabelFilter from '../../components/ui/LabelFilter';
 import LabelChip from '../../components/ui/LabelChip';
+import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
 import type { Label } from '../../types/label';
 import toast from 'react-hot-toast';
@@ -64,12 +66,17 @@ export default function ProjectTaskList() {
     priority: '',
     assignee: '',
     dueDate: '',
-    search: ''
+    search: '',
+    labelIds: [] as string[]
   });
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+
   // Fetch tasks for this specific project
-  const { data: tasks, isLoading } = useQuery({
-    queryKey: ['tasks', projectId, filters],
+  const { data: tasksData, isLoading } = useQuery({
+    queryKey: ['tasks', projectId, filters, currentPage, pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (projectId) params.append('projectId', projectId);
@@ -78,11 +85,26 @@ export default function ProjectTaskList() {
       if (filters.assignee) params.append('assignee', filters.assignee);
       if (filters.dueDate) params.append('dueDate', filters.dueDate);
       if (filters.search) params.append('search', filters.search);
+      if (filters.labelIds.length > 0) {
+        filters.labelIds.forEach(labelId => params.append('labelIds', labelId));
+      }
+
+      // Pagination parameters
+      params.append('page', currentPage.toString());
+      params.append('limit', pageSize.toString());
 
       const response = await api.get(`/tasks?${params.toString()}`);
-      return response.data.tasks;
+      return response.data;
     },
   });
+
+  const tasks = tasksData?.tasks || [];
+  const pagination = tasksData?.pagination;
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.status, filters.priority, filters.assignee, filters.dueDate, filters.search, filters.labelIds.length]);
 
   // Fetch project members for assignee filter (only for admin/lecturer)
   const { data: projectMembers } = useQuery({
@@ -210,7 +232,7 @@ export default function ProjectTaskList() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
       
-      <div className="container py-8">
+      <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -267,7 +289,10 @@ export default function ProjectTaskList() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setFilters({ status: '', priority: '', assignee: '', dueDate: '', search: '' })}
+                  onClick={() => {
+                    setFilters({ status: '', priority: '', assignee: '', dueDate: '', search: '', labelIds: [] });
+                    setCurrentPage(1);
+                  }}
                   className="btn-ghost whitespace-nowrap"
                 >
                   Clear Filters
@@ -338,6 +363,15 @@ export default function ProjectTaskList() {
                   placeholder="All Due Dates"
                 />
               </div>
+
+              {/* Label Filter Row */}
+              <div className="grid grid-cols-1 gap-4">
+                <LabelFilter
+                  projectId={projectId}
+                  selectedLabelIds={filters.labelIds}
+                  onSelectionChange={(labelIds) => setFilters(prev => ({ ...prev, labelIds }))}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -351,7 +385,7 @@ export default function ProjectTaskList() {
                 <p className="mt-4 text-gray-600">Loading tasks...</p>
               </div>
             ) : tasks && tasks.length > 0 ? (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {tasks.map((task: Task) => (
                   <div
                     key={task.id}
@@ -461,6 +495,22 @@ export default function ProjectTaskList() {
             )}
           </div>
         </div>
+
+        {/* Pagination */}
+        {pagination && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalCount={pagination.totalCount}
+              limit={pagination.limit}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

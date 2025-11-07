@@ -193,9 +193,14 @@ export const createTask = async (req: Request, res: Response) => {
  */
 export const getTasks = async (req: Request, res: Response) => {
   try {
-    const { projectId, status, priority, assignee, dueDate, search, labelIds } = req.query;
+    const { projectId, status, priority, assignee, dueDate, search, labelIds, page = '1', limit = '20' } = req.query;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
+
+    // Parse pagination parameters
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+    const skip = (pageNum - 1) * limitNum;
 
     // Build filter conditions
     const buildFilters = (baseWhere: any) => {
@@ -306,56 +311,73 @@ export const getTasks = async (req: Request, res: Response) => {
         };
       }
 
-      const tasks = await prisma.task.findMany({
-        where: whereClause,
-        include: {
-          project: {
-            select: {
-              id: true,
-              title: true
-            }
-          },
-          assignee: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true
-            }
-          },
-          labels: {
-            include: {
-              label: {
-                include: {
-                  creator: {
-                    select: {
-                      id: true,
-                      fullName: true
-                    }
-                  },
-                  project: {
-                    select: {
-                      id: true,
-                      title: true
+      const [tasks, totalCount] = await Promise.all([
+        prisma.task.findMany({
+          where: whereClause,
+          include: {
+            project: {
+              select: {
+                id: true,
+                title: true
+              }
+            },
+            assignee: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true
+              }
+            },
+            labels: {
+              include: {
+                label: {
+                  include: {
+                    creator: {
+                      select: {
+                        id: true,
+                        fullName: true
+                      }
+                    },
+                    project: {
+                      select: {
+                        id: true,
+                        title: true
+                      }
                     }
                   }
                 }
               }
             }
-          }
-        },
-        orderBy: [
-          { status: 'asc' },
-          { priority: 'desc' },
-          { createdAt: 'desc' }
-        ]
-      });
+          },
+          orderBy: [
+            { status: 'asc' },
+            { priority: 'desc' },
+            { createdAt: 'desc' }
+          ],
+          skip,
+          take: limitNum
+        }),
+        prisma.task.count({
+          where: whereClause
+        })
+      ]);
+
+      const totalPages = Math.ceil(totalCount / limitNum);
 
       return res.json({
         message: 'Tasks retrieved successfully',
         tasks: tasks.map(task => ({
           ...task,
           labels: task.labels.map(tl => tl.label)
-        }))
+        })),
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          totalCount,
+          limit: limitNum,
+          hasNext: pageNum < totalPages,
+          hasPrev: pageNum > 1
+        }
       });
     }
 
@@ -415,50 +437,67 @@ export const getTasks = async (req: Request, res: Response) => {
       };
     }
 
-    const tasks = await prisma.task.findMany({
-      where: whereClause,
-      include: {
-        assignee: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true
-          }
-        },
-        labels: {
-          include: {
-            label: {
-              include: {
-                creator: {
-                  select: {
-                    id: true,
-                    fullName: true
-                  }
-                },
-                project: {
-                  select: {
-                    id: true,
-                    title: true
+    const [tasks, totalCount] = await Promise.all([
+      prisma.task.findMany({
+        where: whereClause,
+        include: {
+          assignee: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true
+            }
+          },
+          labels: {
+            include: {
+              label: {
+                include: {
+                  creator: {
+                    select: {
+                      id: true,
+                      fullName: true
+                    }
+                  },
+                  project: {
+                    select: {
+                      id: true,
+                      title: true
+                    }
                   }
                 }
               }
             }
           }
-        }
-      },
-      orderBy: [
-        { status: 'asc' },
-        { priority: 'desc' },
-        { createdAt: 'desc' }
-      ]
-    });
+        },
+        orderBy: [
+          { status: 'asc' },
+          { priority: 'desc' },
+          { createdAt: 'desc' }
+        ],
+        skip,
+        take: limitNum
+      }),
+      prisma.task.count({
+        where: whereClause
+      })
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limitNum);
 
     res.json({
       message: 'Tasks retrieved successfully',
       tasks: tasks.map(task => ({
         ...task,
         labels: task.labels.map(tl => tl.label)
-      }))
+      })),
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCount,
+        limit: limitNum,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
+      }
     });
 
   } catch (error) {

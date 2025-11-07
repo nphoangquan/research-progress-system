@@ -7,9 +7,9 @@ import { useWebSocketEvents } from '../../hooks/useWebSocketEvents';
 import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
+import LabelFilter from '../../components/ui/LabelFilter';
 import LabelChip from '../../components/ui/LabelChip';
 import api from '../../lib/axios';
-import { getLabels } from '../../lib/labelApi';
 import type { Label } from '../../types/label';
 import toast from "react-hot-toast";
 import {
@@ -143,11 +143,6 @@ export default function TaskKanban() {
     },
   });
 
-  // Fetch labels for label filter
-  const { data: availableLabels = [] } = useQuery({
-    queryKey: ['labels', projectId],
-    queryFn: () => getLabels(projectId),
-  });
 
   // Fetch project members for assignee filter (only for admin/lecturer)
   const { data: projectMembers } = useQuery({
@@ -280,7 +275,7 @@ export default function TaskKanban() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user} />
-        <div className="container py-8">
+        <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading kanban board...</p>
@@ -294,7 +289,7 @@ export default function TaskKanban() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
 
-      <div className="container py-8">
+      <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -395,52 +390,11 @@ export default function TaskKanban() {
               {/* Label Filter Row */}
               <div className="flex justify-start">
                 <div className="w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Labels
-                  </label>
-                  <div className="flex flex-wrap gap-2 min-h-[42px] p-2 border border-gray-300 rounded-lg">
-                    {filters.labelIds.length === 0 ? (
-                      <span className="text-sm text-gray-500">All labels</span>
-                    ) : (
-                      filters.labelIds.map(labelId => {
-                        const label = availableLabels.find(l => l.id === labelId);
-                        return label ? (
-                          <LabelChip
-                            key={label.id}
-                            label={label}
-                            size="sm"
-                            showRemove
-                            onRemove={(id) => {
-                              setFilters(prev => ({
-                                ...prev,
-                                labelIds: prev.labelIds.filter(lid => lid !== id)
-                              }));
-                            }}
-                          />
-                        ) : null;
-                      })
-                    )}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {availableLabels
-                      .filter(label => !filters.labelIds.includes(label.id))
-                      .slice(0, 10)
-                      .map(label => (
-                        <button
-                          key={label.id}
-                          type="button"
-                          onClick={() => {
-                            setFilters(prev => ({
-                              ...prev,
-                              labelIds: [...prev.labelIds, label.id]
-                            }));
-                          }}
-                          className="text-xs"
-                        >
-                          <LabelChip label={label} size="sm" />
-                        </button>
-                      ))}
-                  </div>
+                  <LabelFilter
+                    projectId={projectId}
+                    selectedLabelIds={filters.labelIds}
+                    onSelectionChange={(labelIds) => setFilters(prev => ({ ...prev, labelIds }))}
+                  />
                 </div>
               </div>
             </div>

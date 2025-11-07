@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
@@ -8,9 +8,10 @@ import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import AdvancedFilter from '../../components/ui/AdvancedFilter';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
+import LabelFilter from '../../components/ui/LabelFilter';
 import LabelChip from '../../components/ui/LabelChip';
+import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
-import { getLabels } from '../../lib/labelApi';
 import type { Label } from '../../types/label';
 import toast from 'react-hot-toast';
 import { 
@@ -75,10 +76,14 @@ export default function TaskList() {
 
   // State for advanced filters
   const [advancedFilters, setAdvancedFilters] = useState<any>({});
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Fetch tasks
-  const { data: tasks, isLoading } = useQuery({
-    queryKey: ['tasks', projectId, filters, advancedFilters],
+  const { data: tasksData, isLoading } = useQuery({
+    queryKey: ['tasks', projectId, filters, advancedFilters, currentPage, pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (projectId) params.append('projectId', projectId);
@@ -106,16 +111,22 @@ export default function TaskList() {
         }
       });
 
+      // Pagination parameters
+      params.append('page', currentPage.toString());
+      params.append('limit', pageSize.toString());
+
       const response = await api.get(`/tasks?${params.toString()}`);
-      return response.data.tasks;
+      return response.data;
     },
   });
 
-  // Fetch labels for label filter
-  const { data: availableLabels = [] } = useQuery({
-    queryKey: ['labels', projectId],
-    queryFn: () => getLabels(projectId),
-  });
+  const tasks = tasksData?.tasks || [];
+  const pagination = tasksData?.pagination;
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.status, filters.priority, filters.assignee, filters.dueDate, filters.search, filters.labelIds.length, advancedFilters]);
 
   // Fetch project members for assignee filter (only for admin/lecturer)
   const { data: projectMembers } = useQuery({
@@ -249,7 +260,7 @@ export default function TaskList() {
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
       
-      <div className="container py-8">
+      <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -316,7 +327,10 @@ export default function TaskList() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setFilters({ status: '', priority: '', assignee: '', dueDate: '', search: '', labelIds: [] })}
+                  onClick={() => {
+                    setFilters({ status: '', priority: '', assignee: '', dueDate: '', search: '', labelIds: [] });
+                    setCurrentPage(1);
+                  }}
                   className="btn-ghost whitespace-nowrap"
                 >
                   Clear Filters
@@ -388,54 +402,11 @@ export default function TaskList() {
 
               {/* Label Filter Row */}
               <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Labels
-                  </label>
-                  <div className="flex flex-wrap gap-2 min-h-[42px] p-2 border border-gray-300 rounded-lg">
-                    {filters.labelIds.length === 0 ? (
-                      <span className="text-sm text-gray-500">All labels</span>
-                    ) : (
-                      filters.labelIds.map(labelId => {
-                        const label = availableLabels.find(l => l.id === labelId);
-                        return label ? (
-                          <LabelChip
-                            key={label.id}
-                            label={label}
-                            size="sm"
-                            showRemove
-                            onRemove={(id) => {
-                              setFilters(prev => ({
-                                ...prev,
-                                labelIds: prev.labelIds.filter(lid => lid !== id)
-                              }));
-                            }}
-                          />
-                        ) : null;
-                      })
-                    )}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {availableLabels
-                      .filter(label => !filters.labelIds.includes(label.id))
-                      .slice(0, 10)
-                      .map(label => (
-                        <button
-                          key={label.id}
-                          type="button"
-                          onClick={() => {
-                            setFilters(prev => ({
-                              ...prev,
-                              labelIds: [...prev.labelIds, label.id]
-                            }));
-                          }}
-                          className="text-xs"
-                        >
-                          <LabelChip label={label} size="sm" />
-                        </button>
-                      ))}
-                  </div>
-                </div>
+                <LabelFilter
+                  projectId={projectId}
+                  selectedLabelIds={filters.labelIds}
+                  onSelectionChange={(labelIds) => setFilters(prev => ({ ...prev, labelIds }))}
+                />
               </div>
             </div>
           </div>
@@ -445,7 +416,7 @@ export default function TaskList() {
         <div className="card">
           <div className="card-body">
             {tasks && tasks.length > 0 ? (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {tasks.map((task: Task) => (
                   <div
                     key={task.id}
@@ -551,6 +522,22 @@ export default function TaskList() {
             )}
           </div>
         </div>
+
+        {/* Pagination */}
+        {pagination && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalCount={pagination.totalCount}
+              limit={pagination.limit}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
