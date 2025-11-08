@@ -26,6 +26,9 @@ async function main() {
     await prisma.task.deleteMany();
     await prisma.projectStudent.deleteMany();
     await prisma.project.deleteMany();
+    // Delete auth tokens before users
+    await prisma.emailVerificationToken.deleteMany();
+    await prisma.passwordResetToken.deleteMany();
     await prisma.user.deleteMany();
     console.log('✅ Data cleaned');
   } else {
@@ -45,6 +48,7 @@ async function main() {
         passwordHash: await bcrypt.hash('admin123', 10),
         fullName: 'System Administrator',
         role: 'ADMIN',
+        emailVerified: true, // Admin account is pre-verified
       },
     });
     console.log('✅ Created admin user');
@@ -88,6 +92,7 @@ async function main() {
         passwordHash: await bcrypt.hash('lecturer123', 10),
         fullName: 'Dr. Nguyễn Văn A',
         role: 'LECTURER',
+        emailVerified: true, // Pre-verified for demo
       },
     });
   }
@@ -103,6 +108,7 @@ async function main() {
         passwordHash: await bcrypt.hash('lecturer123', 10),
         fullName: 'Dr. Trần Thị B',
         role: 'LECTURER',
+        emailVerified: true, // Pre-verified for demo
       },
     });
   }
@@ -139,6 +145,7 @@ async function main() {
           fullName: 'Lê Văn C',
           role: 'STUDENT',
           studentId: 'SV001',
+          emailVerified: true, // Pre-verified for demo
         },
       });
 
@@ -151,6 +158,7 @@ async function main() {
           fullName: 'Phạm Thị D',
           role: 'STUDENT',
           studentId: 'SV002',
+          emailVerified: true, // Pre-verified for demo
         },
       });
 
@@ -163,6 +171,7 @@ async function main() {
           fullName: 'Hoàng Văn E',
           role: 'STUDENT',
           studentId: 'SV003',
+          emailVerified: true, // Pre-verified for demo
         },
       });
 
@@ -175,6 +184,7 @@ async function main() {
           fullName: 'Vũ Thị F',
           role: 'STUDENT',
           studentId: 'SV004',
+          emailVerified: true, // Pre-verified for demo
         },
       });
 
@@ -187,6 +197,7 @@ async function main() {
           fullName: 'Đặng Văn G',
           role: 'STUDENT',
           studentId: 'SV005',
+          emailVerified: true, // Pre-verified for demo
         },
       });
 

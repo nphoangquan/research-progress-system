@@ -6,6 +6,7 @@ export interface User {
   studentId?: string;
   avatarUrl?: string;
   isActive: boolean;
+  emailVerified: boolean;
   createdAt: string;
 }
 

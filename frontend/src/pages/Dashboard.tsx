@@ -1,9 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/layout/Navbar';
 import api from '../lib/axios';
 import type { Project } from '../types/project';
+import toast from 'react-hot-toast';
 import { 
   FolderOpen, 
   CheckCircle, 
@@ -12,7 +13,10 @@ import {
   Plus,
   ArrowRight,
   FileText,
-  CheckSquare
+  CheckSquare,
+  AlertCircle,
+  X,
+  Mail
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -39,11 +43,51 @@ export default function Dashboard() {
   const activeProjects = projects?.filter((p: Project) => p.status === 'IN_PROGRESS').length || 0;
   const completedProjects = projects?.filter((p: Project) => p.status === 'COMPLETED').length || 0;
 
+  // Resend verification email mutation
+  const resendVerificationMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/auth/resend-verification');
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Verification email sent! Please check your inbox.');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to send verification email');
+    },
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar user={user} />
       
       <div className="w-full px-6 py-8">
+        {/* Email Verification Banner */}
+        {!user.emailVerified && (
+          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+            <div className="flex items-start">
+              <AlertCircle className="h-5 w-5 text-yellow-400 mr-3 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Please verify your email address
+                </h3>
+                <p className="mt-1 text-sm text-yellow-700">
+                  We've sent a verification email to {user.email}. Please check your inbox and click the verification link.
+                </p>
+                <div className="mt-3">
+                  <button
+                    onClick={() => resendVerificationMutation.mutate()}
+                    disabled={resendVerificationMutation.isPending}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-yellow-800 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    {resendVerificationMutation.isPending ? 'Sending...' : 'Resend Verification Email'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Welcome Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">

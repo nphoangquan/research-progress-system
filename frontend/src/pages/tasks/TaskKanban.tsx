@@ -374,18 +374,21 @@ export default function TaskKanban() {
                 </button>
               </div>
 
-              {/* Assignee Filter Row */}
-              <div className="flex justify-start">
-                <div className="w-full sm:w-64">
-                  <UserFilterSelector
-                    selectedUsers={Array.isArray(filters.assignee) ? filters.assignee : (filters.assignee ? [filters.assignee] : [])}
-                    onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignee: userIds.length > 0 ? userIds : '' }))}
-                    multiple={true}
-                    placeholder="All Assignees"
-                    className="w-full"
-                  />
+              {/* Assignee Filter Row - Only show for Admin/Lecturer or when projectId is provided */}
+              {(user.role === 'ADMIN' || user.role === 'LECTURER' || projectId) && (
+                <div className="flex justify-start">
+                  <div className="w-full sm:w-64">
+                    <UserFilterSelector
+                      projectId={projectId}
+                      selectedUsers={Array.isArray(filters.assignee) ? filters.assignee : (filters.assignee ? [filters.assignee] : [])}
+                      onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignee: userIds.length > 0 ? userIds : '' }))}
+                      multiple={true}
+                      placeholder="All Assignees"
+                      className="w-full"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Label Filter Row */}
               <div className="flex justify-start">

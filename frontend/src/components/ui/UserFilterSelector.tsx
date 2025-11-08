@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../../hooks/useAuth';
 import api from '../../lib/axios';
 import { 
   Search, 
@@ -27,6 +28,7 @@ interface UserFilterSelectorProps {
   multiple?: boolean;
   placeholder?: string;
   className?: string;
+  projectId?: string; // Optional: if provided, fetch project members instead of all users
 }
 
 export default function UserFilterSelector({ 
@@ -34,19 +36,35 @@ export default function UserFilterSelector({
   onSelectionChange, 
   multiple = true,
   placeholder = "All Uploaders",
-  className = ""
+  className = "",
+  projectId
 }: UserFilterSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [localSelection, setLocalSelection] = useState<string[]>(selectedUsers);
+  const { getCurrentUser } = useAuth();
+  const user = getCurrentUser();
 
-  // Fetch users
+  // Fetch users based on role and projectId
   const { data: users, isLoading } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', projectId, user.role],
     queryFn: async () => {
-      const response = await api.get('/users');
-      return response.data.users as User[];
+      // If projectId is provided, fetch project members (accessible to all roles)
+      if (projectId) {
+        const response = await api.get(`/users/project/${projectId}`);
+        return response.data.members as User[];
+      }
+      
+      // If user is ADMIN or LECTURER, fetch all users
+      if (user.role === 'ADMIN' || user.role === 'LECTURER') {
+        const response = await api.get('/users');
+        return response.data.users as User[];
+      }
+      
+      // For STUDENT without projectId, return empty array
+      return [];
     },
+    enabled: projectId !== undefined || user.role === 'ADMIN' || user.role === 'LECTURER',
   });
 
   // Filter users based on search

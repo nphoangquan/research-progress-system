@@ -12,30 +12,33 @@ datasource db {
 // ============================================================================
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  fullName      String    @map("full_name")
-  role          Role      @default(STUDENT)
-  studentId     String?   @unique @map("student_id")
-  avatarUrl     String?   @map("avatar_url")
-  isActive      Boolean   @default(true) @map("is_active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  fullName      String   @map("full_name")
+  role          Role     @default(STUDENT)
+  studentId     String?  @unique @map("student_id")
+  avatarUrl     String?  @map("avatar_url")
+  isActive      Boolean  @default(true) @map("is_active")
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  projectsAsLecturer  Project[] @relation("LecturerProjects")
-  projectStudents     ProjectStudent[]
-  tasks               Task[]
-  submittedTasks      Task[] @relation("TaskSubmissions")
-  notifications       Notification[]
-  aiQueries           AIQuery[]
-  comments            Comment[]
-  taskAttachments     TaskAttachment[]
-  documents           Document[]
-  filterPresets       FilterPreset[]
-  activities          Activity[]
-  createdLabels       Label[] @relation("CreatedLabels")
+  projectsAsLecturer      Project[]                @relation("LecturerProjects")
+  projectStudents         ProjectStudent[]
+  tasks                   Task[]
+  submittedTasks          Task[]                   @relation("TaskSubmissions")
+  notifications           Notification[]
+  aiQueries               AIQuery[]
+  comments                Comment[]
+  taskAttachments         TaskAttachment[]
+  documents               Document[]
+  filterPresets           FilterPreset[]
+  activities              Activity[]
+  createdLabels           Label[]                  @relation("CreatedLabels")
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
 
   @@map("users")
 }
@@ -51,27 +54,27 @@ enum Role {
 // ============================================================================
 
 model Project {
-  id              String    @id @default(uuid())
+  id              String        @id @default(uuid())
   title           String
-  description     String    @db.Text
-  lecturerId      String    @map("lecturer_id")
+  description     String        @db.Text
+  lecturerId      String        @map("lecturer_id")
   status          ProjectStatus @default(IN_PROGRESS)
-  startDate       DateTime  @map("start_date")
-  endDate         DateTime? @map("end_date")
-  progress        Int       @default(0)
-  isSystemProject Boolean   @default(false) @map("is_system_project")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  startDate       DateTime      @map("start_date")
+  endDate         DateTime?     @map("end_date")
+  progress        Int           @default(0)
+  isSystemProject Boolean       @default(false) @map("is_system_project")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
   // Relations
-  lecturer        User      @relation("LecturerProjects", fields: [lecturerId], references: [id], onDelete: Restrict)
-  students        ProjectStudent[]
-  tasks           Task[]
-  documents       Document[]
-  aiQueries       AIQuery[]
-  notifications   Notification[]
-  activities      Activity[]
-  labels          Label[]
+  lecturer      User             @relation("LecturerProjects", fields: [lecturerId], references: [id], onDelete: Restrict)
+  students      ProjectStudent[]
+  tasks         Task[]
+  documents     Document[]
+  aiQueries     AIQuery[]
+  notifications Notification[]
+  activities    Activity[]
+  labels        Label[]
 
   @@index([lecturerId])
   @@index([isSystemProject])
@@ -86,8 +89,8 @@ model ProjectStudent {
   joinedAt  DateTime @default(now()) @map("joined_at")
 
   // Relations
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  student User    @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, studentId])
   @@index([projectId])
@@ -109,25 +112,25 @@ enum ProjectStatus {
 // ============================================================================
 
 model Task {
-  id              String    @id @default(uuid())
-  projectId       String    @map("project_id")
-  title           String
-  description     String?   @db.Text
-  assigneeId      String    @map("assignee_id")
-  status          TaskStatus @default(TODO)
-  priority        Priority  @default(MEDIUM)
-  dueDate         DateTime? @map("due_date")
-  completedAt     DateTime? @map("completed_at")
-  submissionContent String? @db.Text @map("submission_content")
-  submittedAt     DateTime? @map("submitted_at")
-  submittedBy     String?   @map("submitted_by")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id                String     @id @default(uuid())
+  projectId         String     @map("project_id")
+  title             String
+  description       String?    @db.Text
+  assigneeId        String     @map("assignee_id")
+  status            TaskStatus @default(TODO)
+  priority          Priority   @default(MEDIUM)
+  dueDate           DateTime?  @map("due_date")
+  completedAt       DateTime?  @map("completed_at")
+  submissionContent String?    @map("submission_content") @db.Text
+  submittedAt       DateTime?  @map("submitted_at")
+  submittedBy       String?    @map("submitted_by")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
 
   // Relations
-  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee        User      @relation(fields: [assigneeId], references: [id], onDelete: Cascade)
-  submittedByUser User?     @relation("TaskSubmissions", fields: [submittedBy], references: [id], onDelete: SetNull)
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee        User             @relation(fields: [assigneeId], references: [id], onDelete: Cascade)
+  submittedByUser User?            @relation("TaskSubmissions", fields: [submittedBy], references: [id], onDelete: SetNull)
   comments        Comment[]
   attachments     TaskAttachment[]
   activities      Activity[]
@@ -157,18 +160,18 @@ enum Priority {
 // ============================================================================
 
 model Label {
-  id          String    @id @default(uuid())
-  name        String
-  color       String    @default("#3B82F6") // Hex color code
-  projectId   String?   @map("project_id") // null = global label (admin only)
-  createdBy   String    @map("created_by")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  name      String
+  color     String   @default("#3B82F6") // Hex color code
+  projectId String?  @map("project_id") // null = global label (admin only)
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  creator     User      @relation("CreatedLabels", fields: [createdBy], references: [id], onDelete: Restrict)
-  tasks       TaskLabel[]
+  project Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User        @relation("CreatedLabels", fields: [createdBy], references: [id], onDelete: Restrict)
+  tasks   TaskLabel[]
 
   @@unique([projectId, name]) // Unique name per project (or global)
   @@index([projectId])
@@ -183,8 +186,8 @@ model TaskLabel {
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  label     Label    @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, labelId])
   @@index([taskId])
@@ -197,35 +200,35 @@ model TaskLabel {
 // ============================================================================
 
 model Document {
-  id              String    @id @default(uuid())
-  projectId       String    @map("project_id")
-  fileName        String    @map("file_name")
-  fileUrl         String    @map("file_url")
-  fileSize        Int       @map("file_size")
-  mimeType        String    @map("mime_type")
-  uploadedBy      String    @map("uploaded_by")
-  description     String?   @db.Text
-  status          DocumentStatus @default(PENDING)
-  
+  id          String         @id @default(uuid())
+  projectId   String         @map("project_id")
+  fileName    String         @map("file_name")
+  fileUrl     String         @map("file_url")
+  fileSize    Int            @map("file_size")
+  mimeType    String         @map("mime_type")
+  uploadedBy  String         @map("uploaded_by")
+  description String?        @db.Text
+  status      DocumentStatus @default(PENDING)
+
   // Document Categories & Access Control
-  category        DocumentCategory @default(PROJECT)
-  accessLevel     AccessLevel @default(RESTRICTED) @map("access_level")
-  isPublic        Boolean   @default(false) @map("is_public")
-  
+  category    DocumentCategory @default(PROJECT)
+  accessLevel AccessLevel      @default(RESTRICTED) @map("access_level")
+  isPublic    Boolean          @default(false) @map("is_public")
+
   // AI Processing Status
-  indexStatus     IndexStatus @default(PENDING) @map("index_status")
-  indexedAt       DateTime?   @map("indexed_at")
-  chunkCount      Int?        @map("chunk_count")
-  errorMessage    String?     @map("error_message") @db.Text
-  
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  indexStatus  IndexStatus @default(PENDING) @map("index_status")
+  indexedAt    DateTime?   @map("indexed_at")
+  chunkCount   Int?        @map("chunk_count")
+  errorMessage String?     @map("error_message") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploader        User      @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
-  chunks          DocumentChunk[]
-  activities      Activity[]
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader   User            @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  chunks     DocumentChunk[]
+  activities Activity[]
 
   @@index([projectId])
   @@index([uploadedBy])
@@ -268,16 +271,16 @@ enum AccessLevel {
 // ============================================================================
 
 model DocumentChunk {
-  id              String    @id @default(uuid())
-  documentId      String    @map("document_id")
-  content         String    @db.Text
-  chunkIndex      Int       @map("chunk_index")
-  vectorId        String    @map("vector_id")
-  metadata        Json?
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id         String   @id @default(uuid())
+  documentId String   @map("document_id")
+  content    String   @db.Text
+  chunkIndex Int      @map("chunk_index")
+  vectorId   String   @map("vector_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
 
   // Relations
-  document        Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@unique([documentId, chunkIndex])
   @@index([documentId])
@@ -301,8 +304,8 @@ model AIQuery {
   createdAt       DateTime  @default(now()) @map("created_at")
 
   // Relations
-  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([userId])
@@ -319,18 +322,18 @@ enum Feedback {
 // ============================================================================
 
 model Notification {
-  id              String    @id @default(uuid())
-  userId          String    @map("user_id")
-  projectId       String?   @map("project_id")
-  type            NotificationType
-  title           String
-  message         String    @db.Text
-  isRead          Boolean   @default(false) @map("is_read")
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  projectId String?          @map("project_id")
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
 
   // Relations
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project         Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@map("notifications")
@@ -374,8 +377,8 @@ model TaskAttachment {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  uploader  User @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader User @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
 
   @@index([taskId])
   @@index([uploadedBy])
@@ -398,7 +401,7 @@ model FilterPreset {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, name, entityType])
   @@index([userId])
@@ -412,21 +415,21 @@ model FilterPreset {
 // ============================================================================
 
 model Activity {
-  id          String      @id @default(uuid())
-  userId      String      @map("user_id")
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
   type        ActivityType
-  description String      @db.Text
-  projectId   String?     @map("project_id")
-  taskId      String?     @map("task_id")
-  documentId  String?     @map("document_id")
-  metadata    Json?       // Additional data about the activity
-  createdAt   DateTime    @default(now()) @map("created_at")
+  description String       @db.Text
+  projectId   String?      @map("project_id")
+  taskId      String?      @map("task_id")
+  documentId  String?      @map("document_id")
+  metadata    Json? // Additional data about the activity
+  createdAt   DateTime     @default(now()) @map("created_at")
 
   // Relations
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project     Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  task        Task?       @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  document    Document?   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project  Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task     Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  document Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([type])
@@ -458,4 +461,42 @@ enum NotificationType {
   COMMENT_ADDED
   DEADLINE_APPROACHING
   PROJECT_STATUS_CHANGED
+}
+
+// ============================================================================
+// EMAIL VERIFICATION & PASSWORD RESET
+// ============================================================================
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([used])
+  @@map("password_reset_tokens")
 }

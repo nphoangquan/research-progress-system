@@ -1,38 +1,68 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { RegisterRequest } from '../../types/auth';
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  UserPlus, 
-  GraduationCap,
-  ChevronDown
-} from 'lucide-react';
+import { GraduationCap, Mail, Lock, User, AlertCircle } from 'lucide-react';
 
 export default function Register() {
-  const [formData, setFormData] = useState<RegisterRequest>({
+  const { register, isLoading } = useAuth();
+  const [formData, setFormData] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     fullName: '',
-    role: 'STUDENT',
     studentId: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const { register, isLoading } = useAuth();
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+    fullName?: string;
+    studentId?: string;
+  }>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    register(formData);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    const newErrors: typeof errors = {};
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    if (!formData.fullName) {
+      newErrors.fullName = 'Full name is required';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    await register({
+      email: formData.email,
+      password: formData.password,
+      fullName: formData.fullName,
+      studentId: formData.studentId || undefined,
     });
   };
 
@@ -53,154 +83,163 @@ export default function Register() {
         </div>
 
         {/* Register Form */}
-        <div className="card">
-          <div className="card-body">
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              {/* Full Name Field */}
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    id="fullName"
-                    name="fullName"
-                    type="text"
-                    required
-                    className="input pl-10"
-                    placeholder="Enter your full name"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                  />
-                </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            {/* Full Name */}
+            <div>
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  id="fullName"
+                  name="fullName"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  className={`input pl-10 ${errors.fullName ? 'input-error' : ''}`}
+                  placeholder="Enter your full name"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                />
               </div>
-
-              {/* Email Field */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    className="input pl-10"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              {/* Password Field */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    required
-                    className="input pl-10 pr-10"
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Role Field */}
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                  Role
-                </label>
-                <div className="relative">
-                  <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <select
-                    id="role"
-                    name="role"
-                    className="input pl-10 appearance-none"
-                    value={formData.role}
-                    onChange={handleChange}
-                  >
-                    <option value="STUDENT">Student</option>
-                    <option value="LECTURER">Lecturer</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Student ID Field (conditional) */}
-              {formData.role === 'STUDENT' && (
-                <div>
-                  <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-2">
-                    Student ID
-                  </label>
-                  <div className="relative">
-                    <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      id="studentId"
-                      name="studentId"
-                      type="text"
-                      className="input pl-10"
-                      placeholder="Enter your student ID"
-                      value={formData.studentId}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
+              {errors.fullName && (
+                <p className="mt-1 text-sm text-error-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.fullName}
+                </p>
               )}
+            </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="btn-primary w-full"
-              >
-                {isLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                ) : (
-                  <UserPlus className="w-4 h-4 mr-2" />
-                )}
-                {isLoading ? 'Creating account...' : 'Create account'}
-              </button>
-            </form>
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className={`input pl-10 ${errors.email ? 'input-error' : ''}`}
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-1 text-sm text-error-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.email}
+                </p>
+              )}
+            </div>
+
+            {/* Student ID (Optional) */}
+            <div>
+              <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-2">
+                Student ID (Optional)
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  id="studentId"
+                  name="studentId"
+                  type="text"
+                  className={`input pl-10 ${errors.studentId ? 'input-error' : ''}`}
+                  placeholder="Enter your student ID"
+                  value={formData.studentId}
+                  onChange={handleInputChange}
+                />
+              </div>
+              {errors.studentId && (
+                <p className="mt-1 text-sm text-error-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.studentId}
+                </p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className={`input pl-10 ${errors.password ? 'input-error' : ''}`}
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                />
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-sm text-error-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.password}
+                </p>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className={`input pl-10 ${errors.confirmPassword ? 'input-error' : ''}`}
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                />
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-error-600 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.confirmPassword}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <Link
-              to="/login"
-              className="font-medium text-primary-600 hover:text-primary-500 transition-colors"
+          {/* Submit Button */}
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full btn btn-primary"
             >
-              Sign in here
-            </Link>
-          </p>
-        </div>
+              {isLoading ? 'Creating account...' : 'Sign up'}
+            </button>
+          </div>
+
+          {/* Login Link */}
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{' '}
+              <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </form>
       </div>
     </div>
   );

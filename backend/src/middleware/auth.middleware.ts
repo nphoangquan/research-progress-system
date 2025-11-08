@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import logger from '../utils/logger';
 
 // Extend Express Request interface to include user
 declare global {
@@ -53,17 +54,20 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
+      logger.warn('Token expired:', { path: req.path });
       return res.status(401).json({ 
         error: 'Token expired. Please login again.' 
       });
     }
     
     if (error instanceof jwt.JsonWebTokenError) {
+      logger.warn('Invalid token:', { path: req.path, error: error.message });
       return res.status(401).json({ 
         error: 'Invalid token.' 
       });
     }
     
+    logger.error('Token verification failed:', { error, path: req.path });
     return res.status(500).json({ 
       error: 'Token verification failed.' 
     });

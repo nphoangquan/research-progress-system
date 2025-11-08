@@ -17,6 +17,7 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.17.0",
+    "@types/nodemailer": "^7.0.3",
     "@types/socket.io": "^3.0.1",
     "@types/validator": "^13.15.3",
     "bcrypt": "^6.0.0",
@@ -25,12 +26,15 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
+    "firebase": "^12.5.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "nodemailer": "^7.0.10",
     "prisma": "^6.17.0",
     "recharts": "^3.2.1",
     "socket.io": "^4.8.1",
     "validator": "^13.15.15",
+    "winston": "^3.18.3",
     "zod": "^4.1.12"
   },
   "devDependencies": {

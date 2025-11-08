@@ -387,18 +387,21 @@ export default function TaskList() {
                 />
               </div>
 
-              {/* Assignee Filter Row */}
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <UserFilterSelector
-                    selectedUsers={Array.isArray(filters.assignee) ? filters.assignee : (filters.assignee ? [filters.assignee] : [])}
-                    onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignee: userIds.length > 0 ? userIds : '' }))}
-                    multiple={true}
-                    placeholder="All Assignees"
-                    className="w-full"
-                  />
+              {/* Assignee Filter Row - Only show for Admin/Lecturer or when projectId is provided */}
+              {(user.role === 'ADMIN' || user.role === 'LECTURER' || projectId) && (
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <UserFilterSelector
+                      projectId={projectId}
+                      selectedUsers={Array.isArray(filters.assignee) ? filters.assignee : (filters.assignee ? [filters.assignee] : [])}
+                      onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignee: userIds.length > 0 ? userIds : '' }))}
+                      multiple={true}
+                      placeholder="All Assignees"
+                      className="w-full"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Label Filter Row */}
               <div className="grid grid-cols-1 gap-4">
