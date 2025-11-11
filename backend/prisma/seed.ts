@@ -1,806 +1,799 @@
-import { PrismaClient } from '@prisma/client';
+import {
+  PrismaClient,
+  Role,
+  TaskStatus,
+  Priority,
+  Prisma,
+  DocumentStatus,
+  DocumentCategory,
+  AccessLevel
+} from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('🌱 Starting seed...');
+const DEFAULT_PREFERENCES = {
+  theme: 'light',
+  language: 'vi',
+  timezone: 'Asia/Ho_Chi_Minh'
+};
 
-  // Check if user wants to reset data (via environment variable)
-  const RESET_DATA = process.env.RESET_DATA === 'true' || process.env.RESET_DATA === '1';
-  
-  if (RESET_DATA) {
-    // Clean existing data (only if RESET_DATA=true)
-    // Order matters: delete child records first to avoid foreign key constraints
-    console.log('🧹 Cleaning existing data (RESET_DATA=true)...');
-    await prisma.taskLabel.deleteMany();
-    await prisma.label.deleteMany();
-    await prisma.notification.deleteMany();
-    await prisma.comment.deleteMany();
-    await prisma.taskAttachment.deleteMany();
-    await prisma.aIQuery.deleteMany();
-    await prisma.documentChunk.deleteMany();
-    await prisma.document.deleteMany();
-    await prisma.activity.deleteMany();
-    await prisma.filterPreset.deleteMany();
-    await prisma.task.deleteMany();
-    await prisma.projectStudent.deleteMany();
-    await prisma.project.deleteMany();
-    // Delete auth tokens before users
-    await prisma.emailVerificationToken.deleteMany();
-    await prisma.passwordResetToken.deleteMany();
-    await prisma.user.deleteMany();
-    console.log('✅ Data cleaned');
-  } else {
+type SeededUsers = {
+  admin: Prisma.UserGetPayload<{}>;
+  lecturers: Prisma.UserGetPayload<{}>[];
+  students: Prisma.UserGetPayload<{}>[];
+};
+
+type SeededProjects = {
+  systemProject: Prisma.ProjectGetPayload<{}>;
+  project1: Prisma.ProjectGetPayload<{}>;
+  project2: Prisma.ProjectGetPayload<{}>;
+  project3: Prisma.ProjectGetPayload<{}>;
+};
+
+async function cleanupDatabase(shouldReset: boolean) {
+  if (!shouldReset) {
     console.log('ℹ️  Skipping data cleanup (set RESET_DATA=true to clean before seeding)');
     console.log('ℹ️  Existing data will be preserved. Duplicate entries may be skipped.');
+    return;
   }
 
-  // Create Admin (skip if already exists)
-  let admin = await prisma.user.findUnique({
-    where: { email: 'admin@research.edu' }
-  });
+  console.log('🧹 Cleaning existing data (RESET_DATA=true)...');
+  await prisma.taskLabel.deleteMany();
+  await prisma.label.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.comment.deleteMany();
+  await prisma.taskAttachment.deleteMany();
+  await prisma.aIQuery.deleteMany();
+  await prisma.documentChunk.deleteMany();
+  await prisma.document.deleteMany();
+  await prisma.activity.deleteMany();
+  await prisma.filterPreset.deleteMany();
+  await prisma.task.deleteMany();
+  await prisma.projectStudent.deleteMany();
+  await prisma.project.deleteMany();
+  await prisma.emailVerificationToken.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
+  await prisma.user.deleteMany();
+  console.log('✅ Data cleaned');
+}
 
-  if (!admin) {
-    admin = await prisma.user.create({
+async function ensureUser(info: {
+  email: string;
+  password: string;
+  fullName: string;
+  role: Role;
+  studentId?: string | null;
+}) {
+  const { email, password, fullName, role, studentId } = info;
+  const existing = await prisma.user.findUnique({ where: { email } });
+
+  if (existing) {
+    return prisma.user.update({
+      where: { email },
       data: {
-        email: 'admin@research.edu',
-        passwordHash: await bcrypt.hash('admin123', 10),
-        fullName: 'System Administrator',
-        role: 'ADMIN',
-        emailVerified: true, // Admin account is pre-verified
-      },
-    });
-    console.log('✅ Created admin user');
-  } else {
-    console.log('ℹ️  Admin user already exists, skipping...');
-  }
-
-  // Create System Project for public documents (skip if already exists)
-  let systemProject = await prisma.project.findUnique({
-    where: { id: 'system-library-project' }
-  });
-
-  if (!systemProject) {
-    systemProject = await prisma.project.create({
-      data: {
-        id: 'system-library-project',
-        title: 'Public Library',
-        description: 'System project for public documents, reference materials, templates, and guidelines',
-        lecturerId: admin.id,
-        status: 'COMPLETED',
-        startDate: new Date(),
-        endDate: null,
-        progress: 100,
-        isSystemProject: true,
-      },
-    });
-    console.log('✅ Created system project for public documents');
-  } else {
-    console.log('ℹ️  System project already exists, skipping...');
-  }
-
-  // Create Lecturers (skip if already exist)
-  let lecturer1 = await prisma.user.findUnique({
-    where: { email: 'lecturer1@research.edu' }
-  });
-
-  if (!lecturer1) {
-    lecturer1 = await prisma.user.create({
-      data: {
-        email: 'lecturer1@research.edu',
-        passwordHash: await bcrypt.hash('lecturer123', 10),
-        fullName: 'Dr. Nguyễn Văn A',
-        role: 'LECTURER',
-        emailVerified: true, // Pre-verified for demo
-      },
+        fullName,
+        role,
+        studentId: studentId ?? null,
+        emailVerified: true,
+        preferences: DEFAULT_PREFERENCES
+      }
     });
   }
 
-  let lecturer2 = await prisma.user.findUnique({
-    where: { email: 'lecturer2@research.edu' }
-  });
-
-  if (!lecturer2) {
-    lecturer2 = await prisma.user.create({
-      data: {
-        email: 'lecturer2@research.edu',
-        passwordHash: await bcrypt.hash('lecturer123', 10),
-        fullName: 'Dr. Trần Thị B',
-        role: 'LECTURER',
-        emailVerified: true, // Pre-verified for demo
-      },
-    });
-  }
-
-  if (!lecturer1 || !lecturer2) {
-    console.log('✅ Created lecturers');
-  } else {
-    console.log('ℹ️  Lecturers already exist, skipping...');
-  }
-
-  // Create Students (skip if already exist)
-  const studentEmails = [
-    'student1@research.edu',
-    'student2@research.edu',
-    'student3@research.edu',
-    'student4@research.edu',
-    'student5@research.edu'
-  ];
-
-  const existingStudents = await prisma.user.findMany({
-    where: {
-      email: { in: studentEmails }
+  return prisma.user.create({
+    data: {
+      email,
+      passwordHash: await bcrypt.hash(password, 10),
+      fullName,
+      role,
+      studentId: studentId ?? null,
+      emailVerified: true,
+      preferences: DEFAULT_PREFERENCES
     }
   });
+}
 
-  const existingStudentEmails = new Set(existingStudents.map(s => s.email));
+async function seedUsers(): Promise<SeededUsers> {
+  console.log('👥 Seeding users...');
 
-  const student1 = existingStudentEmails.has('student1@research.edu')
-    ? existingStudents.find(s => s.email === 'student1@research.edu')!
-    : await prisma.user.create({
-        data: {
-          email: 'student1@research.edu',
-          passwordHash: await bcrypt.hash('student123', 10),
-          fullName: 'Lê Văn C',
-          role: 'STUDENT',
-          studentId: 'SV001',
-          emailVerified: true, // Pre-verified for demo
-        },
-      });
-
-  const student2 = existingStudentEmails.has('student2@research.edu')
-    ? existingStudents.find(s => s.email === 'student2@research.edu')!
-    : await prisma.user.create({
-        data: {
-          email: 'student2@research.edu',
-          passwordHash: await bcrypt.hash('student123', 10),
-          fullName: 'Phạm Thị D',
-          role: 'STUDENT',
-          studentId: 'SV002',
-          emailVerified: true, // Pre-verified for demo
-        },
-      });
-
-  const student3 = existingStudentEmails.has('student3@research.edu')
-    ? existingStudents.find(s => s.email === 'student3@research.edu')!
-    : await prisma.user.create({
-        data: {
-          email: 'student3@research.edu',
-          passwordHash: await bcrypt.hash('student123', 10),
-          fullName: 'Hoàng Văn E',
-          role: 'STUDENT',
-          studentId: 'SV003',
-          emailVerified: true, // Pre-verified for demo
-        },
-      });
-
-  const student4 = existingStudentEmails.has('student4@research.edu')
-    ? existingStudents.find(s => s.email === 'student4@research.edu')!
-    : await prisma.user.create({
-        data: {
-          email: 'student4@research.edu',
-          passwordHash: await bcrypt.hash('student123', 10),
-          fullName: 'Vũ Thị F',
-          role: 'STUDENT',
-          studentId: 'SV004',
-          emailVerified: true, // Pre-verified for demo
-        },
-      });
-
-  const student5 = existingStudentEmails.has('student5@research.edu')
-    ? existingStudents.find(s => s.email === 'student5@research.edu')!
-    : await prisma.user.create({
-        data: {
-          email: 'student5@research.edu',
-          passwordHash: await bcrypt.hash('student123', 10),
-          fullName: 'Đặng Văn G',
-          role: 'STUDENT',
-          studentId: 'SV005',
-          emailVerified: true, // Pre-verified for demo
-        },
-      });
-
-  if (existingStudentEmails.size < studentEmails.length) {
-    console.log('✅ Created students');
-  } else {
-    console.log('ℹ️  Students already exist, skipping...');
-  }
-
-  // Create Projects (skip if already exist - check by title)
-  let project1 = await prisma.project.findFirst({
-    where: { title: 'Nghiên cứu ứng dụng AI trong giáo dục' }
+  const admin = await ensureUser({
+    email: 'admin@research.edu',
+    password: 'admin123',
+    fullName: 'System Administrator',
+    role: 'ADMIN'
   });
 
-  if (!project1) {
-    project1 = await prisma.project.create({
-      data: {
-        title: 'Nghiên cứu ứng dụng AI trong giáo dục',
-        description: 'Đề tài nghiên cứu về việc áp dụng trí tuệ nhân tạo vào quản lý và hỗ trợ giảng dạy trong các trường đại học.',
-        lecturerId: lecturer1.id,
-        startDate: new Date('2024-09-01'),
-        endDate: new Date('2025-06-30'),
-        status: 'IN_PROGRESS',
-        progress: 45,
-      },
+  const lecturer1 = await ensureUser({
+    email: 'lecturer1@research.edu',
+    password: 'lecturer123',
+    fullName: 'Dr. Nguyễn Văn A',
+    role: 'LECTURER'
+  });
+
+  const lecturer2 = await ensureUser({
+    email: 'lecturer2@research.edu',
+    password: 'lecturer123',
+    fullName: 'Dr. Trần Thị B',
+    role: 'LECTURER'
+  });
+
+  const students = await Promise.all([
+    ensureUser({
+      email: 'student1@research.edu',
+      password: 'student123',
+      fullName: 'Lê Văn C',
+      role: 'STUDENT',
+      studentId: 'SV001'
+    }),
+    ensureUser({
+      email: 'student2@research.edu',
+      password: 'student123',
+      fullName: 'Phạm Thị D',
+      role: 'STUDENT',
+      studentId: 'SV002'
+    }),
+    ensureUser({
+      email: 'student3@research.edu',
+      password: 'student123',
+      fullName: 'Hoàng Văn E',
+      role: 'STUDENT',
+      studentId: 'SV003'
+    }),
+    ensureUser({
+      email: 'student4@research.edu',
+      password: 'student123',
+      fullName: 'Vũ Thị F',
+      role: 'STUDENT',
+      studentId: 'SV004'
+    }),
+    ensureUser({
+      email: 'student5@research.edu',
+      password: 'student123',
+      fullName: 'Đặng Văn G',
+      role: 'STUDENT',
+      studentId: 'SV005'
+    })
+  ]);
+
+  console.log('✅ Users ready');
+
+  return {
+    admin,
+    lecturers: [lecturer1, lecturer2],
+    students
+  };
+}
+
+async function ensureProject(data: Prisma.ProjectCreateInput) {
+  if (data.id) {
+    return prisma.project.upsert({
+      where: { id: data.id },
+      update: data,
+      create: data
     });
   }
 
-  let project2 = await prisma.project.findFirst({
-    where: { title: 'Phát triển hệ thống IoT cho nhà thông minh' }
+  const existing = await prisma.project.findFirst({
+    where: { title: data.title }
   });
 
-  if (!project2) {
-    project2 = await prisma.project.create({
-      data: {
-        title: 'Phát triển hệ thống IoT cho nhà thông minh',
-        description: 'Xây dựng hệ thống quản lý và điều khiển thiết bị thông minh trong gia đình sử dụng công nghệ IoT.',
-        lecturerId: lecturer1.id,
-        startDate: new Date('2024-10-01'),
-        endDate: new Date('2025-07-31'),
-        status: 'IN_PROGRESS',
-        progress: 30,
-      },
+  if (existing) {
+    return prisma.project.update({
+      where: { id: existing.id },
+      data
     });
   }
 
-  let project3 = await prisma.project.findFirst({
-    where: { title: 'Phân tích dữ liệu lớn với Machine Learning' }
+  return prisma.project.create({ data });
+}
+
+async function seedProjects(users: SeededUsers): Promise<SeededProjects> {
+  console.log('🏗️  Seeding projects...');
+
+  const [lecturer1, lecturer2] = users.lecturers;
+  const [student1, student2, student3, student4, student5] = users.students;
+
+  const systemProject = await ensureProject({
+    id: 'system-library-project',
+    title: 'Public Library',
+    description:
+      'System project for public documents, reference materials, templates, and guidelines',
+    lecturer: { connect: { id: users.admin.id } },
+    status: 'COMPLETED',
+    startDate: new Date(),
+    endDate: null,
+    progress: 100,
+    isSystemProject: true
   });
 
-  if (!project3) {
-    project3 = await prisma.project.create({
-      data: {
-        title: 'Phân tích dữ liệu lớn với Machine Learning',
-        description: 'Nghiên cứu và ứng dụng các thuật toán machine learning để phân tích và dự đoán xu hướng từ dữ liệu lớn.',
-        lecturerId: lecturer2.id,
-        startDate: new Date('2024-08-15'),
-        endDate: new Date('2025-05-30'),
-        status: 'IN_PROGRESS',
-        progress: 60,
-      },
-    });
-  }
-
-  if (!project1 || !project2 || !project3) {
-    console.log('✅ Created projects');
-  } else {
-    console.log('ℹ️  Projects already exist, skipping...');
-  }
-
-  // Add students to projects (skip if already exist)
-  const existingProjectStudents = await prisma.projectStudent.findMany({
-    where: {
-      projectId: { in: [project1.id, project2.id, project3.id] }
-    }
+  const project1 = await ensureProject({
+    title: 'Nghiên cứu ứng dụng AI trong giáo dục',
+    description:
+      'Đề tài nghiên cứu về việc áp dụng trí tuệ nhân tạo vào quản lý và hỗ trợ giảng dạy trong các trường đại học.',
+    lecturer: { connect: { id: lecturer1.id } },
+    startDate: new Date('2024-09-01'),
+    endDate: new Date('2025-06-30'),
+    status: 'IN_PROGRESS',
+    progress: 45
   });
 
-  const projectStudentKeys = new Set(
-    existingProjectStudents.map(ps => `${ps.projectId}-${ps.studentId}`)
-  );
+  const project2 = await ensureProject({
+    title: 'Phát triển hệ thống IoT cho nhà thông minh',
+    description:
+      'Xây dựng hệ thống quản lý và điều khiển thiết bị thông minh trong gia đình sử dụng công nghệ IoT.',
+    lecturer: { connect: { id: lecturer1.id } },
+    startDate: new Date('2024-10-01'),
+    endDate: new Date('2025-07-31'),
+    status: 'IN_PROGRESS',
+    progress: 30
+  });
 
-  const projectStudentData = [
-    // Project 1 - AI in Education (3 students - team project)
+  const project3 = await ensureProject({
+    title: 'Phân tích dữ liệu lớn với Machine Learning',
+    description:
+      'Nghiên cứu và ứng dụng các thuật toán machine learning để phân tích và dự đoán xu hướng từ dữ liệu lớn.',
+    lecturer: { connect: { id: lecturer2.id } },
+    startDate: new Date('2024-08-15'),
+    endDate: new Date('2025-05-30'),
+    status: 'IN_PROGRESS',
+    progress: 60
+  });
+
+  const assignments = [
     { projectId: project1.id, studentId: student1.id, role: 'LEAD' },
     { projectId: project1.id, studentId: student2.id, role: 'MEMBER' },
     { projectId: project1.id, studentId: student4.id, role: 'MEMBER' },
-    // Project 2 - IoT Smart Home (2 students)
     { projectId: project2.id, studentId: student2.id, role: 'LEAD' },
     { projectId: project2.id, studentId: student5.id, role: 'MEMBER' },
-    // Project 3 - Big Data ML (single student)
-    { projectId: project3.id, studentId: student3.id, role: 'LEAD' },
+    { projectId: project3.id, studentId: student3.id, role: 'LEAD' }
   ];
 
-  const newProjectStudents = projectStudentData.filter(
-    ps => !projectStudentKeys.has(`${ps.projectId}-${ps.studentId}`)
-  );
-
-  if (newProjectStudents.length > 0) {
-    await prisma.projectStudent.createMany({
-      data: newProjectStudents,
+  for (const assignment of assignments) {
+    await prisma.projectStudent.upsert({
+      where: {
+        projectId_studentId: {
+          projectId: assignment.projectId,
+          studentId: assignment.studentId
+        }
+      },
+      update: { role: assignment.role },
+      create: assignment
     });
-    console.log(`✅ Created ${newProjectStudents.length} project-student assignments`);
-  } else {
-    console.log('ℹ️  Project-student assignments already exist, skipping...');
   }
 
-  // Create Tasks for Project 1
-  await prisma.task.createMany({
-    data: [
-      {
-        projectId: project1.id,
-        title: 'Nghiên cứu tài liệu tham khảo',
-        description: 'Tìm hiểu các nghiên cứu liên quan về AI trong giáo dục',
-        assigneeId: student1.id,
-        status: 'COMPLETED',
-        priority: 'HIGH',
-        completedAt: new Date('2024-10-15'),
-      },
-      {
-        projectId: project1.id,
-        title: 'Thiết kế hệ thống',
-        description: 'Thiết kế kiến trúc tổng thể của hệ thống',
-        assigneeId: student1.id,
-        status: 'COMPLETED',
-        priority: 'HIGH',
-        completedAt: new Date('2024-11-20'),
-      },
-      {
-        projectId: project1.id,
-        title: 'Xây dựng prototype',
-        description: 'Phát triển phiên bản demo đầu tiên',
-        assigneeId: student1.id,
-        status: 'IN_PROGRESS',
-        priority: 'MEDIUM',
-        dueDate: new Date('2025-02-28'),
-      },
-      {
-        projectId: project1.id,
-        title: 'Testing và đánh giá',
-        description: 'Kiểm thử hệ thống và thu thập phản hồi',
-        assigneeId: student1.id,
-        status: 'TODO',
-        priority: 'MEDIUM',
-        dueDate: new Date('2025-04-30'),
-      },
-      {
-        projectId: project1.id,
-        title: 'Hoàn thiện báo cáo',
-        description: 'Viết báo cáo tốt nghiệp hoàn chỉnh',
-        assigneeId: student1.id,
-        status: 'TODO',
-        priority: 'HIGH',
-        dueDate: new Date('2025-06-15'),
-      },
-    ],
-  });
+  console.log('✅ Projects ready');
 
-  // Create Tasks for Project 2
-  await prisma.task.createMany({
-    data: [
-      {
-        projectId: project2.id,
-        title: 'Khảo sát yêu cầu người dùng',
-        description: 'Thu thập và phân tích nhu cầu của người dùng',
-        assigneeId: student2.id,
-        status: 'COMPLETED',
-        priority: 'HIGH',
-        completedAt: new Date('2024-11-10'),
-      },
-      {
-        projectId: project2.id,
-        title: 'Thiết kế phần cứng',
-        description: 'Lựa chọn và thiết kế các module IoT',
-        assigneeId: student2.id,
-        status: 'IN_PROGRESS',
-        priority: 'HIGH',
-        dueDate: new Date('2025-01-31'),
-      },
-      {
-        projectId: project2.id,
-        title: 'Phát triển ứng dụng mobile',
-        description: 'Xây dựng app điều khiển trên điện thoại',
-        assigneeId: student5.id,
-        status: 'TODO',
-        priority: 'MEDIUM',
-        dueDate: new Date('2025-04-30'),
-      },
-      {
-        projectId: project2.id,
-        title: 'Tích hợp hệ thống',
-        description: 'Kết nối các module IoT với ứng dụng',
-        assigneeId: student5.id,
-        status: 'TODO',
-        priority: 'HIGH',
-        dueDate: new Date('2025-05-15'),
-      },
-    ],
-  });
+  return { systemProject, project1, project2, project3 };
+}
 
-  // Create Tasks for Project 3
-  await prisma.task.createMany({
-    data: [
-      {
-        projectId: project3.id,
-        title: 'Thu thập dữ liệu',
-        description: 'Tìm kiếm và thu thập các dataset phù hợp',
-        assigneeId: student3.id,
-        status: 'COMPLETED',
-        priority: 'HIGH',
-        completedAt: new Date('2024-09-30'),
-      },
-      {
-        projectId: project3.id,
-        title: 'Tiền xử lý dữ liệu',
-        description: 'Làm sạch và chuẩn hóa dữ liệu',
-        assigneeId: student3.id,
-        status: 'IN_PROGRESS',
-        priority: 'HIGH',
-        dueDate: new Date('2025-01-15'),
-      },
-      {
-        projectId: project3.id,
-        title: 'Xây dựng model ML',
-        description: 'Phát triển và huấn luyện các mô hình machine learning',
-        assigneeId: student3.id,
-        status: 'TODO',
-        priority: 'HIGH',
-        dueDate: new Date('2025-03-30'),
-      },
-      {
-        projectId: project3.id,
-        title: 'Đánh giá và tối ưu',
-        description: 'Đánh giá hiệu suất và tối ưu hóa model',
-        assigneeId: student3.id,
-        status: 'TODO',
-        priority: 'MEDIUM',
-        dueDate: new Date('2025-05-15'),
-      },
-    ],
-  });
+type SeedTaskInput = {
+  projectId: string;
+  title: string;
+  description: string;
+  assigneeId: string;
+  status: TaskStatus;
+  priority: Priority;
+  dueDate?: Date;
+  completedAt?: Date;
+};
 
-  console.log('✅ Created tasks for all projects');
-
-  // Get all created tasks for label assignment
-  const allTasks = await prisma.task.findMany({
+async function ensureTask(input: SeedTaskInput) {
+  const existing = await prisma.task.findFirst({
     where: {
-      projectId: {
-        in: [project1.id, project2.id, project3.id]
-      }
+      projectId: input.projectId,
+      title: input.title
     }
   });
 
-  // Create Global Labels (Admin only)
-  console.log('\n🏷️  Creating labels...');
-  const globalLabel1 = await prisma.label.create({
+  const updateData: Prisma.TaskUpdateInput = {
+    title: input.title,
+    description: input.description,
+    status: input.status,
+    priority: input.priority,
+    dueDate: input.dueDate ?? null,
+    completedAt: input.completedAt ?? null,
+    assignee: { connect: { id: input.assigneeId } }
+  };
+
+  if (existing) {
+    await prisma.task.update({
+      where: { id: existing.id },
+      data: updateData
+    });
+    return existing;
+  }
+
+  return prisma.task.create({
     data: {
-      name: 'Urgent',
-      color: '#EF4444',
-      projectId: null, // Global label
-      createdBy: admin.id,
-    },
+      title: input.title,
+      description: input.description,
+      status: input.status,
+      priority: input.priority,
+      dueDate: input.dueDate ?? null,
+      completedAt: input.completedAt ?? null,
+      assignee: { connect: { id: input.assigneeId } },
+      project: { connect: { id: input.projectId } }
+    }
   });
+}
 
-  const globalLabel2 = await prisma.label.create({
-    data: {
-      name: 'Important',
-      color: '#F59E0B',
-      projectId: null,
-      createdBy: admin.id,
-    },
-  });
+async function seedTasks(projects: SeededProjects, users: SeededUsers) {
+  console.log('🗒️  Seeding tasks...');
+  const [student1, student2, student3, , student5] = users.students;
 
-  const globalLabel3 = await prisma.label.create({
-    data: {
-      name: 'Research',
-      color: '#8B5CF6',
-      projectId: null,
-      createdBy: admin.id,
-    },
-  });
+  await Promise.all([
+    ensureTask({
+      projectId: projects.project1.id,
+      title: 'Nghiên cứu tài liệu tham khảo',
+      description: 'Tìm hiểu các nghiên cứu liên quan về AI trong giáo dục',
+      assigneeId: student1.id,
+      status: TaskStatus.COMPLETED,
+      priority: Priority.HIGH,
+      completedAt: new Date('2024-10-15')
+    }),
+    ensureTask({
+      projectId: projects.project1.id,
+      title: 'Thiết kế hệ thống',
+      description: 'Thiết kế kiến trúc tổng thể của hệ thống',
+      assigneeId: student1.id,
+      status: TaskStatus.COMPLETED,
+      priority: Priority.HIGH,
+      completedAt: new Date('2024-11-20')
+    }),
+    ensureTask({
+      projectId: projects.project1.id,
+      title: 'Xây dựng prototype',
+      description: 'Phát triển phiên bản demo đầu tiên',
+      assigneeId: student1.id,
+      status: TaskStatus.IN_PROGRESS,
+      priority: Priority.MEDIUM,
+      dueDate: new Date('2025-02-28')
+    }),
+    ensureTask({
+      projectId: projects.project1.id,
+      title: 'Testing và đánh giá',
+      description: 'Kiểm thử hệ thống và thu thập phản hồi',
+      assigneeId: student1.id,
+      status: TaskStatus.TODO,
+      priority: Priority.MEDIUM,
+      dueDate: new Date('2025-04-30')
+    }),
+    ensureTask({
+      projectId: projects.project1.id,
+      title: 'Hoàn thiện báo cáo',
+      description: 'Viết báo cáo tốt nghiệp hoàn chỉnh',
+      assigneeId: student1.id,
+      status: TaskStatus.TODO,
+      priority: Priority.HIGH,
+      dueDate: new Date('2025-06-15')
+    }),
+    ensureTask({
+      projectId: projects.project2.id,
+      title: 'Khảo sát yêu cầu người dùng',
+      description: 'Thu thập và phân tích nhu cầu của người dùng',
+      assigneeId: student2.id,
+      status: TaskStatus.COMPLETED,
+      priority: Priority.HIGH,
+      completedAt: new Date('2024-11-10')
+    }),
+    ensureTask({
+      projectId: projects.project2.id,
+      title: 'Thiết kế phần cứng',
+      description: 'Lựa chọn và thiết kế các module IoT',
+      assigneeId: student2.id,
+      status: TaskStatus.IN_PROGRESS,
+      priority: Priority.HIGH,
+      dueDate: new Date('2025-01-31')
+    }),
+    ensureTask({
+      projectId: projects.project2.id,
+      title: 'Phát triển ứng dụng mobile',
+      description: 'Xây dựng app điều khiển trên điện thoại',
+      assigneeId: student5.id,
+      status: TaskStatus.TODO,
+      priority: Priority.MEDIUM,
+      dueDate: new Date('2025-04-30')
+    }),
+    ensureTask({
+      projectId: projects.project2.id,
+      title: 'Tích hợp hệ thống',
+      description: 'Kết nối các module IoT với ứng dụng',
+      assigneeId: student5.id,
+      status: TaskStatus.TODO,
+      priority: Priority.HIGH,
+      dueDate: new Date('2025-05-15')
+    }),
+    ensureTask({
+      projectId: projects.project3.id,
+      title: 'Thu thập dữ liệu',
+      description: 'Tìm kiếm và thu thập các dataset phù hợp',
+      assigneeId: student3.id,
+      status: TaskStatus.COMPLETED,
+      priority: Priority.HIGH,
+      completedAt: new Date('2024-09-30')
+    }),
+    ensureTask({
+      projectId: projects.project3.id,
+      title: 'Tiền xử lý dữ liệu',
+      description: 'Làm sạch và chuẩn hóa dữ liệu',
+      assigneeId: student3.id,
+      status: TaskStatus.IN_PROGRESS,
+      priority: Priority.HIGH,
+      dueDate: new Date('2025-01-15')
+    }),
+    ensureTask({
+      projectId: projects.project3.id,
+      title: 'Xây dựng model ML',
+      description: 'Phát triển và huấn luyện các mô hình machine learning',
+      assigneeId: student3.id,
+      status: TaskStatus.TODO,
+      priority: Priority.HIGH,
+      dueDate: new Date('2025-03-30')
+    }),
+    ensureTask({
+      projectId: projects.project3.id,
+      title: 'Đánh giá và tối ưu',
+      description: 'Đánh giá hiệu suất và tối ưu hóa model',
+      assigneeId: student3.id,
+      status: TaskStatus.TODO,
+      priority: Priority.MEDIUM,
+      dueDate: new Date('2025-05-15')
+    })
+  ]);
 
-  const globalLabel4 = await prisma.label.create({
-    data: {
-      name: 'Documentation',
-      color: '#10B981',
-      projectId: null,
-      createdBy: admin.id,
-    },
-  });
+  console.log('✅ Tasks ready');
+}
 
-  console.log('✅ Created 4 global labels');
+async function seedLabels(projects: SeededProjects, users: SeededUsers) {
+  console.log('🏷️  Seeding labels...');
+  const [lecturer1, lecturer2] = users.lecturers;
 
-  // Create Project-specific Labels for Project 1
-  const project1Label1 = await prisma.label.create({
-    data: {
-      name: 'AI/ML',
-      color: '#3B82F6',
-      projectId: project1.id,
-      createdBy: lecturer1.id,
-    },
-  });
+  const globalLabels = [
+    { id: 'label-global-urgent', name: 'Urgent', color: '#EF4444' },
+    { id: 'label-global-important', name: 'Important', color: '#F59E0B' },
+    { id: 'label-global-research', name: 'Research', color: '#8B5CF6' },
+    { id: 'label-global-docs', name: 'Documentation', color: '#10B981' }
+  ];
 
-  const project1Label2 = await prisma.label.create({
-    data: {
-      name: 'Frontend',
-      color: '#EC4899',
-      projectId: project1.id,
-      createdBy: lecturer1.id,
-    },
-  });
-
-  const project1Label3 = await prisma.label.create({
-    data: {
-      name: 'Backend',
-      color: '#06B6D4',
-      projectId: project1.id,
-      createdBy: lecturer1.id,
-    },
-  });
-
-  // Create Project-specific Labels for Project 2
-  const project2Label1 = await prisma.label.create({
-    data: {
-      name: 'Hardware',
-      color: '#F97316',
-      projectId: project2.id,
-      createdBy: lecturer1.id,
-    },
-  });
-
-  const project2Label2 = await prisma.label.create({
-    data: {
-      name: 'Mobile App',
-      color: '#6366F1',
-      projectId: project2.id,
-      createdBy: lecturer1.id,
-    },
-  });
-
-  // Create Project-specific Labels for Project 3
-  const project3Label1 = await prisma.label.create({
-    data: {
-      name: 'Data Processing',
-      color: '#84CC16',
-      projectId: project3.id,
-      createdBy: lecturer2.id,
-    },
-  });
-
-  const project3Label2 = await prisma.label.create({
-    data: {
-      name: 'Model Training',
-      color: '#14B8A6',
-      projectId: project3.id,
-      createdBy: lecturer2.id,
-    },
-  });
-
-  console.log('✅ Created project-specific labels');
-
-  // Assign labels to tasks
-  const project1Tasks = allTasks.filter(t => t.projectId === project1.id);
-  const project2Tasks = allTasks.filter(t => t.projectId === project2.id);
-  const project3Tasks = allTasks.filter(t => t.projectId === project3.id);
-
-  // Project 1 tasks labels
-  if (project1Tasks.length > 0) {
-    await prisma.taskLabel.createMany({
-      data: [
-        // Task 1: Nghiên cứu tài liệu tham khảo
-        { taskId: project1Tasks[0].id, labelId: globalLabel3.id }, // Research
-        { taskId: project1Tasks[0].id, labelId: globalLabel2.id }, // Important
-        { taskId: project1Tasks[0].id, labelId: project1Label1.id }, // AI/ML
-        
-        // Task 2: Thiết kế hệ thống
-        { taskId: project1Tasks[1].id, labelId: globalLabel2.id }, // Important
-        { taskId: project1Tasks[1].id, labelId: project1Label1.id }, // AI/ML
-        { taskId: project1Tasks[1].id, labelId: project1Label3.id }, // Backend
-        
-        // Task 3: Xây dựng prototype
-        { taskId: project1Tasks[2].id, labelId: globalLabel1.id }, // Urgent
-        { taskId: project1Tasks[2].id, labelId: project1Label1.id }, // AI/ML
-        { taskId: project1Tasks[2].id, labelId: project1Label2.id }, // Frontend
-        { taskId: project1Tasks[2].id, labelId: project1Label3.id }, // Backend
-        
-        // Task 4: Testing và đánh giá
-        { taskId: project1Tasks[3].id, labelId: project1Label2.id }, // Frontend
-        { taskId: project1Tasks[3].id, labelId: project1Label3.id }, // Backend
-        
-        // Task 5: Hoàn thiện báo cáo
-        { taskId: project1Tasks[4].id, labelId: globalLabel1.id }, // Urgent
-        { taskId: project1Tasks[4].id, labelId: globalLabel2.id }, // Important
-        { taskId: project1Tasks[4].id, labelId: globalLabel4.id }, // Documentation
-      ],
+  for (const label of globalLabels) {
+    await prisma.label.upsert({
+      where: { id: label.id },
+      update: {
+        color: label.color,
+        createdBy: users.admin.id
+      },
+      create: {
+        id: label.id,
+        name: label.name,
+        color: label.color,
+        projectId: null,
+        createdBy: users.admin.id
+      }
     });
   }
 
-  // Project 2 tasks labels
-  if (project2Tasks.length > 0) {
-    await prisma.taskLabel.createMany({
-      data: [
-        // Task 1: Khảo sát yêu cầu người dùng
-        { taskId: project2Tasks[0].id, labelId: globalLabel3.id }, // Research
-        { taskId: project2Tasks[0].id, labelId: globalLabel2.id }, // Important
-        
-        // Task 2: Thiết kế phần cứng
-        { taskId: project2Tasks[1].id, labelId: globalLabel1.id }, // Urgent
-        { taskId: project2Tasks[1].id, labelId: globalLabel2.id }, // Important
-        { taskId: project2Tasks[1].id, labelId: project2Label1.id }, // Hardware
-        
-        // Task 3: Phát triển ứng dụng mobile
-        { taskId: project2Tasks[2].id, labelId: project2Label2.id }, // Mobile App
-        
-        // Task 4: Tích hợp hệ thống
-        { taskId: project2Tasks[3].id, labelId: globalLabel1.id }, // Urgent
-        { taskId: project2Tasks[3].id, labelId: project2Label1.id }, // Hardware
-        { taskId: project2Tasks[3].id, labelId: project2Label2.id }, // Mobile App
-      ],
+  const projectLabels = [
+    { projectId: projects.project1.id, createdBy: lecturer1.id, name: 'AI/ML', color: '#3B82F6' },
+    { projectId: projects.project1.id, createdBy: lecturer1.id, name: 'Frontend', color: '#EC4899' },
+    { projectId: projects.project1.id, createdBy: lecturer1.id, name: 'Backend', color: '#06B6D4' },
+    { projectId: projects.project2.id, createdBy: lecturer1.id, name: 'Hardware', color: '#F97316' },
+    { projectId: projects.project2.id, createdBy: lecturer1.id, name: 'Mobile App', color: '#6366F1' },
+    { projectId: projects.project3.id, createdBy: lecturer2.id, name: 'Data Processing', color: '#84CC16' },
+    { projectId: projects.project3.id, createdBy: lecturer2.id, name: 'Model Training', color: '#14B8A6' }
+  ];
+
+  for (const label of projectLabels) {
+    await prisma.label.upsert({
+      where: {
+        projectId_name: {
+          projectId: label.projectId,
+          name: label.name
+        }
+      },
+      update: {
+        color: label.color,
+        createdBy: label.createdBy
+      },
+      create: label
     });
   }
 
-  // Project 3 tasks labels
-  if (project3Tasks.length > 0) {
-    await prisma.taskLabel.createMany({
-      data: [
-        // Task 1: Thu thập dữ liệu
-        { taskId: project3Tasks[0].id, labelId: globalLabel3.id }, // Research
-        { taskId: project3Tasks[0].id, labelId: globalLabel2.id }, // Important
-        
-        // Task 2: Tiền xử lý dữ liệu
-        { taskId: project3Tasks[1].id, labelId: globalLabel1.id }, // Urgent
-        { taskId: project3Tasks[1].id, labelId: project3Label1.id }, // Data Processing
-        
-        // Task 3: Xây dựng model ML
-        { taskId: project3Tasks[2].id, labelId: globalLabel1.id }, // Urgent
-        { taskId: project3Tasks[2].id, labelId: globalLabel2.id }, // Important
-        { taskId: project3Tasks[2].id, labelId: project3Label2.id }, // Model Training
-        
-        // Task 4: Đánh giá và tối ưu
-        { taskId: project3Tasks[3].id, labelId: project3Label2.id }, // Model Training
-        { taskId: project3Tasks[3].id, labelId: globalLabel4.id }, // Documentation
-      ],
+  console.log('✅ Labels ready');
+}
+
+async function ensureTaskLabels(projectId: string, taskTitle: string, labelNames: string[]) {
+  const task = await prisma.task.findFirst({ where: { projectId, title: taskTitle } });
+  if (!task) return;
+
+  for (const labelName of labelNames) {
+    const label = await prisma.label.findFirst({
+      where: {
+        OR: [
+          { name: labelName, projectId: null },
+          { name: labelName, projectId }
+        ]
+      }
+    });
+
+    if (!label) continue;
+
+    await prisma.taskLabel.upsert({
+      where: {
+        taskId_labelId: {
+          taskId: task.id,
+          labelId: label.id
+        }
+      },
+      update: {},
+      create: {
+        taskId: task.id,
+        labelId: label.id
+      }
     });
   }
+}
 
-  console.log('✅ Assigned labels to tasks');
+async function seedTaskLabels(projects: SeededProjects) {
+  console.log('🔖 Assigning labels to tasks...');
 
-  // Create sample documents
-  console.log('\n📄 Creating sample documents...');
-  
-  const documents = await prisma.document.createMany({
-    data: [
-      {
-        projectId: project1.id,
-        fileName: 'CV.docx',
-        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/sample_cv.docx',
-        fileSize: 65123,
-        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        uploadedBy: student1.id,
-        description: 'CVVVVVVVVVV',
-        status: 'PENDING',
-      },
-      {
-        projectId: project1.id,
-        fileName: 'CV.pdf',
-        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/sample_cv.pdf',
-        fileSize: 214123,
-        mimeType: 'application/pdf',
-        uploadedBy: student1.id,
-        description: 'AAA',
-        status: 'APPROVED',
-      },
-      {
-        projectId: project1.id,
-        fileName: 'quy_trinh_core_noneAl.txt',
-        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/workflow.txt',
-        fileSize: 4496,
-        mimeType: 'text/plain',
-        uploadedBy: lecturer1.id,
-        description: 'Workflow Al',
-        status: 'PENDING',
-      },
-      {
-        projectId: project2.id,
-        fileName: 'IoT_Design.pdf',
-        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/iot_design.pdf',
-        fileSize: 1024000,
-        mimeType: 'application/pdf',
-        uploadedBy: student2.id,
-        description: 'IoT System Design Document',
-        status: 'REJECTED',
-      },
-      // System project documents (Public library)
-      {
-        projectId: systemProject.id,
-        fileName: 'Research_Paper_Template.docx',
-        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/research_template.docx',
-        fileSize: 45000,
-        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        uploadedBy: admin.id,
-        description: 'Mẫu báo cáo nghiên cứu khoa học chuẩn cho sinh viên',
-        status: 'APPROVED',
-        category: 'TEMPLATE',
-        accessLevel: 'STUDENT',
-        isPublic: true,
-      },
-      {
-        projectId: systemProject.id,
-        fileName: 'Thesis_Guidelines.pdf',
-        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/thesis_guidelines.pdf',
-        fileSize: 2500000,
-        mimeType: 'application/pdf',
-        uploadedBy: admin.id,
-        description: 'Hướng dẫn viết luận văn tốt nghiệp - Quy định của khoa',
-        status: 'APPROVED',
-        category: 'GUIDELINE',
-        accessLevel: 'STUDENT',
-        isPublic: true,
-      },
-      {
-        projectId: systemProject.id,
-        fileName: 'Machine_Learning_Reference.pdf',
-        fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/ml_reference.pdf',
-        fileSize: 5000000,
-        mimeType: 'application/pdf',
-        uploadedBy: admin.id,
-        description: 'Tài liệu tham khảo về Machine Learning cơ bản',
-        status: 'APPROVED',
-        category: 'REFERENCE',
-        accessLevel: 'STUDENT',
-        isPublic: true,
-      },
-    ],
+  await Promise.all([
+    ensureTaskLabels(projects.project1.id, 'Nghiên cứu tài liệu tham khảo', ['Research', 'Important', 'AI/ML']),
+    ensureTaskLabels(projects.project1.id, 'Thiết kế hệ thống', ['Important', 'AI/ML', 'Backend']),
+    ensureTaskLabels(projects.project1.id, 'Xây dựng prototype', ['Urgent', 'AI/ML', 'Frontend', 'Backend']),
+    ensureTaskLabels(projects.project1.id, 'Testing và đánh giá', ['Frontend', 'Backend']),
+    ensureTaskLabels(projects.project1.id, 'Hoàn thiện báo cáo', ['Urgent', 'Important', 'Documentation']),
+    ensureTaskLabels(projects.project2.id, 'Khảo sát yêu cầu người dùng', ['Research', 'Important']),
+    ensureTaskLabels(projects.project2.id, 'Thiết kế phần cứng', ['Urgent', 'Important', 'Hardware']),
+    ensureTaskLabels(projects.project2.id, 'Phát triển ứng dụng mobile', ['Mobile App']),
+    ensureTaskLabels(projects.project2.id, 'Tích hợp hệ thống', ['Urgent', 'Hardware', 'Mobile App']),
+    ensureTaskLabels(projects.project3.id, 'Thu thập dữ liệu', ['Research', 'Important']),
+    ensureTaskLabels(projects.project3.id, 'Tiền xử lý dữ liệu', ['Urgent', 'Data Processing']),
+    ensureTaskLabels(projects.project3.id, 'Xây dựng model ML', ['Urgent', 'Important', 'Model Training']),
+    ensureTaskLabels(projects.project3.id, 'Đánh giá và tối ưu', ['Model Training', 'Documentation'])
+  ]);
+
+  console.log('✅ Task labels ready');
+}
+
+type SeedDocumentInput = {
+  projectId: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedBy: string;
+  description?: string;
+  status?: DocumentStatus;
+  category?: DocumentCategory;
+  accessLevel?: AccessLevel;
+  isPublic?: boolean;
+};
+
+async function ensureDocument(input: SeedDocumentInput) {
+  const existing = await prisma.document.findFirst({
+    where: {
+      projectId: input.projectId,
+      fileName: input.fileName
+    }
   });
 
-  console.log('✅ Created sample documents (including public library)');
+  const updateData: Prisma.DocumentUpdateInput = {
+    fileUrl: input.fileUrl,
+    fileSize: input.fileSize,
+    mimeType: input.mimeType,
+    description: input.description ?? null,
+    status: input.status ?? DocumentStatus.PENDING,
+    category: input.category ?? DocumentCategory.PROJECT,
+    accessLevel: input.accessLevel ?? AccessLevel.RESTRICTED,
+    isPublic: input.isPublic ?? false,
+    uploader: { connect: { id: input.uploadedBy } }
+  };
 
-  // Create Notifications
+  if (existing) {
+    await prisma.document.update({
+      where: { id: existing.id },
+      data: updateData
+    });
+    return existing;
+  }
+
+  return prisma.document.create({
+    data: {
+      fileName: input.fileName,
+      fileUrl: input.fileUrl,
+      fileSize: input.fileSize,
+      mimeType: input.mimeType,
+      description: input.description ?? null,
+      status: input.status ?? DocumentStatus.PENDING,
+      category: input.category ?? DocumentCategory.PROJECT,
+      accessLevel: input.accessLevel ?? AccessLevel.RESTRICTED,
+      isPublic: input.isPublic ?? false,
+      project: { connect: { id: input.projectId } },
+      uploader: { connect: { id: input.uploadedBy } }
+    }
+  });
+}
+
+async function seedDocuments(projects: SeededProjects, users: SeededUsers) {
+  console.log('📄 Seeding documents...');
+  const [student1, student2, , , student5] = users.students;
+  const [lecturer1] = users.lecturers;
+
+  await Promise.all([
+    ensureDocument({
+      projectId: projects.project1.id,
+      fileName: 'CV.docx',
+      fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/sample_cv.docx',
+      fileSize: 65123,
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      uploadedBy: student1.id,
+      description: 'CVVVVVVVVVV',
+      status: DocumentStatus.PENDING
+    }),
+    ensureDocument({
+      projectId: projects.project1.id,
+      fileName: 'CV.pdf',
+      fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/sample_cv.pdf',
+      fileSize: 214123,
+      mimeType: 'application/pdf',
+      uploadedBy: student1.id,
+      description: 'AAA',
+      status: DocumentStatus.APPROVED
+    }),
+    ensureDocument({
+      projectId: projects.project1.id,
+      fileName: 'quy_trinh_core_noneAl.txt',
+      fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/workflow.txt',
+      fileSize: 4496,
+      mimeType: 'text/plain',
+      uploadedBy: lecturer1.id,
+      description: 'Workflow AI',
+      status: DocumentStatus.PENDING
+    }),
+    ensureDocument({
+      projectId: projects.project2.id,
+      fileName: 'IoT_Design.pdf',
+      fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/iot_design.pdf',
+      fileSize: 1024000,
+      mimeType: 'application/pdf',
+      uploadedBy: student2.id,
+      description: 'IoT System Design Document',
+      status: DocumentStatus.REJECTED
+    }),
+    ensureDocument({
+      projectId: projects.systemProject.id,
+      fileName: 'Research_Paper_Template.docx',
+      fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/research_template.docx',
+      fileSize: 45000,
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      uploadedBy: users.admin.id,
+      description: 'Mẫu báo cáo nghiên cứu khoa học chuẩn cho sinh viên',
+      status: DocumentStatus.APPROVED,
+      category: DocumentCategory.TEMPLATE,
+      accessLevel: AccessLevel.STUDENT,
+      isPublic: true
+    }),
+    ensureDocument({
+      projectId: projects.systemProject.id,
+      fileName: 'Thesis_Guidelines.pdf',
+      fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/thesis_guidelines.pdf',
+      fileSize: 2500000,
+      mimeType: 'application/pdf',
+      uploadedBy: users.admin.id,
+      description: 'Hướng dẫn viết luận văn tốt nghiệp - Quy định của khoa',
+      status: DocumentStatus.APPROVED,
+      category: DocumentCategory.GUIDELINE,
+      accessLevel: AccessLevel.STUDENT,
+      isPublic: true
+    }),
+    ensureDocument({
+      projectId: projects.systemProject.id,
+      fileName: 'Machine_Learning_Reference.pdf',
+      fileUrl: 'https://res.cloudinary.com/demo/image/upload/v1234567890/ml_reference.pdf',
+      fileSize: 5000000,
+      mimeType: 'application/pdf',
+      uploadedBy: users.admin.id,
+      description: 'Tài liệu tham khảo về Machine Learning cơ bản',
+      status: DocumentStatus.APPROVED,
+      category: DocumentCategory.REFERENCE,
+      accessLevel: AccessLevel.STUDENT,
+      isPublic: true
+    })
+  ]);
+
+  console.log('✅ Documents ready');
+}
+
+async function ensureNotification(data: Prisma.NotificationCreateManyInput) {
   await prisma.notification.createMany({
-    data: [
-      // Project 1 notifications
-      {
-        userId: student1.id,
-        projectId: project1.id,
-        type: 'DEADLINE_APPROACHING',
-        title: 'Deadline sắp đến',
-        message: 'Task "Xây dựng prototype" sẽ đến hạn vào ngày 28/02/2025',
-        isRead: false,
-      },
-      {
-        userId: student2.id,
-        projectId: project1.id,
-        type: 'COMMENT_ADDED',
-        title: 'Giảng viên đã nhận xét',
-        message: 'Dr. Nguyễn Văn A đã thêm nhận xét về báo cáo tiến độ của team',
-        isRead: false,
-      },
-      {
-        userId: lecturer1.id,
-        projectId: project1.id,
-        type: 'TASK_COMPLETED',
-        title: 'Sinh viên hoàn thành task',
-        message: 'Lê Văn C đã hoàn thành task "Thiết kế hệ thống"',
-        isRead: true,
-      },
-      // Project 2 notifications
-      {
-        userId: student2.id,
-        projectId: project2.id,
-        type: 'DEADLINE_APPROACHING',
-        title: 'Deadline sắp đến',
-        message: 'Task "Thiết kế phần cứng" sẽ đến hạn vào ngày 31/01/2025',
-        isRead: false,
-      },
-      {
-        userId: student5.id,
-        projectId: project2.id,
-        type: 'TASK_ASSIGNED',
-        title: 'Task mới được giao',
-        message: 'Bạn đã được giao task "Phát triển ứng dụng mobile"',
-        isRead: false,
-      },
-      // Project 3 notifications
-      {
-        userId: student3.id,
-        projectId: project3.id,
-        type: 'TASK_COMPLETED',
-        title: 'Hoàn thành task',
-        message: 'Bạn đã hoàn thành task "Thu thập dữ liệu"',
-        isRead: true,
-      },
-      {
-        userId: lecturer2.id,
-        projectId: project3.id,
-        type: 'PROJECT_STATUS_CHANGED',
-        title: 'Cập nhật tiến độ',
-        message: 'Hoàng Văn E đã cập nhật tiến độ project lên 60%',
-        isRead: false,
-      },
-    ],
+    data,
+    skipDuplicates: true
   });
+}
 
-  console.log('✅ Created notifications');
+async function seedNotifications(projects: SeededProjects, users: SeededUsers) {
+  console.log('🔔 Seeding notifications...');
+  const [student1, student2, student3, , student5] = users.students;
+  const [lecturer1, lecturer2] = users.lecturers;
+
+  const notificationData: Prisma.NotificationCreateManyInput[] = [
+    {
+      userId: student1.id,
+      projectId: projects.project1.id,
+      type: 'DEADLINE_APPROACHING',
+      title: 'Deadline sắp đến',
+      message: 'Task "Xây dựng prototype" sẽ đến hạn vào ngày 28/02/2025',
+      isRead: false
+    },
+    {
+      userId: student2.id,
+      projectId: projects.project1.id,
+      type: 'COMMENT_ADDED',
+      title: 'Giảng viên đã nhận xét',
+      message: 'Dr. Nguyễn Văn A đã thêm nhận xét về báo cáo tiến độ của team',
+      isRead: false
+    },
+    {
+      userId: lecturer1.id,
+      projectId: projects.project1.id,
+      type: 'TASK_COMPLETED',
+      title: 'Sinh viên hoàn thành task',
+      message: 'Lê Văn C đã hoàn thành task "Thiết kế hệ thống"',
+      isRead: true
+    },
+    {
+      userId: student2.id,
+      projectId: projects.project2.id,
+      type: 'DEADLINE_APPROACHING',
+      title: 'Deadline sắp đến',
+      message: 'Task "Thiết kế phần cứng" sẽ đến hạn vào ngày 31/01/2025',
+      isRead: false
+    },
+    {
+      userId: student5.id,
+      projectId: projects.project2.id,
+      type: 'TASK_ASSIGNED',
+      title: 'Task mới được giao',
+      message: 'Bạn đã được giao task "Phát triển ứng dụng mobile"',
+      isRead: false
+    },
+    {
+      userId: student3.id,
+      projectId: projects.project3.id,
+      type: 'TASK_COMPLETED',
+      title: 'Hoàn thành task',
+      message: 'Bạn đã hoàn thành task "Thu thập dữ liệu"',
+      isRead: true
+    },
+    {
+      userId: lecturer2.id,
+      projectId: projects.project3.id,
+      type: 'PROJECT_STATUS_CHANGED',
+      title: 'Cập nhật tiến độ',
+      message: 'Hoàng Văn E đã cập nhật tiến độ project lên 60%',
+      isRead: false
+    }
+  ];
+
+  await prisma.notification.createMany({ data: notificationData, skipDuplicates: true });
+
+  console.log('✅ Notifications ready');
+}
+
+async function main() {
+  console.log('🌱 Starting seed...');
+  const RESET_DATA = process.env.RESET_DATA === 'true' || process.env.RESET_DATA === '1';
+
+  await cleanupDatabase(RESET_DATA);
+
+  const users = await seedUsers();
+  const projects = await seedProjects(users);
+  await seedTasks(projects, users);
+  await seedLabels(projects, users);
+  await seedTaskLabels(projects);
+  await seedDocuments(projects, users);
+  await seedNotifications(projects, users);
 
   console.log('\n🎉 Seed completed successfully!');
   console.log('\n📋 Demo accounts:');
@@ -812,19 +805,6 @@ async function main() {
   console.log('Student:   student3@research.edu / student123 (Lead of Project 3)');
   console.log('Student:   student4@research.edu / student123 (Member of Project 1)');
   console.log('Student:   student5@research.edu / student123 (Member of Project 2)');
-  console.log('\n📊 Project assignments:');
-  console.log('Project 1: AI in Education - 3 students (student1 LEAD, student2+4 MEMBERS)');
-  console.log('Project 2: IoT Smart Home - 2 students (student2 LEAD, student5 MEMBER)');
-  console.log('Project 3: Big Data ML - 1 student (student3 LEAD)');
-  console.log('\n🏷️  Labels created:');
-  console.log('Global labels: Urgent, Important, Research, Documentation');
-  console.log('Project 1 labels: AI/ML, Frontend, Backend');
-  console.log('Project 2 labels: Hardware, Mobile App');
-  console.log('Project 3 labels: Data Processing, Model Training');
-  console.log('\n💡 Usage tips:');
-  console.log('  - Default: Seed script preserves existing data (skips duplicates)');
-  console.log('  - To reset all data before seeding, run: RESET_DATA=true npx prisma db seed');
-  console.log('  - Or use: npx prisma migrate reset (resets DB + runs seed automatically)');
 }
 
 main()

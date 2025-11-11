@@ -1,9 +1,9 @@
-import React from 'react';
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import Navbar from '../../components/layout/Navbar';
+import { sanitizeHTML } from '../../utils/sanitize';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { 
@@ -12,8 +12,6 @@ import {
   Eye, 
   Edit, 
   Trash2, 
-  Calendar, 
-  User,
   FileText,
   AlertCircle,
   Clock,
@@ -23,7 +21,7 @@ import {
   Copy
 } from 'lucide-react';
 
-interface Document {
+interface DocumentData {
   id: string;
   projectId: string;
   fileName: string;
@@ -62,7 +60,7 @@ export default function DocumentDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Fetch document
-  const { data: document, isLoading } = useQuery({
+  const { data: document, isLoading, isError, refetch } = useQuery<DocumentData>({
     queryKey: ['document', id],
     queryFn: async () => {
       const response = await api.get(`/documents/${id}`);
@@ -79,15 +77,27 @@ export default function DocumentDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      toast.success('Document deleted successfully!');
+      toast.success('Xóa tài liệu thành công!');
       navigate(document?.projectId ? `/projects/${document.projectId}/documents` : '/documents');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to delete document');
+      toast.error(error.response?.data?.error || 'Xóa tài liệu thất bại');
     },
   });
 
-  const getStatusIcon = (status: string) => {
+  // Status labels in Vietnamese
+  const statusLabels: Record<string, string> = useMemo(() => ({
+    'PENDING': 'Đang chờ',
+    'PROCESSING': 'Đang xử lý',
+    'INDEXED': 'Đã lập chỉ mục',
+    'FAILED': 'Thất bại'
+  }), []);
+
+  const translateStatus = useCallback((status: string) => {
+    return statusLabels[status] || status;
+  }, [statusLabels]);
+
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case 'PENDING':
         return <Clock className="w-5 h-5 text-yellow-500" />;
@@ -100,9 +110,9 @@ export default function DocumentDetail() {
       default:
         return <AlertCircle className="w-5 h-5 text-gray-500" />;
     }
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'PENDING':
         return 'bg-yellow-100 text-yellow-800';
@@ -115,54 +125,73 @@ export default function DocumentDetail() {
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
+  }, []);
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = useCallback((bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  }, []);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }, []);
 
-  const handleDownload = () => {
+  const handleDownload = useCallback(() => {
     if (!document) return;
     
-    const link = document.createElement('a');
+    const link = window.document.createElement('a');
     link.href = document.fileUrl;
     link.download = document.fileName;
     link.target = '_blank';
-    document.body.appendChild(link);
+    window.document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-  };
+    window.document.body.removeChild(link);
+  }, [document]);
 
-  const handleView = () => {
+  const handleView = useCallback(() => {
     if (!document) return;
     window.open(document.fileUrl, '_blank');
-  };
+  }, [document]);
 
-  const handleCopyLink = () => {
+  const handleCopyLink = useCallback(async () => {
     if (!document) return;
     
-    navigator.clipboard.writeText(document.fileUrl);
-    toast.success('Link copied to clipboard!');
-  };
+    try {
+      await navigator.clipboard.writeText(document.fileUrl);
+      toast.success('Đã sao chép liên kết vào clipboard!');
+    } catch (error) {
+      toast.error('Không thể sao chép liên kết');
+    }
+  }, [document]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (!document) return;
     deleteDocumentMutation.mutate();
-  };
+  }, [document, deleteDocumentMutation]);
+
+  const handleNavigateBack = useCallback(() => {
+    navigate(document?.projectId ? `/projects/${document.projectId}/documents` : '/documents');
+  }, [navigate, document?.projectId]);
+
+  const handleNavigateEdit = useCallback(() => {
+    if (!document) return;
+    navigate(`/documents/${document.id}/edit`);
+  }, [navigate, document]);
+
+  // Sanitize description
+  const sanitizedDescription = useMemo(() => {
+    if (!document?.description) return null;
+    return sanitizeHTML(document.description);
+  }, [document?.description]);
 
   if (isLoading) {
     return (
@@ -171,7 +200,29 @@ export default function DocumentDetail() {
         <div className="container py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading document...</p>
+            <p className="mt-4 text-gray-600">Đang tải tài liệu...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} />
+        <div className="container py-8">
+          <div className="text-center py-12 space-y-4">
+            <FileText className="w-16 h-16 text-red-400 mx-auto" />
+            <h3 className="text-lg font-medium text-gray-900">Không thể tải tài liệu</h3>
+            <p className="text-gray-600">Đã xảy ra lỗi khi truy vấn dữ liệu tài liệu. Vui lòng thử lại.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="btn-primary"
+            >
+              Thử lại
+            </button>
           </div>
         </div>
       </div>
@@ -187,13 +238,13 @@ export default function DocumentDetail() {
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Document not found</h3>
-            <p className="text-gray-600 mb-6">The document you're looking for doesn't exist or you don't have access to it.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy tài liệu</h3>
+            <p className="text-gray-600 mb-6">Tài liệu bạn đang tìm không tồn tại hoặc bạn không có quyền truy cập.</p>
             <button
               onClick={() => navigate('/documents')}
               className="btn-primary"
             >
-              Back to Documents
+              Quay lại Tài liệu
             </button>
           </div>
         </div>
@@ -212,31 +263,31 @@ export default function DocumentDetail() {
             <div>
               <h1 className="page-title">{document.fileName}</h1>
               <p className="page-subtitle">
-                {document.project.title} - Document Details
+                {document.project.title} - Chi tiết Tài liệu
               </p>
             </div>
             
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => navigate(document.projectId ? `/projects/${document.projectId}/documents` : '/documents')}
+                onClick={handleNavigateBack}
                 className="btn-secondary"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Documents
+                Quay lại Tài liệu
               </button>
               <button
                 onClick={handleView}
                 className="btn-secondary"
               >
                 <Eye className="w-4 h-4 mr-2" />
-                View
+                Xem
               </button>
               <button
                 onClick={handleDownload}
                 className="btn-primary"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Download
+                Tải xuống
               </button>
             </div>
           </div>
@@ -263,10 +314,13 @@ export default function DocumentDetail() {
                       <span>•</span>
                       <span>{document.mimeType}</span>
                       <span>•</span>
-                      <span>Uploaded {formatDate(document.createdAt)}</span>
+                      <span>Tải lên {formatDate(document.createdAt)}</span>
                     </div>
-                    {document.description && (
-                      <p className="text-gray-700">{document.description}</p>
+                    {sanitizedDescription && (
+                      <div 
+                        className="text-gray-700 prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
+                      />
                     )}
                   </div>
                 </div>
@@ -276,35 +330,35 @@ export default function DocumentDetail() {
             {/* Document Actions */}
             <div className="card">
               <div className="card-body">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Actions</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Thao tác</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
                     onClick={handleView}
                     className="btn-secondary flex items-center justify-center"
                   >
                     <Eye className="w-4 h-4 mr-2" />
-                    View Document
+                    Xem Tài liệu
                   </button>
                   <button
                     onClick={handleDownload}
                     className="btn-secondary flex items-center justify-center"
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download
+                    Tải xuống
                   </button>
                   <button
                     onClick={handleCopyLink}
                     className="btn-secondary flex items-center justify-center"
                   >
                     <Copy className="w-4 h-4 mr-2" />
-                    Copy Link
+                    Sao chép Liên kết
                   </button>
                   <button
-                    onClick={() => window.open(document.fileUrl, '_blank')}
+                    onClick={handleView}
                     className="btn-secondary flex items-center justify-center"
                   >
                     <Share className="w-4 h-4 mr-2" />
-                    Share
+                    Chia sẻ
                   </button>
                 </div>
               </div>
@@ -316,27 +370,27 @@ export default function DocumentDetail() {
             {/* Document Status */}
             <div className="card">
               <div className="card-body">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Status</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Trạng thái</h3>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     {getStatusIcon(document.indexStatus)}
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(document.indexStatus)}`}>
-                      {document.indexStatus}
+                      {translateStatus(document.indexStatus)}
                     </span>
                   </div>
                   {document.indexedAt && (
                     <div className="text-sm text-gray-500">
-                      Indexed: {formatDate(document.indexedAt)}
+                      Đã lập chỉ mục: {formatDate(document.indexedAt)}
                     </div>
                   )}
                   {document.chunkCount && (
                     <div className="text-sm text-gray-500">
-                      Chunks: {document.chunkCount}
+                      Số đoạn: {document.chunkCount}
                     </div>
                   )}
                   {document.errorMessage && (
                     <div className="text-sm text-red-600">
-                      Error: {document.errorMessage}
+                      Lỗi: {document.errorMessage}
                     </div>
                   )}
                 </div>
@@ -346,22 +400,22 @@ export default function DocumentDetail() {
             {/* Document Details */}
             <div className="card">
               <div className="card-body">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Details</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Chi tiết</h3>
                 <div className="space-y-3 text-sm">
                   <div>
-                    <span className="text-gray-500">File Size:</span>
+                    <span className="text-gray-500">Kích thước:</span>
                     <p className="font-medium text-gray-900">{formatFileSize(document.fileSize)}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">File Type:</span>
+                    <span className="text-gray-500">Loại tệp:</span>
                     <p className="font-medium text-gray-900">{document.mimeType}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Uploaded:</span>
+                    <span className="text-gray-500">Tải lên:</span>
                     <p className="font-medium text-gray-900">{formatDate(document.createdAt)}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Last Updated:</span>
+                    <span className="text-gray-500">Cập nhật lần cuối:</span>
                     <p className="font-medium text-gray-900">{formatDate(document.updatedAt)}</p>
                   </div>
                 </div>
@@ -372,21 +426,21 @@ export default function DocumentDetail() {
             {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
               <div className="card">
                 <div className="card-body">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Admin Actions</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Thao tác Quản trị</h3>
                   <div className="space-y-3">
                     <button
-                      onClick={() => navigate(`/documents/${document.id}/edit`)}
+                      onClick={handleNavigateEdit}
                       className="btn-secondary w-full flex items-center justify-center"
                     >
                       <Edit className="w-4 h-4 mr-2" />
-                      Edit Document
+                      Chỉnh sửa Tài liệu
                     </button>
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
                       className="btn-danger w-full flex items-center justify-center"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Document
+                      Xóa Tài liệu
                     </button>
                   </div>
                 </div>
@@ -404,26 +458,26 @@ export default function DocumentDetail() {
                   <Trash2 className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Delete Document</h3>
-                  <p className="text-sm text-gray-500">This action cannot be undone.</p>
+                  <h3 className="text-lg font-medium text-gray-900">Xóa Tài liệu</h3>
+                  <p className="text-sm text-gray-500">Hành động này không thể hoàn tác.</p>
                 </div>
               </div>
               <p className="text-gray-700 mb-6">
-                Are you sure you want to delete "{document.fileName}"? This will permanently remove the document from the system.
+                Bạn có chắc chắn muốn xóa "{document.fileName}"? Điều này sẽ xóa vĩnh viễn tài liệu khỏi hệ thống.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   className="btn-secondary"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={deleteDocumentMutation.isPending}
                   className="btn-danger"
                 >
-                  {deleteDocumentMutation.isPending ? 'Deleting...' : 'Delete'}
+                  {deleteDocumentMutation.isPending ? 'Đang xóa...' : 'Xóa'}
                 </button>
               </div>
             </div>

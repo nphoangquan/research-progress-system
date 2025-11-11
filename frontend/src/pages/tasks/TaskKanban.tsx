@@ -1,11 +1,9 @@
-import React from 'react';
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '../../hooks/useAuth';
 import { useWebSocketEvents } from '../../hooks/useWebSocketEvents';
 import Navbar from '../../components/layout/Navbar';
-import SelectDropdown from '../../components/ui/SelectDropdown';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
 import LabelFilter from '../../components/ui/LabelFilter';
 import LabelChip from '../../components/ui/LabelChip';
@@ -57,28 +55,28 @@ interface KanbanColumn {
 const columns: KanbanColumn[] = [
   {
     id: "todo",
-    title: "To Do",
+    title: "Cần làm",
     status: "TODO",
     color: "bg-gray-100 text-gray-800",
     icon: <AlertCircle className="w-4 h-4" />,
   },
   {
     id: "in-progress",
-    title: "In Progress",
+    title: "Đang thực hiện",
     status: "IN_PROGRESS",
     color: "bg-blue-100 text-blue-800",
     icon: <Clock className="w-4 h-4" />,
   },
   {
     id: "review",
-    title: "Review",
+    title: "Đang xem xét",
     status: "REVIEW",
     color: "bg-yellow-100 text-yellow-800",
     icon: <AlertCircle className="w-4 h-4" />,
   },
   {
     id: "completed",
-    title: "Completed",
+    title: "Hoàn thành",
     status: "COMPLETED",
     color: "bg-green-100 text-green-800",
     icon: <CheckCircle className="w-4 h-4" />,
@@ -108,7 +106,7 @@ export default function TaskKanban() {
   }
 
   const [filters, setFilters] = useState({
-    assignee: "",
+    assignees: [] as string[],
     search: "",
     labelIds: [] as string[]
   });
@@ -121,18 +119,12 @@ export default function TaskKanban() {
   } | null>(null);
 
   // Fetch tasks
-  const { data: tasks, isLoading } = useQuery({
+  const { data: tasks, isLoading, isError, refetch } = useQuery({
     queryKey: ["tasks", projectId, filters],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (projectId) params.append("projectId", projectId);
-      if (filters.assignee) {
-        if (Array.isArray(filters.assignee)) {
-          filters.assignee.forEach(assignee => params.append("assignee", assignee));
-        } else {
-          params.append("assignee", filters.assignee);
-        }
-      }
+      filters.assignees.forEach(assignee => params.append("assignee", assignee));
       if (filters.search) params.append("search", filters.search);
       if (filters.labelIds.length > 0) {
         filters.labelIds.forEach(labelId => params.append('labelIds', labelId));
@@ -141,40 +133,6 @@ export default function TaskKanban() {
       const response = await api.get(`/tasks?${params.toString()}`);
       return response.data.tasks;
     },
-  });
-
-
-  // Fetch project members for assignee filter (only for admin/lecturer)
-  const { data: projectMembers } = useQuery({
-    queryKey: ['project-members', projectId],
-    queryFn: async () => {
-      if (!projectId) return [];
-      const response = await api.get(`/projects/${projectId}`);
-      const project = response.data.project;
-      
-      // Get lecturer and students
-      const members = [];
-      if (project.lecturer) {
-        members.push({
-          id: project.lecturer.id,
-          fullName: project.lecturer.fullName,
-          email: project.lecturer.email,
-          role: 'LECTURER'
-        });
-      }
-      if (project.students) {
-        project.students.forEach((student: any) => {
-          members.push({
-            id: student.student.id,
-            fullName: student.student.fullName,
-            email: student.student.email,
-            role: 'STUDENT'
-          });
-        });
-      }
-      return members;
-    },
-    enabled: (user?.role === 'ADMIN' || user?.role === 'LECTURER') && !!projectId,
   });
 
   // Update task status mutation
@@ -191,14 +149,21 @@ export default function TaskKanban() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      toast.success("Task status updated!");
+      toast.success("Cập nhật trạng thái nhiệm vụ thành công!");
     },
     onError: (error: any) => {
       toast.error(
-        error.response?.data?.error || "Failed to update task status"
+        error.response?.data?.error || "Cập nhật trạng thái nhiệm vụ thất bại"
       );
     },
   });
+
+  const priorityLabels = useMemo<Record<Task['priority'], string>>(() => ({
+    LOW: 'Thấp',
+    MEDIUM: 'Trung bình',
+    HIGH: 'Cao',
+    URGENT: 'Khẩn cấp'
+  }), []);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -217,9 +182,11 @@ export default function TaskKanban() {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Ngày không hợp lệ';
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit'
     });
   };
 
@@ -278,12 +245,38 @@ export default function TaskKanban() {
         <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading kanban board...</p>
+            <p className="mt-4 text-gray-600">Đang tải bảng Kanban...</p>
           </div>
         </div>
       </div>
     );
   }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} />
+        <div className="w-full px-6 py-8">
+          <div className="text-center py-12 space-y-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">Không thể tải bảng Kanban</h3>
+            <p className="text-gray-600">Đã xảy ra lỗi khi truy vấn dữ liệu. Vui lòng thử lại.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const translateStatus = (status: Task['status']) => columns.find(col => col.status === status)?.title || status;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -298,16 +291,16 @@ export default function TaskKanban() {
                 <button
                   onClick={() => navigate(`/projects/${projectId}`)}
                   className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
-                  title="Back to Project"
+                  title="Quay lại Dự án"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               )}
               <div>
-                <h1 className="page-title">Kanban Board</h1>
+                <h1 className="page-title">Bảng Kanban</h1>
                 <p className="page-subtitle">
-                  {projectId ? "Project tasks" : "All tasks"} - Drag and drop to
-                  manage workflow
+                  {projectId ? "Nhiệm vụ dự án" : "Tất cả nhiệm vụ"} - Kéo và thả để
+                  quản lý quy trình làm việc
                 </p>
               </div>
             </div>
@@ -321,7 +314,7 @@ export default function TaskKanban() {
                 }
                 className="btn-secondary"
               >
-                List View
+                Xem Danh sách
               </button>
               <button
                 onClick={() =>
@@ -334,7 +327,7 @@ export default function TaskKanban() {
                 className="btn-primary"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                New Task
+                Tạo nhiệm vụ
               </button>
             </div>
           </div>
@@ -352,7 +345,7 @@ export default function TaskKanban() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                     <input
                       type="text"
-                      placeholder="Search tasks..."
+                      placeholder="Tìm kiếm nhiệm vụ..."
                       className="input pl-10 w-full h-10"
                       value={filters.search}
                       onChange={(e) =>
@@ -367,10 +360,10 @@ export default function TaskKanban() {
 
                 {/* Clear Filters */}
                 <button
-                  onClick={() => setFilters({ assignee: "", search: "", labelIds: [] })}
+                  onClick={() => setFilters({ assignees: [], search: "", labelIds: [] })}
                   className="btn-ghost whitespace-nowrap h-10 px-4"
                 >
-                  Clear Filters
+                  Xóa bộ lọc
                 </button>
               </div>
 
@@ -380,10 +373,10 @@ export default function TaskKanban() {
                   <div className="w-full sm:w-64">
                     <UserFilterSelector
                       projectId={projectId}
-                      selectedUsers={Array.isArray(filters.assignee) ? filters.assignee : (filters.assignee ? [filters.assignee] : [])}
-                      onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignee: userIds.length > 0 ? userIds : '' }))}
+                      selectedUsers={filters.assignees}
+                      onSelectionChange={(userIds: string[]) => setFilters(prev => ({ ...prev, assignees: userIds }))}
                       multiple={true}
-                      placeholder="All Assignees"
+                      placeholder="Tất cả người được gán"
                       className="w-full"
                     />
                   </div>
@@ -453,7 +446,7 @@ export default function TaskKanban() {
                               task.priority
                             )}`}
                           >
-                            {task.priority}
+                            {priorityLabels[task.priority]}
                           </span>
                           {(user.role === "ADMIN" ||
                             user.role === "LECTURER") && (
@@ -521,7 +514,7 @@ export default function TaskKanban() {
                       <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                         {column.icon}
                       </div>
-                      <p className="text-sm">No tasks</p>
+                      <p className="text-sm">Không có nhiệm vụ</p>
                     </div>
                   )}
                 </div>
@@ -538,12 +531,12 @@ export default function TaskKanban() {
                 <AlertCircle className="w-8 h-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No tasks found
+                Không tìm thấy nhiệm vụ
               </h3>
               <p className="text-gray-600 mb-6">
-                {filters.search || filters.assignee || filters.labelIds.length > 0
-                  ? "Try adjusting your filters to see more tasks."
-                  : "Get started by creating your first task."}
+                {filters.search || filters.assignees.length > 0 || filters.labelIds.length > 0
+                  ? "Thử điều chỉnh bộ lọc để xem thêm nhiệm vụ."
+                  : "Bắt đầu bằng cách tạo nhiệm vụ đầu tiên."}
               </p>
               <button
                 onClick={() =>
@@ -556,7 +549,7 @@ export default function TaskKanban() {
                 className="btn-primary"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Create Task
+                Tạo nhiệm vụ
               </button>
             </div>
           </div>
@@ -569,13 +562,13 @@ export default function TaskKanban() {
               <div className="flex items-center mb-4">
                 <AlertCircle className="w-6 h-6 text-blue-500 mr-3" />
                 <h3 className="text-lg font-medium text-gray-900">
-                  Confirm Status Change
+                  Xác nhận Thay đổi Trạng thái
                 </h3>
               </div>
               
               <div className="mb-6">
                 <p className="text-gray-700 mb-3">
-                  Are you sure you want to move this task?
+                  Bạn có chắc chắn muốn di chuyển nhiệm vụ này?
                 </p>
                 
                 <div className="bg-gray-50 p-3 rounded-lg mb-3">
@@ -589,26 +582,26 @@ export default function TaskKanban() {
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <span className="text-sm text-gray-500 mr-2">From:</span>
+                    <span className="text-sm text-gray-500 mr-2">Từ:</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       pendingStatusChange.task.status === 'TODO' ? 'bg-gray-100 text-gray-800' :
                       pendingStatusChange.task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
                       pendingStatusChange.task.status === 'REVIEW' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-green-100 text-green-800'
                     }`}>
-                      {pendingStatusChange.task.status.replace('_', ' ')}
+                      {translateStatus(pendingStatusChange.task.status)}
                     </span>
                   </div>
                   
                   <div className="flex items-center">
-                    <span className="text-sm text-gray-500 mr-2">To:</span>
+                    <span className="text-sm text-gray-500 mr-2">Đến:</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       pendingStatusChange.newStatus === 'TODO' ? 'bg-gray-100 text-gray-800' :
                       pendingStatusChange.newStatus === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
                       pendingStatusChange.newStatus === 'REVIEW' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-green-100 text-green-800'
                     }`}>
-                      {pendingStatusChange.newStatus.replace('_', ' ')}
+                      {translateStatus(pendingStatusChange.newStatus as Task['status'])}
                     </span>
                   </div>
                 </div>
@@ -620,14 +613,14 @@ export default function TaskKanban() {
                   className="btn-secondary"
                   disabled={updateTaskStatusMutation.isPending}
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   onClick={handleConfirmStatusChange}
                   className="btn-primary"
                   disabled={updateTaskStatusMutation.isPending}
                 >
-                  {updateTaskStatusMutation.isPending ? 'Updating...' : 'Confirm'}
+                  {updateTaskStatusMutation.isPending ? 'Đang cập nhật...' : 'Xác nhận'}
                 </button>
               </div>
             </div>

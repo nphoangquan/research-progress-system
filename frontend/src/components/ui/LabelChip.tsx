@@ -1,4 +1,3 @@
-import React from 'react';
 import { X } from 'lucide-react';
 import type { Label } from '../../types/label';
 
@@ -36,7 +35,7 @@ export default function LabelChip({
             onRemove(label.id);
           }}
           className="text-gray-500 hover:text-gray-700 transition-colors rounded-full p-0.5"
-          aria-label={`Remove ${label.name} label`}
+          aria-label={`Xóa nhãn ${label.name}`}
         >
           <X className="w-3 h-3" />
         </button>

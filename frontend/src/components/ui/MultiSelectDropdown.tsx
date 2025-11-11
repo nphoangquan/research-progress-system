@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User, X, ChevronDown, AlertCircle } from 'lucide-react';
 
 interface MultiSelectDropdownProps {
@@ -18,10 +17,28 @@ export default function MultiSelectDropdown({
   selectedIds,
   onChange,
   error,
-  placeholder = "Select options...",
+  placeholder = "Chọn các tùy chọn...",
   required = false
 }: MultiSelectDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const handleSelect = (optionId: string) => {
     if (!selectedIds.includes(optionId)) {
@@ -38,7 +55,7 @@ export default function MultiSelectDropdown({
   const availableOptions = options.filter(option => !selectedIds.includes(option.id));
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <label className="block text-sm font-medium text-gray-700 mb-2">
         {label} {required && <span className="text-error-500">*</span>}
       </label>
@@ -96,7 +113,7 @@ export default function MultiSelectDropdown({
               ))
             ) : (
               <div className="px-4 py-2 text-gray-500 text-sm">
-                No more options available
+                Không còn tùy chọn nào
               </div>
             )}
           </div>

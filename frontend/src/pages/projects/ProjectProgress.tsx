@@ -1,4 +1,3 @@
-import React from 'react';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,14 +6,7 @@ import Navbar from '../../components/layout/Navbar';
 import api from '../../lib/axios';
 import { 
   ArrowLeft, 
-  Calendar, 
-  TrendingUp, 
-  Clock, 
-  CheckCircle, 
   AlertCircle,
-  BarChart3,
-  PieChart,
-  Activity,
   Target,
   Users,
   FileText,
@@ -160,6 +152,7 @@ export default function ProjectProgress() {
     }
   };
 
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'URGENT':
@@ -176,7 +169,7 @@ export default function ProjectProgress() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -268,7 +261,7 @@ export default function ProjectProgress() {
         <div className="container py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading project progress...</p>
+            <p className="mt-4 text-gray-600">Đang tải tiến độ dự án...</p>
           </div>
         </div>
       </div>
@@ -284,13 +277,13 @@ export default function ProjectProgress() {
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Project not found</h3>
-            <p className="text-gray-600 mb-6">The project you're looking for doesn't exist or you don't have access to it.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy dự án</h3>
+            <p className="text-gray-600 mb-6">Dự án bạn đang tìm không tồn tại hoặc bạn không có quyền truy cập.</p>
             <button
               onClick={() => navigate('/projects')}
               className="btn-primary"
             >
-              Back to Projects
+              Quay lại Dự án
             </button>
           </div>
         </div>
@@ -312,9 +305,9 @@ export default function ProjectProgress() {
         <div className="page-header">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="page-title">Project Progress</h1>
+              <h1 className="page-title">Tiến độ dự án</h1>
               <p className="page-subtitle">
-                {project.title} - Track progress and performance
+                {project.title} - Theo dõi tiến độ và hiệu suất
               </p>
             </div>
             
@@ -324,7 +317,7 @@ export default function ProjectProgress() {
                 className="btn-secondary"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Project
+                Quay lại Dự án
               </button>
             </div>
           </div>
@@ -337,7 +330,7 @@ export default function ProjectProgress() {
             <div className="card">
               <div className="card-body">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-medium text-gray-900">Progress Overview</h2>
+                  <h2 className="text-lg font-medium text-gray-900">Tổng quan tiến độ</h2>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => setTimeRange('week')}
@@ -345,7 +338,7 @@ export default function ProjectProgress() {
                         timeRange === 'week' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      Week
+                      Tuần
                     </button>
                     <button
                       onClick={() => setTimeRange('month')}
@@ -353,7 +346,7 @@ export default function ProjectProgress() {
                         timeRange === 'month' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      Month
+                      Tháng
                     </button>
                     <button
                       onClick={() => setTimeRange('quarter')}
@@ -361,14 +354,14 @@ export default function ProjectProgress() {
                         timeRange === 'quarter' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      Quarter
+                      Quý
                     </button>
                   </div>
                 </div>
                 
                 <div className="mb-6">
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                    <span>Overall Progress</span>
+                    <span>Tiến độ tổng thể</span>
                     <span className="font-medium">{project.progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-4">
@@ -397,7 +390,7 @@ export default function ProjectProgress() {
                       <XAxis 
                         dataKey="date" 
                         tick={{ fontSize: 12 }}
-                        tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        tickFormatter={(value) => new Date(value).toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' })}
                       />
                       <YAxis tick={{ fontSize: 12 }} />
                       <Tooltip 
@@ -407,7 +400,7 @@ export default function ProjectProgress() {
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
-                        labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { 
+                        labelFormatter={(value) => new Date(value).toLocaleDateString('vi-VN', { 
                           year: 'numeric', 
                           month: 'long', 
                           day: 'numeric' 
@@ -421,7 +414,7 @@ export default function ProjectProgress() {
                         fillOpacity={1}
                         fill="url(#colorProgress)"
                         strokeWidth={3}
-                        name="Progress %"
+                        name="Tiến độ %"
                       />
                       <Area
                         type="monotone"
@@ -430,7 +423,7 @@ export default function ProjectProgress() {
                         fillOpacity={1}
                         fill="url(#colorTasks)"
                         strokeWidth={3}
-                        name="Tasks Completed"
+                        name="Nhiệm vụ hoàn thành"
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -441,22 +434,22 @@ export default function ProjectProgress() {
             {/* Task Progress */}
             <div className="card">
               <div className="card-body">
-                <h2 className="text-lg font-medium text-gray-900 mb-6">Task Progress</h2>
+                <h2 className="text-lg font-medium text-gray-900 mb-6">Tiến độ nhiệm vụ</h2>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Task Statistics */}
                   <div>
-                    <h3 className="text-md font-medium text-gray-900 mb-4">Task Distribution</h3>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Phân bổ nhiệm vụ</h3>
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <RechartsPieChart>
                           <Pie
                             data={[
-                              { name: 'Completed', value: taskStats.completed, color: '#10b981' },
-                              { name: 'In Progress', value: taskStats.inProgress, color: '#3b82f6' },
-                              { name: 'Review', value: taskStats.review, color: '#f59e0b' },
-                              { name: 'To Do', value: taskStats.todo, color: '#6b7280' },
-                              { name: 'Overdue', value: taskStats.overdue, color: '#ef4444' }
+                              { name: 'Hoàn thành', value: taskStats.completed, color: '#10b981' },
+                              { name: 'Đang thực hiện', value: taskStats.inProgress, color: '#3b82f6' },
+                              { name: 'Đang xem xét', value: taskStats.review, color: '#f59e0b' },
+                              { name: 'Cần làm', value: taskStats.todo, color: '#6b7280' },
+                              { name: 'Quá hạn', value: taskStats.overdue, color: '#ef4444' }
                             ]}
                             cx="50%"
                             cy="50%"
@@ -471,17 +464,17 @@ export default function ProjectProgress() {
                             dataKey="value"
                           >
                             {[
-                              { name: 'Completed', value: taskStats.completed, color: '#10b981' },
-                              { name: 'In Progress', value: taskStats.inProgress, color: '#3b82f6' },
-                              { name: 'Review', value: taskStats.review, color: '#f59e0b' },
-                              { name: 'To Do', value: taskStats.todo, color: '#6b7280' },
-                              { name: 'Overdue', value: taskStats.overdue, color: '#ef4444' }
+                              { name: 'Hoàn thành', value: taskStats.completed, color: '#10b981' },
+                              { name: 'Đang thực hiện', value: taskStats.inProgress, color: '#3b82f6' },
+                              { name: 'Đang xem xét', value: taskStats.review, color: '#f59e0b' },
+                              { name: 'Cần làm', value: taskStats.todo, color: '#6b7280' },
+                              { name: 'Quá hạn', value: taskStats.overdue, color: '#ef4444' }
                             ].map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
                             ))}
                           </Pie>
                           <Tooltip 
-                            formatter={(value: any, name: any) => [`${value} tasks`, name]}
+                            formatter={(value: any, name: any) => [`${value} nhiệm vụ`, name]}
                             labelStyle={{ color: '#374151' }}
                             contentStyle={{ 
                               backgroundColor: '#f9fafb', 
@@ -494,11 +487,11 @@ export default function ProjectProgress() {
                             height={36}
                             formatter={(value: any) => {
                               const data = [
-                                { name: 'Completed', value: taskStats.completed },
-                                { name: 'In Progress', value: taskStats.inProgress },
-                                { name: 'Review', value: taskStats.review },
-                                { name: 'To Do', value: taskStats.todo },
-                                { name: 'Overdue', value: taskStats.overdue }
+                                { name: 'Hoàn thành', value: taskStats.completed },
+                                { name: 'Đang thực hiện', value: taskStats.inProgress },
+                                { name: 'Đang xem xét', value: taskStats.review },
+                                { name: 'Cần làm', value: taskStats.todo },
+                                { name: 'Quá hạn', value: taskStats.overdue }
                               ].find(item => item.name === value);
                               const total = taskStats.total;
                               const percentage = total > 0 ? ((data?.value || 0) / total * 100).toFixed(0) : '0';
@@ -516,19 +509,19 @@ export default function ProjectProgress() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 bg-gray-50 rounded-lg">
                         <div className="text-2xl font-bold text-gray-600">{taskStats.total}</div>
-                        <div className="text-sm text-gray-500">Total Tasks</div>
+                        <div className="text-sm text-gray-500">Tổng nhiệm vụ</div>
                       </div>
                       <div className="text-center p-4 bg-green-50 rounded-lg">
                         <div className="text-2xl font-bold text-green-600">{taskStats.completed}</div>
-                        <div className="text-sm text-green-500">Completed</div>
+                        <div className="text-sm text-green-500">Hoàn thành</div>
                       </div>
                       <div className="text-center p-4 bg-blue-50 rounded-lg">
                         <div className="text-2xl font-bold text-blue-600">{taskStats.inProgress}</div>
-                        <div className="text-sm text-blue-500">In Progress</div>
+                        <div className="text-sm text-blue-500">Đang thực hiện</div>
                       </div>
                       <div className="text-center p-4 bg-red-50 rounded-lg">
                         <div className="text-2xl font-bold text-red-600">{taskStats.overdue}</div>
-                        <div className="text-sm text-red-500">Overdue</div>
+                        <div className="text-sm text-red-500">Quá hạn</div>
                       </div>
                     </div>
                   </div>
@@ -536,7 +529,7 @@ export default function ProjectProgress() {
 
                 {/* Recent Tasks */}
                 <div className="space-y-3">
-                  <h3 className="text-md font-medium text-gray-900">Recent Tasks</h3>
+                  <h3 className="text-md font-medium text-gray-900">Nhiệm vụ gần đây</h3>
                   {project.tasks.slice(0, 5).map((task: any) => (
                     <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
@@ -548,12 +541,12 @@ export default function ProjectProgress() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)}`}>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${getStatusColor(task.status)}`}>
                           {task.status.replace('_', ' ')}
                         </span>
                         {task.dueDate && (
                           <span className="text-xs text-gray-500">
-                            Due {formatDate(task.dueDate)}
+                            Hạn: {formatDate(task.dueDate)}
                           </span>
                         )}
                       </div>
@@ -566,18 +559,18 @@ export default function ProjectProgress() {
             {/* Document Analytics */}
             <div className="card">
               <div className="card-body">
-                <h2 className="text-lg font-medium text-gray-900 mb-6">Document Analytics</h2>
+                <h2 className="text-lg font-medium text-gray-900 mb-6">Phân tích tài liệu</h2>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Document Status Chart */}
                   <div>
-                    <h3 className="text-md font-medium text-gray-900 mb-4">Document Status</h3>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Trạng thái tài liệu</h3>
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={[
-                          { name: 'Pending', value: documentStats.pending, color: '#f59e0b' },
-                          { name: 'Approved', value: documentStats.approved, color: '#10b981' },
-                          { name: 'Rejected', value: documentStats.rejected, color: '#ef4444' }
+                          { name: 'Chờ duyệt', value: documentStats.pending, color: '#f59e0b' },
+                          { name: 'Đã duyệt', value: documentStats.approved, color: '#10b981' },
+                          { name: 'Đã từ chối', value: documentStats.rejected, color: '#ef4444' }
                         ]}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
@@ -602,23 +595,23 @@ export default function ProjectProgress() {
                     <div className="space-y-4">
                       <div className="text-center p-4 bg-gray-50 rounded-lg">
                         <div className="text-2xl font-bold text-gray-600">{documentStats.total}</div>
-                        <div className="text-sm text-gray-500">Total Documents</div>
+                        <div className="text-sm text-gray-500">Tổng tài liệu</div>
                       </div>
                       <div className="text-center p-4 bg-yellow-50 rounded-lg">
                         <div className="text-2xl font-bold text-yellow-600">{documentStats.pending}</div>
-                        <div className="text-sm text-yellow-500">Pending</div>
+                        <div className="text-sm text-yellow-500">Chờ duyệt</div>
                       </div>
                       <div className="text-center p-4 bg-green-50 rounded-lg">
                         <div className="text-2xl font-bold text-green-600">{documentStats.approved}</div>
-                        <div className="text-sm text-green-500">Approved</div>
+                        <div className="text-sm text-green-500">Đã duyệt</div>
                       </div>
                       <div className="text-center p-4 bg-red-50 rounded-lg">
                         <div className="text-2xl font-bold text-red-600">{documentStats.rejected}</div>
-                        <div className="text-sm text-red-500">Rejected</div>
+                        <div className="text-sm text-red-500">Đã từ chối</div>
                       </div>
                       <div className="text-center p-4 bg-blue-50 rounded-lg">
                         <div className="text-2xl font-bold text-blue-600">{formatFileSize(documentStats.totalSize)}</div>
-                        <div className="text-sm text-blue-500">Total Storage Used</div>
+                        <div className="text-sm text-blue-500">Tổng dung lượng đã dùng</div>
                       </div>
                     </div>
                   </div>
@@ -626,7 +619,7 @@ export default function ProjectProgress() {
 
                 {/* Recent Documents */}
                 <div className="space-y-3">
-                  <h3 className="text-md font-medium text-gray-900">Recent Documents</h3>
+                  <h3 className="text-md font-medium text-gray-900">Tài liệu gần đây</h3>
                   {project.documents.slice(0, 5).map((doc: any) => (
                     <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center space-x-3">
@@ -648,12 +641,12 @@ export default function ProjectProgress() {
             {/* Team Performance */}
             <div className="card">
               <div className="card-body">
-                <h2 className="text-lg font-medium text-gray-900 mb-6">Team Performance</h2>
+                <h2 className="text-lg font-medium text-gray-900 mb-6">Hiệu suất nhóm</h2>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Team Activity Chart */}
                   <div>
-                    <h3 className="text-md font-medium text-gray-900 mb-4">Activity Overview</h3>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Tổng quan hoạt động</h3>
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={progressData}>
@@ -661,7 +654,7 @@ export default function ProjectProgress() {
                           <XAxis 
                             dataKey="date" 
                             tick={{ fontSize: 12 }}
-                            tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            tickFormatter={(value) => new Date(value).toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' })}
                           />
                           <YAxis tick={{ fontSize: 12 }} />
                           <Tooltip 
@@ -671,7 +664,7 @@ export default function ProjectProgress() {
                               borderRadius: '8px',
                               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                             }}
-                            labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { 
+                            labelFormatter={(value) => new Date(value).toLocaleDateString('vi-VN', { 
                               year: 'numeric', 
                               month: 'long', 
                               day: 'numeric' 
@@ -684,7 +677,7 @@ export default function ProjectProgress() {
                             stroke="#3b82f6"
                             strokeWidth={3}
                             dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                            name="Progress %"
+                            name="Tiến độ %"
                           />
                           <Line
                             type="monotone"
@@ -692,7 +685,7 @@ export default function ProjectProgress() {
                             stroke="#10b981"
                             strokeWidth={3}
                             dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-                            name="Tasks Completed"
+                            name="Nhiệm vụ hoàn thành"
                           />
                         </LineChart>
                       </ResponsiveContainer>
@@ -701,33 +694,33 @@ export default function ProjectProgress() {
 
                   {/* Team Stats */}
                   <div>
-                    <h3 className="text-md font-medium text-gray-900 mb-4">Team Statistics</h3>
+                    <h3 className="text-md font-medium text-gray-900 mb-4">Thống kê nhóm</h3>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center">
                           <Users className="w-5 h-5 text-gray-400 mr-3" />
-                          <span className="text-sm text-gray-600">Team Size</span>
+                          <span className="text-sm text-gray-600">Kích thước nhóm</span>
                         </div>
                         <span className="font-medium text-gray-900">{project.students.length + 1}</span>
                       </div>
                       <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
                         <div className="flex items-center">
                           <Target className="w-5 h-5 text-blue-400 mr-3" />
-                          <span className="text-sm text-gray-600">Completion Rate</span>
+                          <span className="text-sm text-gray-600">Tỷ lệ hoàn thành</span>
                         </div>
                         <span className="font-medium text-blue-900">{project.progress}%</span>
                       </div>
                       <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center">
                           <CheckSquare className="w-5 h-5 text-green-400 mr-3" />
-                          <span className="text-sm text-gray-600">Tasks Completed</span>
+                          <span className="text-sm text-gray-600">Nhiệm vụ hoàn thành</span>
                         </div>
                         <span className="font-medium text-green-900">{taskStats.completed}/{taskStats.total}</span>
                       </div>
                       <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
                         <div className="flex items-center">
                           <FileText className="w-5 h-5 text-purple-400 mr-3" />
-                          <span className="text-sm text-gray-600">Documents Uploaded</span>
+                          <span className="text-sm text-gray-600">Tài liệu đã tải lên</span>
                         </div>
                         <span className="font-medium text-purple-900">{documentStats.total}</span>
                       </div>
@@ -743,32 +736,32 @@ export default function ProjectProgress() {
             {/* Project Info */}
             <div className="card">
               <div className="card-body">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Project Info</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Thông tin dự án</h3>
                 <div className="space-y-3 text-sm">
                   <div>
-                    <span className="text-gray-500">Status:</span>
-                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
+                    <span className="text-gray-500">Trạng thái:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${getStatusColor(project.status)}`}>
                       {project.status.replace('_', ' ')}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Start Date:</span>
+                    <span className="text-gray-500">Ngày bắt đầu:</span>
                     <p className="font-medium text-gray-900">{formatDate(project.startDate)}</p>
                   </div>
                   {project.endDate && (
                     <div>
-                      <span className="text-gray-500">End Date:</span>
+                      <span className="text-gray-500">Ngày kết thúc:</span>
                       <p className="font-medium text-gray-900">{formatDate(project.endDate)}</p>
                       {daysRemaining !== null && (
                         <p className={`text-xs ${daysRemaining < 0 ? 'text-red-600' : daysRemaining < 7 ? 'text-yellow-600' : 'text-gray-500'}`}>
-                          {daysRemaining < 0 ? `${Math.abs(daysRemaining)} days overdue` : `${daysRemaining} days remaining`}
+                          {daysRemaining < 0 ? `${Math.abs(daysRemaining)} ngày quá hạn` : `${daysRemaining} ngày còn lại`}
                         </p>
                       )}
                     </div>
                   )}
                   <div>
-                    <span className="text-gray-500">Team Members:</span>
-                    <p className="font-medium text-gray-900">{project.students.length + 1} people</p>
+                    <span className="text-gray-500">Thành viên nhóm:</span>
+                    <p className="font-medium text-gray-900">{project.students.length + 1} người</p>
                   </div>
                 </div>
               </div>
@@ -777,7 +770,7 @@ export default function ProjectProgress() {
             {/* Progress Overview */}
             <div className="card">
               <div className="card-body">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Progress Overview</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Tổng quan tiến độ</h3>
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={[{ name: 'Progress', value: project.progress, fill: '#3b82f6' }]}>
@@ -789,7 +782,7 @@ export default function ProjectProgress() {
                   </ResponsiveContainer>
                 </div>
                 <div className="text-center mt-4">
-                  <p className="text-sm text-gray-600">Overall Progress</p>
+                  <p className="text-sm text-gray-600">Tiến độ tổng thể</p>
                 </div>
               </div>
             </div>
@@ -797,33 +790,33 @@ export default function ProjectProgress() {
             {/* Quick Stats */}
             <div className="card">
               <div className="card-body">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Stats</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Thống kê nhanh</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <CheckSquare className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-600">Total Tasks</span>
+                      <span className="text-sm text-gray-600">Tổng nhiệm vụ</span>
                     </div>
                     <span className="font-medium text-gray-900">{project.tasks.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <FileText className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-600">Documents</span>
+                      <span className="text-sm text-gray-600">Tài liệu</span>
                     </div>
                     <span className="font-medium text-gray-900">{project.documents.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <Users className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-600">Team Size</span>
+                      <span className="text-sm text-gray-600">Kích thước nhóm</span>
                     </div>
                     <span className="font-medium text-gray-900">{project.students.length + 1}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <Target className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-600">Completion</span>
+                      <span className="text-sm text-gray-600">Hoàn thành</span>
                     </div>
                     <span className="font-medium text-gray-900">{project.progress}%</span>
                   </div>
@@ -834,12 +827,12 @@ export default function ProjectProgress() {
             {/* Team Members */}
             <div className="card">
               <div className="card-body">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Team Members</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Thành viên nhóm</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{project.lecturer.fullName}</p>
-                      <p className="text-xs text-gray-500">Lecturer</p>
+                      <p className="text-xs text-gray-500">Giảng viên</p>
                     </div>
                   </div>
                   {project.students.map((ps: any) => (
@@ -847,7 +840,7 @@ export default function ProjectProgress() {
                       <div>
                         <p className="text-sm font-medium text-gray-900">{ps.student.fullName}</p>
                         <p className="text-xs text-gray-500">
-                          Student {ps.role === 'LEAD' && '(Lead)'}
+                          Sinh viên {ps.role === 'LEAD' && '(Trưởng nhóm)'}
                         </p>
                       </div>
                     </div>

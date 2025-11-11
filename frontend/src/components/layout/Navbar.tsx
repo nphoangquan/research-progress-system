@@ -58,7 +58,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <LayoutDashboard className="w-4 h-4 inline mr-2" />
-              Dashboard
+              Bảng điều khiển
             </Link>
             <Link
               to="/projects"
@@ -69,7 +69,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <FolderOpen className="w-4 h-4 inline mr-2" />
-              Projects
+              Dự án
             </Link>
             <Link
               to="/tasks"
@@ -80,7 +80,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <CheckSquare className="w-4 h-4 inline mr-2" />
-              Tasks
+              Nhiệm vụ
             </Link>
             <Link
               to="/documents"
@@ -91,7 +91,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <FileText className="w-4 h-4 inline mr-2" />
-              Documents
+              Tài liệu
             </Link>
             <Link
               to="/library"
@@ -102,7 +102,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <BookOpen className="w-4 h-4 inline mr-2" />
-              Library
+              Thư viện
             </Link>
             <Link
               to="/analytics"
@@ -113,7 +113,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <BarChart3 className="w-4 h-4 inline mr-2" />
-              Analytics
+              Phân tích
             </Link>
           </div>
 
@@ -124,21 +124,21 @@ export default function Navbar({ user }: NavbarProps) {
             <Link
               to="/user-activity"
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              title="User Activity"
+              title="Hoạt động Người dùng"
             >
               <Activity className="w-5 h-5" />
             </Link>
             <Link
               to="/profile"
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              title="Profile"
+              title="Hồ sơ"
             >
               <UserIcon className="w-5 h-5" />
             </Link>
             <button
               onClick={logout}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              title="Logout"
+              title="Đăng xuất"
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -150,7 +150,7 @@ export default function Navbar({ user }: NavbarProps) {
             <button
               onClick={logout}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              title="Logout"
+              title="Đăng xuất"
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -176,7 +176,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <LayoutDashboard className="w-4 h-4 inline mr-2" />
-              Dashboard
+              Bảng điều khiển
             </Link>
             <Link
               to="/projects"
@@ -188,7 +188,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <FolderOpen className="w-4 h-4 inline mr-2" />
-              Projects
+              Dự án
             </Link>
             <Link
               to="/tasks"
@@ -200,7 +200,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <CheckSquare className="w-4 h-4 inline mr-2" />
-              Tasks
+              Nhiệm vụ
             </Link>
             <Link
               to="/documents"
@@ -212,7 +212,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <FileText className="w-4 h-4 inline mr-2" />
-              Documents
+              Tài liệu
             </Link>
             <Link
               to="/library"
@@ -224,7 +224,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <BookOpen className="w-4 h-4 inline mr-2" />
-              Library
+              Thư viện
             </Link>
             <Link
               to="/analytics"
@@ -236,7 +236,7 @@ export default function Navbar({ user }: NavbarProps) {
               }`}
             >
               <BarChart3 className="w-4 h-4 inline mr-2" />
-              Analytics
+              Phân tích
             </Link>
             <Link
               to="/user-activity"
@@ -244,7 +244,7 @@ export default function Navbar({ user }: NavbarProps) {
               className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <Activity className="w-4 h-4 inline mr-2" />
-              User Activity
+              Hoạt động Người dùng
             </Link>
             <Link
               to="/profile"
@@ -252,7 +252,7 @@ export default function Navbar({ user }: NavbarProps) {
               className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <UserIcon className="w-4 h-4 inline mr-2" />
-              Profile
+              Hồ sơ
             </Link>
           </div>
         )}

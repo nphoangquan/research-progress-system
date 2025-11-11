@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../lib/axios';
 import { GraduationCap, Lock, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ResetPassword() {
-  const { token } = useParams<{ token: string }>();
+  const { token: pathToken } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const queryToken = searchParams.get('token');
+  const token = pathToken || queryToken; // Support both path and query params
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     password: '',
@@ -19,7 +22,7 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!token) {
-      toast.error('Invalid reset link');
+      toast.error('Liên kết đặt lại không hợp lệ');
       navigate('/forgot-password');
     }
   }, [token, navigate]);
@@ -39,14 +42,14 @@ export default function ResetPassword() {
     // Validation
     const newErrors: { password?: string; confirmPassword?: string } = {};
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = 'Mật khẩu là bắt buộc';
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
     }
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Mật khẩu không khớp';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -60,14 +63,14 @@ export default function ResetPassword() {
         password: formData.password,
       });
       setIsSuccess(true);
-      toast.success('Password reset successfully!');
+      toast.success('Đặt lại mật khẩu thành công!');
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to reset password');
+      toast.error(error.response?.data?.error || 'Đặt lại mật khẩu thất bại');
       if (error.response?.status === 400) {
         // Token expired or invalid
         setTimeout(() => {
@@ -88,20 +91,20 @@ export default function ResetPassword() {
               <CheckCircle className="w-12 h-12 text-green-600" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">
-              Password Reset Successful!
+              Đặt lại mật khẩu thành công!
             </h2>
             <p className="mt-2 text-gray-600">
-              Your password has been reset successfully. You can now login with your new password.
+              Mật khẩu của bạn đã được đặt lại thành công. Bạn có thể đăng nhập bằng mật khẩu mới.
             </p>
             <p className="mt-4 text-sm text-gray-500">
-              Redirecting to login page...
+              Đang chuyển hướng đến trang đăng nhập...
             </p>
             <div className="mt-6">
               <Link
                 to="/login"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
               >
-                Go to Login
+                Đi đến Đăng nhập
               </Link>
             </div>
           </div>
@@ -119,10 +122,10 @@ export default function ResetPassword() {
             <GraduationCap className="w-12 h-12 text-gray-900" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
-            Reset your password
+            Đặt lại mật khẩu của bạn
           </h2>
           <p className="mt-2 text-gray-600">
-            Enter your new password below.
+            Nhập mật khẩu mới của bạn bên dưới.
           </p>
         </div>
 
@@ -132,7 +135,7 @@ export default function ResetPassword() {
             {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                New Password
+                Mật khẩu mới
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -143,7 +146,7 @@ export default function ResetPassword() {
                   autoComplete="new-password"
                   required
                   className={`input pl-10 pr-10 ${errors.password ? 'input-error' : ''}`}
-                  placeholder="Enter your new password"
+                  placeholder="Nhập mật khẩu mới của bạn"
                   value={formData.password}
                   onChange={handleInputChange}
                 />
@@ -166,7 +169,7 @@ export default function ResetPassword() {
             {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm New Password
+                Xác nhận mật khẩu mới
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -177,7 +180,7 @@ export default function ResetPassword() {
                   autoComplete="new-password"
                   required
                   className={`input pl-10 pr-10 ${errors.confirmPassword ? 'input-error' : ''}`}
-                  placeholder="Confirm your new password"
+                  placeholder="Xác nhận mật khẩu mới của bạn"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                 />
@@ -205,7 +208,7 @@ export default function ResetPassword() {
               disabled={isLoading}
               className="w-full btn btn-primary"
             >
-              {isLoading ? 'Resetting...' : 'Reset Password'}
+              {isLoading ? 'Đang đặt lại...' : 'Đặt lại mật khẩu'}
             </button>
           </div>
 
@@ -215,7 +218,7 @@ export default function ResetPassword() {
               to="/login"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              Back to Login
+              Quay lại Đăng nhập
             </Link>
           </div>
         </form>

@@ -34,7 +34,7 @@ import PublicLibrary from './pages/documents/PublicLibrary';
 import Analytics from './pages/Analytics';
 import UserActivity from './pages/UserActivity';
 import ProjectProgress from './pages/projects/ProjectProgress';
-import UserProfile from './pages/UserProfile';
+import AccountSettingsPage from './pages/account/AccountSettingsPage';
 import ArchivedProjects from './pages/projects/ArchivedProjects';
 
 // Components
@@ -60,11 +60,19 @@ function AppContent() {
             element={<VerifyEmail />}
           />
           <Route 
+            path="/verify-email" 
+            element={<VerifyEmail />}
+          />
+          <Route 
             path="/forgot-password" 
             element={<ForgotPassword />}
           />
           <Route 
             path="/reset-password/:token" 
+            element={<ResetPassword />}
+          />
+          <Route 
+            path="/reset-password" 
             element={<ResetPassword />}
           />
           
@@ -137,7 +145,7 @@ function AppContent() {
             path="/profile" 
             element={
               <ProtectedRoute>
-                <UserProfile />
+                <AccountSettingsPage />
               </ProtectedRoute>
             } 
           />

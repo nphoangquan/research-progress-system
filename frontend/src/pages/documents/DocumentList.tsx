@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,6 +9,7 @@ import UserFilterSelector from '../../components/ui/UserFilterSelector';
 import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { sanitizeHTML } from '../../utils/sanitize';
 import { 
   Search, 
   FileText,
@@ -24,9 +25,8 @@ import {
   useCategoryOptions, 
   useStatusOptions, 
   useFileTypeOptions, 
-  useUploadDateOptions,
-  useDebounce
-} from '../../hooks/useDocumentOptimization';
+  useUploadDateOptions
+} from '../../hooks/useDocumentFilters';
 
 interface Document {
   id: string;
@@ -52,6 +52,16 @@ interface Document {
   };
 }
 
+const INITIAL_FILTERS = {
+  status: '',
+  projectFilter: [] as string[],
+  uploader: [] as string[],
+  fileType: '',
+  uploadDate: '',
+  search: '',
+  category: ''
+};
+
 export default function DocumentList() {
   const { projectId } = useParams<{ projectId?: string }>();
   const navigate = useNavigate();
@@ -67,15 +77,7 @@ export default function DocumentList() {
     );
   }
 
-  const [filters, setFilters] = useState({
-    status: '',
-    projectFilter: [] as string[],
-    uploader: [] as string[],
-    fileType: '',
-    uploadDate: '',
-    search: '',
-    category: ''
-  });
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
@@ -85,12 +87,9 @@ export default function DocumentList() {
   const fileTypeOptions = useFileTypeOptions();
   const uploadDateOptions = useUploadDateOptions();
 
-  // Debounced search for better performance
-  const debouncedSearch = useDebounce(filters.search, 300);
-
   // Fetch documents and statistics in parallel
-  const { data: documentsData, isLoading } = useQuery({
-    queryKey: ['documents', projectId, filters, currentPage, pageSize, debouncedSearch],
+  const { data: documentsData, isLoading, isError, refetch } = useQuery({
+    queryKey: ['documents', projectId, filters, currentPage, pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (projectId) params.append('projectId', projectId);
@@ -103,7 +102,7 @@ export default function DocumentList() {
       }
       if (filters.fileType) params.append('fileType', filters.fileType);
       if (filters.uploadDate) params.append('uploadDate', filters.uploadDate);
-      if (debouncedSearch) params.append('search', debouncedSearch);
+      if (filters.search) params.append('search', filters.search);
       if (filters.category) params.append('category', filters.category);
 
       // Add pagination parameters
@@ -149,10 +148,10 @@ export default function DocumentList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      toast.success('Document deleted successfully!');
+      toast.success('Xóa tài liệu thành công!');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to delete document');
+      toast.error(error.response?.data?.error || 'Xóa tài liệu thất bại');
     },
   });
 
@@ -206,45 +205,52 @@ export default function DocumentList() {
   const getCategoryLabel = (category: string) => {
     switch (category) {
       case 'PROJECT':
-        return 'Project';
+        return 'Dự án';
       case 'REFERENCE':
-        return 'Reference';
+        return 'Tham khảo';
       case 'TEMPLATE':
-        return 'Template';
+        return 'Mẫu';
       case 'GUIDELINE':
-        return 'Guideline';
+        return 'Hướng dẫn';
       case 'SYSTEM':
-        return 'System';
+        return 'Hệ thống';
       default:
         return category;
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  const statusLabels = useMemo<Record<Document['indexStatus'], string>>(() => ({
+    PENDING: 'Chờ xử lý',
+    PROCESSING: 'Đang xử lý',
+    INDEXED: 'Đã lập chỉ mục',
+    FAILED: 'Thất bại'
+  }), []);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatFileSize = useCallback((bytes: number) => {
+    if (bytes === 0) return '0 Byte';
+    const k = 1024;
+    const sizes = ['Byte', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  }, []);
+
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleString('vi-VN', {
       year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }, []);
 
-  const handleDelete = (documentId: string, fileName: string) => {
-    if (window.confirm(`Are you sure you want to delete "${fileName}"?`)) {
+  const handleDelete = useCallback((documentId: string, fileName: string) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa "${fileName}"?`)) {
       deleteDocumentMutation.mutate(documentId);
     }
-  };
+  }, [deleteDocumentMutation]);
 
-  const handleDownload = (doc: Document) => {
+  const handleDownload = useCallback((doc: Document) => {
     const link = document.createElement('a');
     link.href = doc.fileUrl;
     link.download = doc.fileName;
@@ -252,25 +258,43 @@ export default function DocumentList() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, []);
 
-  const handleView = (doc: Document) => {
+  const handleView = useCallback((doc: Document) => {
     window.open(doc.fileUrl, '_blank');
-  };
+  }, []);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
-        <div className="w-full px-6 py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading documents...</p>
-          </div>
-        </div>
-      </div>
+  const handleFilterChange = useCallback(<K extends keyof typeof INITIAL_FILTERS>(key: K, value: (typeof INITIAL_FILTERS)[K]) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    setCurrentPage(1);
+  }, []);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      search: value
+    }));
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setFilters(INITIAL_FILTERS);
+    setCurrentPage(1);
+  }, []);
+
+  const hasActiveFilters = useMemo(() => {
+    return Boolean(
+      filters.status ||
+      filters.fileType ||
+      filters.uploadDate ||
+      filters.category ||
+      filters.search.trim() ||
+      filters.projectFilter.length > 0 ||
+      filters.uploader.length > 0
     );
-  }
+  }, [filters]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -285,15 +309,15 @@ export default function DocumentList() {
                 <button
                   onClick={() => navigate(`/projects/${projectId}`)}
                   className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
-                  title="Back to Project"
+                  title="Quay lại Dự án"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               )}
               <div>
-                <h1 className="page-title">Documents</h1>
+                <h1 className="page-title">Tài liệu</h1>
                 <p className="page-subtitle">
-                  {project ? `${project.title} - Documents` : 'All documents'} - Manage project files
+                  {project ? `${project.title} - Tài liệu` : 'Tất cả tài liệu'} - Quản lý tệp dự án
                 </p>
               </div>
             </div>
@@ -304,7 +328,7 @@ export default function DocumentList() {
                 className="btn-primary"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Upload Document
+                Tải lên Tài liệu
               </button>
             </div>
           </div>
@@ -315,7 +339,7 @@ export default function DocumentList() {
           <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
             <div className="flex items-center justify-center">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-              <span className="text-sm text-gray-500">Loading statistics...</span>
+              <span className="text-sm text-gray-500">Đang tải thống kê...</span>
             </div>
           </div>
         )}
@@ -324,7 +348,7 @@ export default function DocumentList() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
               <div className="text-red-600 mr-2">⚠️</div>
-              <span className="text-sm text-red-700">Failed to load statistics. Please try again.</span>
+              <span className="text-sm text-red-700">Không thể tải thống kê. Vui lòng thử lại.</span>
             </div>
           </div>
         )}
@@ -335,7 +359,7 @@ export default function DocumentList() {
               <div className="flex flex-wrap items-center gap-4 sm:gap-8">
                 <div className="flex items-center space-x-2">
                   <FileText className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm text-gray-500">Total:</span>
+                  <span className="text-sm text-gray-500">Tổng:</span>
                   <span className="text-lg font-semibold text-gray-900">{(statsData as any).totalCount}</span>
                 </div>
                 
@@ -363,28 +387,21 @@ export default function DocumentList() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                     <input
                       type="text"
-                      placeholder="Search documents..."
+                      placeholder="Tìm kiếm tài liệu..."
                       className="input pl-10 w-full h-10"
                       value={filters.search}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          search: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => handleSearchChange(e.target.value)}
                     />
                   </div>
                 </div>
 
                 {/* Clear Filters */}
                 <button
-                  onClick={() => {
-                    setFilters({ status: '', projectFilter: [], uploader: [], fileType: '', uploadDate: '', search: '', category: '' });
-                    setCurrentPage(1);
-                  }}
+                  onClick={clearFilters}
                   className="btn-ghost whitespace-nowrap h-10 px-4"
+                  disabled={!hasActiveFilters}
                 >
-                  Clear Filters
+                  Xóa bộ lọc
                 </button>
               </div>
 
@@ -395,8 +412,8 @@ export default function DocumentList() {
                   label=""
                   options={statusOptions}
                   value={filters.status}
-                  onChange={(status) => setFilters(prev => ({ ...prev, status }))}
-                  placeholder="All Status"
+                  onChange={(status) => handleFilterChange('status', status)}
+                  placeholder="Tất cả trạng thái"
                 />
 
                 {/* Upload Date Filter */}
@@ -404,8 +421,8 @@ export default function DocumentList() {
                   label=""
                   options={uploadDateOptions}
                   value={filters.uploadDate}
-                  onChange={(uploadDate) => setFilters(prev => ({ ...prev, uploadDate }))}
-                  placeholder="All Dates"
+                  onChange={(uploadDate) => handleFilterChange('uploadDate', uploadDate)}
+                  placeholder="Tất cả thời gian"
                 />
 
                 {/* File Type Filter */}
@@ -413,8 +430,8 @@ export default function DocumentList() {
                   label=""
                   options={fileTypeOptions}
                   value={filters.fileType}
-                  onChange={(fileType) => setFilters(prev => ({ ...prev, fileType }))}
-                  placeholder="All File Types"
+                  onChange={(fileType) => handleFilterChange('fileType', fileType)}
+                  placeholder="Tất cả loại tệp"
                 />
 
                 {/* Category Filter */}
@@ -422,8 +439,8 @@ export default function DocumentList() {
                   label=""
                   options={categoryOptions}
                   value={filters.category}
-                  onChange={(category) => setFilters(prev => ({ ...prev, category }))}
-                  placeholder="All Categories"
+                  onChange={(category) => handleFilterChange('category', category)}
+                  placeholder="Tất cả danh mục"
                 />
               </div>
 
@@ -432,18 +449,18 @@ export default function DocumentList() {
                 {/* Project Filter */}
                 <ProjectFilterSelector
                   selectedProjects={filters.projectFilter}
-                  onSelectionChange={(projectIds) => setFilters(prev => ({ ...prev, projectFilter: projectIds }))}
+                  onSelectionChange={(projectIds) => handleFilterChange('projectFilter', projectIds)}
                   multiple={true}
-                  placeholder="All Projects"
+                  placeholder="Tất cả dự án"
                 />
 
                 {/* Uploader Filter - Only for ADMIN and LECTURER */}
                 {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
                   <UserFilterSelector
                     selectedUsers={filters.uploader}
-                    onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, uploader: userIds }))}
+                    onSelectionChange={(userIds) => handleFilterChange('uploader', userIds)}
                     multiple={true}
-                    placeholder="All Uploaders"
+                    placeholder="Tất cả người tải lên"
                   />
                 )}
               </div>
@@ -454,7 +471,25 @@ export default function DocumentList() {
         {/* Documents List */}
         <div className="card">
           <div className="card-body">
-            {documents && documents.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Đang tải tài liệu...</p>
+              </div>
+            ) : isError ? (
+              <div className="text-center py-12 space-y-4">
+                <FileText className="w-16 h-16 text-red-400 mx-auto" />
+                <h3 className="text-lg font-medium text-gray-900">Không thể tải danh sách tài liệu</h3>
+                <p className="text-gray-600">Đã xảy ra lỗi khi truy vấn dữ liệu tài liệu. Vui lòng thử lại.</p>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="btn-primary"
+                >
+                  Thử lại
+                </button>
+              </div>
+            ) : documents && documents.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {documents.map((document: Document) => (
                   <div
@@ -473,14 +508,14 @@ export default function DocumentList() {
                               {getCategoryLabel(document.category)}
                             </span>
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(document.indexStatus)}`}>
-                              {document.indexStatus}
+                              {statusLabels[document.indexStatus] || document.indexStatus}
                             </span>
                           </div>
                         </div>
                         
                         {document.description && (
                           <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none">
-                            <div dangerouslySetInnerHTML={{ __html: document.description }} />
+                            <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(document.description) }} />
                           </div>
                         )}
                         
@@ -504,14 +539,14 @@ export default function DocumentList() {
                         <button
                           onClick={() => handleView(document)}
                           className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                          title="View Document"
+                          title="Xem tài liệu"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDownload(document)}
                           className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                          title="Download Document"
+                          title="Tải xuống tài liệu"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -520,14 +555,14 @@ export default function DocumentList() {
                             <button
                               onClick={() => navigate(`/documents/${document.id}/edit`)}
                               className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                              title="Edit Document"
+                              title="Chỉnh sửa tài liệu"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(document.id, document.fileName)}
                               className="p-2 text-gray-400 hover:text-red-600 rounded"
-                              title="Delete Document"
+                              title="Xóa tài liệu"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -543,18 +578,18 @@ export default function DocumentList() {
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FileText className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy tài liệu</h3>
                 <p className="text-gray-600 mb-6">
                   {filters.search || filters.status
-                    ? 'Try adjusting your filters to see more documents.'
-                    : 'Get started by uploading your first document.'}
+                    ? 'Thử điều chỉnh bộ lọc để xem thêm tài liệu.'
+                    : 'Bắt đầu bằng cách tải lên tài liệu đầu tiên.'}
                 </p>
                 <button
                   onClick={() => navigate(projectId ? `/projects/${projectId}/documents/upload` : '/documents/upload')}
                   className="btn-primary"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload Document
+                  Tải lên Tài liệu
                 </button>
               </div>
             )}

@@ -94,11 +94,11 @@ export default function EditProject() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Project updated successfully!');
+      toast.success('Cập nhật dự án thành công!');
       navigate(`/projects/${id}`);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to update project');
+      toast.error(error.response?.data?.error || 'Cập nhật dự án thất bại');
     },
   });
 
@@ -109,11 +109,11 @@ export default function EditProject() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Project deleted successfully!');
+      toast.success('Xóa dự án thành công!');
       navigate('/projects');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to delete project');
+      toast.error(error.response?.data?.error || 'Xóa dự án thất bại');
     },
   });
 
@@ -137,27 +137,27 @@ export default function EditProject() {
     const newErrors: Partial<Record<keyof EditProjectForm, string>> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Project title is required';
+      newErrors.title = 'Tiêu đề dự án là bắt buộc';
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Project description is required';
+      newErrors.description = 'Mô tả dự án là bắt buộc';
     }
 
     if (!formData.studentIds.length) {
-      newErrors.studentIds = 'Please select at least one student';
+      newErrors.studentIds = 'Vui lòng chọn ít nhất một sinh viên';
     }
 
     if (!formData.lecturerId) {
-      newErrors.lecturerId = 'Please select a lecturer';
+      newErrors.lecturerId = 'Vui lòng chọn một giảng viên';
     }
 
     if (formData.progress < 0 || formData.progress > 100) {
-      newErrors.progress = 'Progress must be between 0 and 100';
+      newErrors.progress = 'Tiến độ phải từ 0 đến 100';
     }
 
     if (formData.endDate && formData.startDate && formData.endDate < formData.startDate) {
-      newErrors.endDate = 'End date must be after start date';
+        newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
     }
 
     setErrors(newErrors);
@@ -175,7 +175,7 @@ export default function EditProject() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+    if (window.confirm('Bạn có chắc chắn muốn xóa dự án này? Hành động này không thể hoàn tác.')) {
       deleteProjectMutation.mutate();
     }
   };
@@ -195,7 +195,7 @@ export default function EditProject() {
         <div className="container py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading project...</p>
+            <p className="mt-4 text-gray-600">Đang tải dự án...</p>
           </div>
         </div>
       </div>
@@ -208,13 +208,13 @@ export default function EditProject() {
         <Navbar user={user} />
         <div className="container py-8">
           <div className="text-center py-12">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Project not found</h3>
-            <p className="text-gray-600 mb-6">The project you're looking for doesn't exist or you don't have access to it.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy dự án</h3>
+            <p className="text-gray-600 mb-6">Dự án bạn đang tìm không tồn tại hoặc bạn không có quyền truy cập.</p>
             <button
               onClick={() => navigate('/projects')}
               className="btn-primary"
             >
-              Back to Projects
+              Quay lại Dự án
             </button>
           </div>
         </div>
@@ -238,9 +238,9 @@ export default function EditProject() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="page-title">Edit Project</h1>
+                <h1 className="page-title">Chỉnh sửa dự án</h1>
                 <p className="page-subtitle">
-                  Update project details and settings.
+                  Cập nhật chi tiết và cài đặt dự án.
                 </p>
               </div>
             </div>
@@ -257,7 +257,7 @@ export default function EditProject() {
                 ) : (
                   <Trash2 className="w-4 h-4 mr-2" />
                 )}
-                {deleteProjectMutation.isPending ? 'Deleting...' : 'Delete Project'}
+                {deleteProjectMutation.isPending ? 'Đang xóa...' : 'Xóa dự án'}
               </button>
             )}
           </div>
@@ -271,7 +271,7 @@ export default function EditProject() {
                 {/* Project Title */}
                 <div>
                   <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                    Project Title *
+                    Tiêu đề dự án *
                   </label>
                   <div className="relative">
                     <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -281,7 +281,7 @@ export default function EditProject() {
                       type="text"
                       required
                       className={`input pl-10 ${errors.title ? 'input-error' : ''}`}
-                      placeholder="Enter project title"
+                      placeholder="Nhập tiêu đề dự án"
                       value={formData.title}
                       onChange={handleChange}
                     />
@@ -297,7 +297,7 @@ export default function EditProject() {
                 {/* Project Description */}
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    Project Description *
+                    Mô tả dự án *
                   </label>
                   <textarea
                     id="description"
@@ -305,7 +305,7 @@ export default function EditProject() {
                     rows={4}
                     required
                     className={`input ${errors.description ? 'input-error' : ''}`}
-                    placeholder="Describe the project objectives, methodology, and expected outcomes"
+                    placeholder="Mô tả mục tiêu, phương pháp và kết quả mong đợi của dự án"
                     value={formData.description}
                     onChange={handleChange}
                   />
@@ -319,23 +319,23 @@ export default function EditProject() {
 
                 {/* Student Selection */}
                 <MultiSelectDropdown
-                  label="Students"
+                  label="Sinh viên"
                   options={students}
                   selectedIds={formData.studentIds}
                   onChange={(studentIds) => setFormData(prev => ({ ...prev, studentIds }))}
                   error={errors.studentIds}
-                  placeholder="Select students..."
+                  placeholder="Chọn sinh viên..."
                   required
                 />
 
                 {/* Lecturer Selection */}
                 <SelectDropdown
-                  label="Lecturer"
+                  label="Giảng viên"
                   options={lecturers}
                   value={formData.lecturerId}
                   onChange={(lecturerId) => setFormData(prev => ({ ...prev, lecturerId }))}
                   error={errors.lecturerId}
-                  placeholder="Select a lecturer..."
+                  placeholder="Chọn giảng viên..."
                   required
                   icon={<User className="w-5 h-5" />}
                 />
@@ -344,23 +344,23 @@ export default function EditProject() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <SelectDropdown
-                      label="Status"
+                      label="Trạng thái"
                       options={[
-                        { id: 'NOT_STARTED', fullName: 'Not Started' },
-                        { id: 'IN_PROGRESS', fullName: 'In Progress' },
-                        { id: 'UNDER_REVIEW', fullName: 'Under Review' },
-                        { id: 'COMPLETED', fullName: 'Completed' },
-                        { id: 'CANCELLED', fullName: 'Cancelled' }
+                        { id: 'NOT_STARTED', fullName: 'Chưa bắt đầu' },
+                        { id: 'IN_PROGRESS', fullName: 'Đang thực hiện' },
+                        { id: 'UNDER_REVIEW', fullName: 'Đang xem xét' },
+                        { id: 'COMPLETED', fullName: 'Hoàn thành' },
+                        { id: 'CANCELLED', fullName: 'Đã hủy' }
                       ]}
                       value={formData.status}
                       onChange={(status) => setFormData(prev => ({ ...prev, status }))}
-                      placeholder="Select status..."
+                      placeholder="Chọn trạng thái..."
                     />
                   </div>
 
                   <div>
                     <label htmlFor="progress" className="block text-sm font-medium text-gray-700 mb-2">
-                      Progress (%)
+                      Tiến độ (%)
                     </label>
                     <input
                       id="progress"
@@ -385,7 +385,7 @@ export default function EditProject() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                      Start Date *
+                      Ngày bắt đầu *
                     </label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -403,12 +403,12 @@ export default function EditProject() {
 
                   <div>
                     <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
-                      End Date
+                      Ngày kết thúc
                     </label>
                     <DatePicker
                       value={formData.endDate || null}
                       onChange={(value) => setFormData(prev => ({ ...prev, endDate: value || '' }))}
-                      placeholder="Select end date (optional)"
+                      placeholder="Chọn ngày kết thúc (tùy chọn)"
                       className={errors.endDate ? 'border-red-500' : ''}
                     />
                     {errors.endDate && (
@@ -427,7 +427,7 @@ export default function EditProject() {
                     onClick={() => navigate(`/projects/${id}`)}
                     className="btn-secondary"
                   >
-                    Cancel
+                    Hủy
                   </button>
                   <button
                     type="submit"
@@ -439,7 +439,7 @@ export default function EditProject() {
                     ) : (
                       <Save className="w-4 h-4 mr-2" />
                     )}
-                    {updateProjectMutation.isPending ? 'Updating...' : 'Update Project'}
+                    {updateProjectMutation.isPending ? 'Đang cập nhật...' : 'Cập nhật dự án'}
                   </button>
                 </div>
               </form>

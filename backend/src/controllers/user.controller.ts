@@ -315,6 +315,98 @@ export const changePassword = async (req: Request, res: Response) => {
 };
 
 /**
+ * Get user preferences
+ */
+export const getUserPreferences = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+
+    if (currentUserRole !== 'ADMIN' && id !== currentUserId) {
+      return res.status(403).json({
+        error: 'Access denied to retrieve preferences for this user'
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        preferences: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      message: 'Preferences retrieved successfully',
+      preferences: user.preferences ?? {}
+    });
+  } catch (error) {
+    console.error('Get user preferences error:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve user preferences'
+    });
+  }
+};
+
+/**
+ * Update user preferences
+ */
+export const updateUserPreferences = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+    const { preferences } = req.body;
+
+    if (currentUserRole !== 'ADMIN' && id !== currentUserId) {
+      return res.status(403).json({
+        error: 'Access denied to update preferences for this user'
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        preferences: preferences ?? {}
+      },
+      select: {
+        id: true,
+        preferences: true,
+        updatedAt: true
+      }
+    });
+
+    res.json({
+      message: 'Preferences updated successfully',
+      preferences: updatedUser.preferences ?? {}
+    });
+  } catch (error) {
+    console.error('Update user preferences error:', error);
+    res.status(500).json({
+      error: 'Failed to update user preferences'
+    });
+  }
+};
+
+/**
  * Upload user avatar
  */
 export const uploadAvatar = async (req: Request, res: Response) => {

@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useMemo, useCallback } from 'react';
 import Navbar from '../components/layout/Navbar';
 import api from '../lib/axios';
 import type { Project } from '../types/project';
@@ -39,9 +40,14 @@ export default function Dashboard() {
     );
   }
 
-  const totalProjects = projects?.length || 0;
-  const activeProjects = projects?.filter((p: Project) => p.status === 'IN_PROGRESS').length || 0;
-  const completedProjects = projects?.filter((p: Project) => p.status === 'COMPLETED').length || 0;
+  const projectStats = useMemo(() => {
+    if (!projects) return { total: 0, active: 0, completed: 0 };
+    return {
+      total: projects.length,
+      active: projects.filter((p: Project) => p.status === 'IN_PROGRESS').length,
+      completed: projects.filter((p: Project) => p.status === 'COMPLETED').length
+    };
+  }, [projects]);
 
   // Resend verification email mutation
   const resendVerificationMutation = useMutation({
@@ -50,10 +56,10 @@ export default function Dashboard() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Verification email sent! Please check your inbox.');
+      toast.success('Đã gửi email xác minh! Vui lòng kiểm tra hộp thư của bạn.');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to send verification email');
+      toast.error(error.response?.data?.error || 'Không thể gửi email xác minh');
     },
   });
 
@@ -69,10 +75,10 @@ export default function Dashboard() {
               <AlertCircle className="h-5 w-5 text-yellow-400 mr-3 mt-0.5" />
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-yellow-800">
-                  Please verify your email address
+                  Vui lòng xác minh địa chỉ email của bạn
                 </h3>
                 <p className="mt-1 text-sm text-yellow-700">
-                  We've sent a verification email to {user.email}. Please check your inbox and click the verification link.
+                  Chúng tôi đã gửi email xác minh đến {user.email}. Vui lòng kiểm tra hộp thư và nhấn vào liên kết xác minh.
                 </p>
                 <div className="mt-3">
                   <button
@@ -81,7 +87,7 @@ export default function Dashboard() {
                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-yellow-800 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
                   >
                     <Mail className="w-4 h-4 mr-2" />
-                    {resendVerificationMutation.isPending ? 'Sending...' : 'Resend Verification Email'}
+                    {resendVerificationMutation.isPending ? 'Đang gửi...' : 'Gửi lại Email Xác minh'}
                   </button>
                 </div>
               </div>
@@ -91,10 +97,10 @@ export default function Dashboard() {
         {/* Welcome Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user.fullName.split(' ')[0]}!
+            Chào mừng trở lại, {user.fullName.split(' ')[0]}!
           </h1>
           <p className="text-gray-600">
-            Here's an overview of your research projects and progress.
+            Đây là tổng quan về các dự án nghiên cứu và tiến độ của bạn.
           </p>
         </div>
 
@@ -107,8 +113,8 @@ export default function Dashboard() {
                   <FolderOpen className="w-6 h-6 text-gray-900" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Projects</p>
-                  <p className="text-2xl font-bold text-gray-900">{totalProjects}</p>
+                  <p className="text-sm font-medium text-gray-600">Tổng Dự án</p>
+                  <p className="text-2xl font-bold text-gray-900">{projectStats.total}</p>
                 </div>
               </div>
             </div>
@@ -121,8 +127,8 @@ export default function Dashboard() {
                   <Clock className="w-6 h-6 text-gray-900" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active Projects</p>
-                  <p className="text-2xl font-bold text-gray-900">{activeProjects}</p>
+                  <p className="text-sm font-medium text-gray-600">Dự án Đang thực hiện</p>
+                  <p className="text-2xl font-bold text-gray-900">{projectStats.active}</p>
                 </div>
               </div>
             </div>
@@ -135,8 +141,8 @@ export default function Dashboard() {
                   <CheckCircle className="w-6 h-6 text-gray-900" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold text-gray-900">{completedProjects}</p>
+                  <p className="text-sm font-medium text-gray-600">Đã Hoàn thành</p>
+                  <p className="text-2xl font-bold text-gray-900">{projectStats.completed}</p>
                 </div>
               </div>
             </div>
@@ -149,11 +155,11 @@ export default function Dashboard() {
             <div className="card-body">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Projects</h3>
-                  <p className="text-gray-600 mb-4 text-sm">Manage your research projects</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Dự án</h3>
+                  <p className="text-gray-600 mb-4 text-sm">Quản lý các dự án nghiên cứu của bạn</p>
                   <Link to="/projects" className="btn-primary inline-flex items-center">
                     <FolderOpen className="w-4 h-4 mr-2" />
-                    View Projects
+                    Xem Dự án
                   </Link>
                 </div>
                 <div className="flex-shrink-0 ml-4">
@@ -168,11 +174,11 @@ export default function Dashboard() {
               <div className="card-body">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Tasks</h3>
-                    <p className="text-gray-600 mb-4 text-sm">Track and manage your work</p>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Nhiệm vụ</h3>
+                    <p className="text-gray-600 mb-4 text-sm">Theo dõi và quản lý công việc của bạn</p>
                     <Link to="/tasks" className="btn-primary inline-flex items-center">
                       <CheckSquare className="w-4 h-4 mr-2" />
-                      View Tasks
+                      Xem Nhiệm vụ
                     </Link>
                   </div>
                   <div className="flex-shrink-0 ml-4">
@@ -187,13 +193,13 @@ export default function Dashboard() {
             <div className="card-body">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Documents</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Tài liệu</h3>
                   <p className="text-gray-600 mb-4 text-sm">
-                    {user.role === 'STUDENT' ? 'View documents from your projects' : 'View and manage documents'}
+                    {user.role === 'STUDENT' ? 'Xem tài liệu từ các dự án của bạn' : 'Xem và quản lý tài liệu'}
                   </p>
                   <Link to="/documents" className="btn-primary inline-flex items-center">
                     <FileText className="w-4 h-4 mr-2" />
-                    View Documents
+                    Xem Tài liệu
                   </Link>
                 </div>
                 <div className="flex-shrink-0 ml-4">
@@ -207,11 +213,11 @@ export default function Dashboard() {
             <div className="card-body">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Library</h3>
-                  <p className="text-gray-600 mb-4 text-sm">Access public resources</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Thư viện</h3>
+                  <p className="text-gray-600 mb-4 text-sm">Truy cập tài nguyên công khai</p>
                   <Link to="/library" className="btn-primary inline-flex items-center">
                     <FileText className="w-4 h-4 mr-2" />
-                    View Library
+                    Xem Thư viện
                   </Link>
                 </div>
                 <div className="flex-shrink-0 ml-4">
@@ -226,12 +232,12 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-header">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Projects</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Dự án Gần đây</h2>
               <Link
                 to="/projects"
                 className="btn-ghost text-sm"
               >
-                View all
+                Xem tất cả
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </div>
@@ -241,22 +247,22 @@ export default function Dashboard() {
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading projects...</p>
+                <p className="mt-4 text-gray-600">Đang tải dự án...</p>
               </div>
             ) : projects?.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FolderOpen className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
-                <p className="text-gray-600 mb-6">Get started by creating your first research project.</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có dự án nào</h3>
+                <p className="text-gray-600 mb-6">Bắt đầu bằng cách tạo dự án nghiên cứu đầu tiên của bạn.</p>
                 {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
                   <Link
                     to="/projects/new"
                     className="btn-primary"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Create Project
+                    Tạo Dự án
                   </Link>
                 )}
               </div>
@@ -293,15 +299,15 @@ export default function Dashboard() {
                     <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
                       <div className="flex items-center">
                         <CheckSquare className="w-4 h-4 mr-1 text-gray-500" />
-                        {project._count?.tasks || 0} tasks
+                        {project._count?.tasks || 0} nhiệm vụ
                       </div>
                       <div className="flex items-center">
                         <FileText className="w-4 h-4 mr-1 text-gray-500" />
-                        {project._count?.documents || 0} documents
+                        {project._count?.documents || 0} tài liệu
                       </div>
                       <div className="flex items-center">
                         <TrendingUp className="w-4 h-4 mr-1 text-gray-500" />
-                        {project.progress}% complete
+                        {project.progress}% hoàn thành
                       </div>
                     </div>
                     

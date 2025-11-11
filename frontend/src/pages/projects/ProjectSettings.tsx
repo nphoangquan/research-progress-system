@@ -98,11 +98,11 @@ export default function ProjectSettings() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Project settings updated successfully!');
+      toast.success('Cập nhật cài đặt dự án thành công!');
       navigate(`/projects/${id}`);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to update project settings');
+      toast.error(error.response?.data?.error || 'Cập nhật cài đặt dự án thất bại');
     },
   });
 
@@ -113,11 +113,11 @@ export default function ProjectSettings() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Project archived successfully!');
+      toast.success('Lưu trữ dự án thành công!');
       navigate('/projects');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to archive project');
+      toast.error(error.response?.data?.error || 'Lưu trữ dự án thất bại');
     },
   });
 
@@ -128,11 +128,11 @@ export default function ProjectSettings() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Project restored successfully!');
+      toast.success('Khôi phục dự án thành công!');
       navigate(`/projects/${id}`);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to restore project');
+      toast.error(error.response?.data?.error || 'Khôi phục dự án thất bại');
     },
   });
 
@@ -143,11 +143,11 @@ export default function ProjectSettings() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Project deleted successfully!');
+      toast.success('Xóa dự án thành công!');
       navigate('/projects');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to delete project');
+      toast.error(error.response?.data?.error || 'Xóa dự án thất bại');
     },
   });
 
@@ -172,19 +172,19 @@ export default function ProjectSettings() {
     const newErrors: Partial<Record<keyof ProjectSettingsForm, string>> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Project title is required';
+      newErrors.title = 'Tiêu đề dự án là bắt buộc';
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Project description is required';
+      newErrors.description = 'Mô tả dự án là bắt buộc';
     }
 
     if (formData.progress < 0 || formData.progress > 100) {
-      newErrors.progress = 'Progress must be between 0 and 100';
+      newErrors.progress = 'Tiến độ phải từ 0 đến 100';
     }
 
     if (formData.endDate && formData.startDate && formData.endDate < formData.startDate) {
-      newErrors.endDate = 'End date must be after start date';
+        newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
     }
 
     setErrors(newErrors);
@@ -202,19 +202,19 @@ export default function ProjectSettings() {
   };
 
   const handleArchive = () => {
-    if (window.confirm('Are you sure you want to archive this project? It will be moved to archived projects.')) {
+    if (window.confirm('Bạn có chắc chắn muốn lưu trữ dự án này? Nó sẽ được chuyển vào danh sách dự án đã lưu trữ.')) {
       archiveProjectMutation.mutate();
     }
   };
 
   const handleRestore = () => {
-    if (window.confirm('Are you sure you want to restore this project? It will be moved back to active projects.')) {
+    if (window.confirm('Bạn có chắc chắn muốn khôi phục dự án này? Nó sẽ được chuyển lại vào danh sách dự án đang hoạt động.')) {
       restoreProjectMutation.mutate();
     }
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+    if (window.confirm('Bạn có chắc chắn muốn xóa dự án này? Hành động này không thể hoàn tác.')) {
       deleteProjectMutation.mutate();
     }
   };
@@ -237,13 +237,13 @@ export default function ProjectSettings() {
             <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Shield className="w-8 h-8 text-error-600" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-            <p className="text-gray-600 mb-6">Students cannot access project settings.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Truy cập bị từ chối</h3>
+            <p className="text-gray-600 mb-6">Sinh viên không thể truy cập cài đặt dự án.</p>
             <button
               onClick={() => navigate(`/projects/${id}`)}
               className="btn-primary"
             >
-              Back to Project
+              Quay lại Dự án
             </button>
           </div>
         </div>
@@ -258,7 +258,7 @@ export default function ProjectSettings() {
         <div className="container py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading project settings...</p>
+            <p className="mt-4 text-gray-600">Đang tải cài đặt dự án...</p>
           </div>
         </div>
       </div>
@@ -271,13 +271,13 @@ export default function ProjectSettings() {
         <Navbar user={user} />
         <div className="container py-8">
           <div className="text-center py-12">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Project not found</h3>
-            <p className="text-gray-600 mb-6">The project you're looking for doesn't exist or you don't have access to it.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy dự án</h3>
+            <p className="text-gray-600 mb-6">Dự án bạn đang tìm không tồn tại hoặc bạn không có quyền truy cập.</p>
             <button
               onClick={() => navigate('/projects')}
               className="btn-primary"
             >
-              Back to Projects
+              Quay lại Dự án
             </button>
           </div>
         </div>
@@ -301,9 +301,9 @@ export default function ProjectSettings() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="page-title">Project Settings</h1>
+                <h1 className="page-title">Cài đặt dự án</h1>
                 <p className="page-subtitle">
-                  Manage project configuration and advanced settings.
+                  Quản lý cấu hình và cài đặt nâng cao của dự án.
                 </p>
               </div>
             </div>
@@ -315,14 +315,14 @@ export default function ProjectSettings() {
           <div className="lg:col-span-2">
             <div className="card">
               <div className="card-header">
-                <h2 className="text-xl font-semibold text-gray-900">General Settings</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Cài đặt chung</h2>
               </div>
               <div className="card-body">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Project Title */}
                   <div>
                     <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                      Project Title *
+                      Tiêu đề dự án *
                     </label>
                     <div className="relative">
                       <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -332,7 +332,7 @@ export default function ProjectSettings() {
                         type="text"
                         required
                         className={`input pl-10 ${errors.title ? 'input-error' : ''}`}
-                        placeholder="Enter project title"
+                        placeholder="Nhập tiêu đề dự án"
                         value={formData.title}
                         onChange={handleChange}
                       />
@@ -348,7 +348,7 @@ export default function ProjectSettings() {
                   {/* Project Description */}
                   <div>
                     <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                      Project Description *
+                      Mô tả dự án *
                     </label>
                     <textarea
                       id="description"
@@ -356,7 +356,7 @@ export default function ProjectSettings() {
                       rows={4}
                       required
                       className={`input ${errors.description ? 'input-error' : ''}`}
-                      placeholder="Describe the project objectives, methodology, and expected outcomes"
+                      placeholder="Mô tả mục tiêu, phương pháp và kết quả mong đợi của dự án"
                       value={formData.description}
                       onChange={handleChange}
                     />
@@ -370,16 +370,16 @@ export default function ProjectSettings() {
 
                   {/* Student Management */}
                   <MultiSelectDropdown
-                    label="Project Students"
+                    label="Sinh viên dự án"
                     options={students}
                     selectedIds={formData.studentIds}
                     onChange={(studentIds) => setFormData(prev => ({ ...prev, studentIds }))}
                     error={errors.studentIds}
-                    placeholder="Add students to project..."
+                    placeholder="Thêm sinh viên vào dự án..."
                   />
                   
                   <div className="mt-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Current Team</h4>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Nhóm hiện tại</h4>
                     <div className="space-y-2">
                       {formData.studentIds.map((studentId) => {
                         const student = students.find((s: any) => s.id === studentId);
@@ -405,7 +405,7 @@ export default function ProjectSettings() {
                         );
                       })}
                       {formData.studentIds.length === 0 && (
-                        <p className="text-gray-500 text-sm py-2">No students assigned to this project</p>
+                        <p className="text-gray-500 text-sm py-2">Chưa có sinh viên nào được gán cho dự án này</p>
                       )}
                     </div>
                   </div>
@@ -419,23 +419,23 @@ export default function ProjectSettings() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <SelectDropdown
-                        label="Status"
+                        label="Trạng thái"
                         options={[
-                          { id: 'NOT_STARTED', fullName: 'Not Started' },
-                          { id: 'IN_PROGRESS', fullName: 'In Progress' },
-                          { id: 'UNDER_REVIEW', fullName: 'Under Review' },
-                          { id: 'COMPLETED', fullName: 'Completed' },
-                          { id: 'CANCELLED', fullName: 'Cancelled' }
+                          { id: 'NOT_STARTED', fullName: 'Chưa bắt đầu' },
+                          { id: 'IN_PROGRESS', fullName: 'Đang thực hiện' },
+                          { id: 'UNDER_REVIEW', fullName: 'Đang xem xét' },
+                          { id: 'COMPLETED', fullName: 'Hoàn thành' },
+                          { id: 'CANCELLED', fullName: 'Đã hủy' }
                         ]}
                         value={formData.status}
                         onChange={(status) => setFormData(prev => ({ ...prev, status }))}
-                        placeholder="Select status..."
+                        placeholder="Chọn trạng thái..."
                       />
                     </div>
 
                     <div>
                       <label htmlFor="progress" className="block text-sm font-medium text-gray-700 mb-2">
-                        Progress (%)
+                        Tiến độ (%)
                       </label>
                       <input
                         id="progress"
@@ -460,7 +460,7 @@ export default function ProjectSettings() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                        Start Date *
+                        Ngày bắt đầu *
                       </label>
                       <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -478,12 +478,12 @@ export default function ProjectSettings() {
 
                     <div>
                       <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
-                        End Date
+                        Ngày kết thúc
                       </label>
                       <DatePicker
                         value={formData.endDate || null}
                         onChange={(value) => setFormData(prev => ({ ...prev, endDate: value || '' }))}
-                        placeholder="Select end date (optional)"
+                        placeholder="Chọn ngày kết thúc (tùy chọn)"
                         className={errors.endDate ? 'border-red-500' : ''}
                       />
                       {errors.endDate && (
@@ -507,7 +507,7 @@ export default function ProjectSettings() {
                       ) : (
                         <Save className="w-4 h-4 mr-2" />
                       )}
-                      {updateProjectMutation.isPending ? 'Saving...' : 'Save Settings'}
+                      {updateProjectMutation.isPending ? 'Đang lưu...' : 'Lưu cài đặt'}
                     </button>
                   </div>
                 </form>
@@ -520,28 +520,28 @@ export default function ProjectSettings() {
             {/* Project Info */}
             <div className="card">
               <div className="card-header">
-                <h3 className="text-lg font-semibold text-gray-900">Project Info</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Thông tin dự án</h3>
               </div>
               <div className="card-body">
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <User className="w-5 h-5 text-gray-400 mr-3" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Student</p>
+                      <p className="text-sm font-medium text-gray-900">Sinh viên</p>
                       <p className="text-sm text-gray-600">{project.student?.fullName}</p>
                     </div>
                   </div>
                   <div className="flex items-center">
                     <User className="w-5 h-5 text-gray-400 mr-3" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Lecturer</p>
+                      <p className="text-sm font-medium text-gray-900">Giảng viên</p>
                       <p className="text-sm text-gray-600">{project.lecturer?.fullName}</p>
                     </div>
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-5 h-5 text-gray-400 mr-3" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Created</p>
+                      <p className="text-sm font-medium text-gray-900">Ngày tạo</p>
                       <p className="text-sm text-gray-600">
                         {new Date(project.createdAt).toLocaleDateString()}
                       </p>
@@ -554,14 +554,14 @@ export default function ProjectSettings() {
             {/* Danger Zone */}
             <div className="card">
               <div className="card-header">
-                <h3 className="text-lg font-semibold text-red-600">Danger Zone</h3>
+                <h3 className="text-lg font-semibold text-red-600">Vùng nguy hiểm</h3>
               </div>
               <div className="card-body">
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Archive Project</h4>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Lưu trữ dự án</h4>
                     <p className="text-sm text-gray-600 mb-3">
-                      Archive this project to hide it from active projects list.
+                      Lưu trữ dự án này để ẩn khỏi danh sách dự án đang hoạt động.
                     </p>
                     {project.status === 'ARCHIVED' ? (
                       <button
@@ -574,7 +574,7 @@ export default function ProjectSettings() {
                         ) : (
                           <Archive className="w-4 h-4 mr-2" />
                         )}
-                        {restoreProjectMutation.isPending ? 'Restoring...' : 'Restore Project'}
+                        {restoreProjectMutation.isPending ? 'Đang khôi phục...' : 'Khôi phục dự án'}
                       </button>
                     ) : (
                       <button
@@ -587,15 +587,15 @@ export default function ProjectSettings() {
                         ) : (
                           <Archive className="w-4 h-4 mr-2" />
                         )}
-                        {archiveProjectMutation.isPending ? 'Archiving...' : 'Archive Project'}
+                        {archiveProjectMutation.isPending ? 'Đang lưu trữ...' : 'Lưu trữ dự án'}
                       </button>
                     )}
                   </div>
 
                   <div className="border-t border-gray-200 pt-4">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Delete Project</h4>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Xóa dự án</h4>
                     <p className="text-sm text-gray-600 mb-3">
-                      Permanently delete this project and all its data. This action cannot be undone.
+                      Xóa vĩnh viễn dự án này và tất cả dữ liệu của nó. Hành động này không thể hoàn tác.
                     </p>
                     <button
                       onClick={handleDelete}
@@ -607,7 +607,7 @@ export default function ProjectSettings() {
                       ) : (
                         <Trash2 className="w-4 h-4 mr-2" />
                       )}
-                      {deleteProjectMutation.isPending ? 'Deleting...' : 'Delete Project'}
+                      {deleteProjectMutation.isPending ? 'Đang xóa...' : 'Xóa dự án'}
                     </button>
                   </div>
                 </div>

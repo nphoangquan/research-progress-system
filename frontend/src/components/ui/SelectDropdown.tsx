@@ -1,5 +1,5 @@
-import React from 'react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { ChevronDown, AlertCircle } from 'lucide-react';
 
 interface SelectDropdownProps {
@@ -10,7 +10,7 @@ interface SelectDropdownProps {
   error?: string;
   placeholder?: string;
   required?: boolean;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
 }
 
 export default function SelectDropdown({
@@ -19,7 +19,7 @@ export default function SelectDropdown({
   value,
   onChange,
   error,
-  placeholder = "Select an option...",
+  placeholder = "Chọn một tùy chọn...",
   required = false,
   icon
 }: SelectDropdownProps) {

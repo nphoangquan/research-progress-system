@@ -1,7 +1,10 @@
-import React from 'react';
-import { useState, useRef } from 'react';
-import { Camera, Upload, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import type { DragEvent, MouseEvent, ChangeEvent } from 'react';
+import { Camera, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const;
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string;
@@ -10,9 +13,9 @@ interface AvatarUploadProps {
   className?: string;
 }
 
-export default function AvatarUpload({ 
-  currentAvatarUrl, 
-  onAvatarChange, 
+export default function AvatarUpload({
+  currentAvatarUrl,
+  onAvatarChange,
   isUploading = false,
   className = ""
 }: AvatarUploadProps) {
@@ -20,59 +23,60 @@ export default function AvatarUpload({
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (file: File) => {
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Please select a valid image file (JPEG, PNG, GIF, WEBP)');
+  const handleFileSelect = useCallback((file: File) => {
+    if (!ALLOWED_TYPES.includes(file.type as typeof ALLOWED_TYPES[number])) {
+      toast.error('Vui lòng chọn tệp hình ảnh hợp lệ (JPEG, PNG, GIF, WEBP)');
       return;
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      toast.error('Image size must be less than 5MB');
+    if (file.size > MAX_SIZE) {
+      toast.error('Kích thước ảnh phải nhỏ hơn 5MB');
       return;
     }
 
-    // Create preview URL
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-    
-    // Call parent handler
     onAvatarChange(file);
-  };
+  }, [onAvatarChange]);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileSelect(e.dataTransfer.files[0]);
     }
-  };
+  }, [handleFileSelect]);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(true);
-  };
+  }, []);
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
-  };
+  }, []);
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     fileInputRef.current?.click();
-  };
+  }, []);
 
-  const handleRemove = (e: React.MouseEvent) => {
+  const handleRemove = useCallback((e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     setPreviewUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const displayUrl = previewUrl || currentAvatarUrl;
 
@@ -95,7 +99,7 @@ export default function AvatarUpload({
           {displayUrl ? (
             <img
               src={displayUrl}
-              alt="Profile"
+              alt="Ảnh hồ sơ"
               className="w-full h-full object-cover"
             />
           ) : (
@@ -147,7 +151,7 @@ export default function AvatarUpload({
         type="file"
         accept="image/jpeg,image/png,image/gif,image/webp"
         className="hidden"
-        onChange={(e) => {
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
           if (e.target.files && e.target.files[0]) {
             handleFileSelect(e.target.files[0]);
           }
@@ -157,14 +161,14 @@ export default function AvatarUpload({
       {/* Drag & Drop Instructions */}
       {isDragOver && (
         <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-20">
-          Drop image here
+          Thả ảnh vào đây
         </div>
       )}
 
       {/* Upload Guidelines */}
       <div className="mt-2 text-xs text-gray-500">
-        <p>Click or drag to upload</p>
-        <p>Max 5MB • JPEG, PNG, GIF, WEBP</p>
+        <p>Nhấn hoặc kéo thả để tải lên</p>
+        <p>Tối đa 5MB • JPEG, PNG, GIF, WEBP</p>
       </div>
     </div>
   );

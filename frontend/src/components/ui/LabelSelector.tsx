@@ -22,7 +22,7 @@ export default function LabelSelector({
   selectedLabelIds,
   onSelectionChange,
   error,
-  placeholder = "Select labels...",
+  placeholder = "Chọn nhãn...",
   className = "",
   allowCreate = false,
   onCreateLabel
@@ -34,6 +34,7 @@ export default function LabelSelector({
   const [newLabelName, setNewLabelName] = useState('');
   const [newLabelColor, setNewLabelColor] = useState('#9CA3AF'); // Default gray color (not displayed)
   const [isCreating, setIsCreating] = useState(false);
+  const [labelNameError, setLabelNameError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -43,8 +44,18 @@ export default function LabelSelector({
     queryFn: () => getLabels(projectId),
   });
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside or pressing Escape
   useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        setShowCreateForm(false);
+        setSearchQuery('');
+      }
+    };
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -53,9 +64,13 @@ export default function LabelSelector({
       }
     };
 
+    document.addEventListener('keydown', handleEscape);
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   // Focus input when dropdown opens
   useEffect(() => {
@@ -79,12 +94,46 @@ export default function LabelSelector({
     }
   };
 
+  const validateLabelName = (name: string): string => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return 'Tên nhãn không được để trống';
+    }
+    if (trimmed.length < 2) {
+      return 'Tên nhãn phải có ít nhất 2 ký tự';
+    }
+    if (trimmed.length > 50) {
+      return 'Tên nhãn không được vượt quá 50 ký tự';
+    }
+    // Check for only whitespace or special characters
+    if (!/^[\p{L}\p{N}\s\-_]+$/u.test(trimmed)) {
+      return 'Tên nhãn chỉ được chứa chữ cái, số, khoảng trắng, dấu gạch ngang và gạch dưới';
+    }
+    return '';
+  };
+
+  const handleLabelNameChange = (value: string) => {
+    setNewLabelName(value);
+    if (labelNameError) {
+      setLabelNameError(validateLabelName(value));
+    }
+  };
+
   const handleCreateLabel = async () => {
-    if (!newLabelName.trim() || !onCreateLabel) return;
+    const trimmedName = newLabelName.trim();
+    const error = validateLabelName(trimmedName);
+    
+    if (error) {
+      setLabelNameError(error);
+      return;
+    }
+    
+    if (!onCreateLabel) return;
 
     setIsCreating(true);
+    setLabelNameError('');
     try {
-      const newLabel = await onCreateLabel(newLabelName.trim(), newLabelColor);
+      const newLabel = await onCreateLabel(trimmedName, newLabelColor);
       // Invalidate labels query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['labels', projectId] });
       queryClient.invalidateQueries({ queryKey: ['labels'] });
@@ -93,9 +142,10 @@ export default function LabelSelector({
       setNewLabelColor('#9CA3AF'); // Default gray color (not displayed)
       setShowCreateForm(false);
       setSearchQuery('');
+      setLabelNameError('');
     } catch (error: any) {
       console.error('Failed to create label:', error);
-      toast.error(error.response?.data?.error || 'Failed to create label');
+      toast.error(error.response?.data?.error || 'Không thể tạo nhãn');
     } finally {
       setIsCreating(false);
     }
@@ -106,7 +156,7 @@ export default function LabelSelector({
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Labels
+        Nhãn
       </label>
 
       {/* Selected labels display */}
@@ -148,7 +198,7 @@ export default function LabelSelector({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search labels..."
+                placeholder="Tìm kiếm nhãn..."
                 className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
               />
             </div>
@@ -159,12 +209,12 @@ export default function LabelSelector({
             {isLoading ? (
               <div className="p-4 text-center text-gray-500">
                 <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                <p className="text-sm">Loading labels...</p>
+                <p className="text-sm">Đang tải nhãn...</p>
               </div>
             ) : filteredLabels.length === 0 && !showCreateForm ? (
               <div className="p-4 text-center text-gray-500">
                 <p className="text-sm">
-                  {searchQuery ? 'No labels found' : 'No labels available'}
+                  {searchQuery ? 'Không tìm thấy nhãn nào' : 'Không có nhãn nào'}
                 </p>
                 {allowCreate && onCreateLabel && (
                   <button
@@ -173,7 +223,7 @@ export default function LabelSelector({
                     className="mt-2 text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1 mx-auto"
                   >
                     <Plus className="w-4 h-4" />
-                    Create new label
+                    Tạo nhãn mới
                   </button>
                 )}
               </div>
@@ -187,7 +237,7 @@ export default function LabelSelector({
                   >
                     <span className="text-sm text-gray-900 flex-1">{label.name}</span>
                     {label.projectId === null && (
-                      <span className="text-xs text-gray-400">Global</span>
+                      <span className="text-xs text-gray-400">Toàn cục</span>
                     )}
                   </div>
                 ))}
@@ -199,20 +249,31 @@ export default function LabelSelector({
                       <input
                         type="text"
                         value={newLabelName}
-                        onChange={(e) => setNewLabelName(e.target.value)}
-                        placeholder="Label name"
+                        onChange={(e) => handleLabelNameChange(e.target.value)}
+                        onBlur={() => {
+                          const error = validateLabelName(newLabelName);
+                          setLabelNameError(error);
+                        }}
+                        placeholder="Tên nhãn"
                         maxLength={50}
-                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        className={`w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-1 ${
+                          labelNameError
+                            ? 'border-error-300 focus:ring-error-500'
+                            : 'border-gray-300 focus:ring-primary-500'
+                        }`}
                         autoFocus
                       />
+                      {labelNameError && (
+                        <p className="text-xs text-error-600 mt-1">{labelNameError}</p>
+                      )}
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={handleCreateLabel}
-                          disabled={!newLabelName.trim() || isCreating}
+                          disabled={!newLabelName.trim() || !!labelNameError || isCreating}
                           className="flex-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isCreating ? 'Creating...' : 'Create'}
+                          {isCreating ? 'Đang tạo...' : 'Tạo'}
                         </button>
                         <button
                           type="button"
@@ -220,10 +281,11 @@ export default function LabelSelector({
                             setShowCreateForm(false);
                             setNewLabelName('');
                             setNewLabelColor('#9CA3AF'); // Default gray color
+                            setLabelNameError('');
                           }}
                           className="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                         >
-                          Cancel
+                          Hủy
                         </button>
                       </div>
                     </div>
@@ -239,7 +301,7 @@ export default function LabelSelector({
                       className="w-full px-3 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-md flex items-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
-                      Create new label
+                      Tạo nhãn mới
                     </button>
                   </div>
                 )}

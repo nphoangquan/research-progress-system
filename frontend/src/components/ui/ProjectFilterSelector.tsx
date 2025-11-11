@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/axios';
 import { 
@@ -48,12 +47,13 @@ export default function ProjectFilterSelector({
   selectedProjects, 
   onSelectionChange, 
   multiple = true,
-  placeholder = "All Projects",
+  placeholder = "Tất cả Dự án",
   className = ""
 }: ProjectFilterSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [localSelection, setLocalSelection] = useState<string[]>(selectedProjects);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Fetch projects
   const { data: projects, isLoading } = useQuery({
@@ -76,6 +76,36 @@ export default function ProjectFilterSelector({
     setLocalSelection(selectedProjects);
   }, [selectedProjects]);
 
+  const handleCancel = useCallback(() => {
+    setLocalSelection(selectedProjects);
+    setIsOpen(false);
+  }, [selectedProjects]);
+
+  // Close modal on Escape key or click outside
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCancel();
+      }
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        handleCancel();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, handleCancel]);
+
   const handleProjectToggle = (projectId: string) => {
     if (multiple) {
       const newSelection = localSelection.includes(projectId)
@@ -90,11 +120,6 @@ export default function ProjectFilterSelector({
 
   const handleConfirm = () => {
     onSelectionChange(localSelection);
-    setIsOpen(false);
-  };
-
-  const handleCancel = () => {
-    setLocalSelection(selectedProjects);
     setIsOpen(false);
   };
 
@@ -114,7 +139,7 @@ export default function ProjectFilterSelector({
     const selected = projects.filter(p => selectedProjects.includes(p.id));
     if (selected.length === 0) return placeholder;
     if (selected.length === 1) return selected[0].title;
-    return `${selected.length} projects selected`;
+    return `${selected.length} dự án đã chọn`;
   };
 
   const getStatusColor = (status: string) => {
@@ -153,15 +178,15 @@ export default function ProjectFilterSelector({
       {/* Modal Overlay */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] mx-4 overflow-hidden">
+          <div ref={modalRef} className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] mx-4 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Filter by Projects
+                  Lọc theo Dự án
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Choose projects to filter documents
+                  Chọn dự án để lọc tài liệu
                 </p>
               </div>
               <button
@@ -178,7 +203,7 @@ export default function ProjectFilterSelector({
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Search projects by title, description, or lecturer..."
+                  placeholder="Tìm kiếm dự án theo tiêu đề, mô tả hoặc giảng viên..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -193,14 +218,14 @@ export default function ProjectFilterSelector({
                     onClick={handleSelectAll}
                     className="px-3 py-1.5 text-sm font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
                   >
-                    Select All ({filteredProjects.length})
+                    Chọn Tất cả ({filteredProjects.length})
                   </button>
                   <button
                     type="button"
                     onClick={handleClearAll}
                     className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    Clear All
+                    Xóa Tất cả
                   </button>
                 </div>
               )}
@@ -211,13 +236,13 @@ export default function ProjectFilterSelector({
               {isLoading ? (
                 <div className="p-8 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">Loading projects...</p>
+                  <p className="mt-4 text-gray-600">Đang tải dự án...</p>
                 </div>
               ) : filteredProjects.length === 0 ? (
                 <div className="p-8 text-center">
                   <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">
-                    {searchTerm ? 'No projects found matching your search' : 'No projects available'}
+                    {searchTerm ? 'Không tìm thấy dự án nào phù hợp với tìm kiếm của bạn' : 'Không có dự án nào'}
                   </p>
                 </div>
               ) : (
@@ -257,21 +282,21 @@ export default function ProjectFilterSelector({
                           <div className="flex items-center space-x-4 text-xs text-gray-500">
                             <div className="flex items-center space-x-1">
                               <Users className="w-3 h-3" />
-                              <span>{(project.students?.length || 0) + 1} members</span>
+                              <span>{(project.students?.length || 0) + 1} thành viên</span>
                             </div>
                             <div className="flex items-center space-x-1">
                               <CheckSquare className="w-3 h-3" />
-                              <span>{project._count?.tasks || 0} tasks</span>
+                              <span>{project._count?.tasks || 0} nhiệm vụ</span>
                             </div>
                             <div className="flex items-center space-x-1">
                               <Calendar className="w-3 h-3" />
-                              <span>{new Date(project.startDate).toLocaleDateString()}</span>
+                              <span>{new Date(project.startDate).toLocaleDateString('vi-VN')}</span>
                             </div>
                           </div>
                           
                           <div className="mt-2">
                             <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                              <span>Progress</span>
+                              <span>Tiến độ</span>
                               <span>{project.progress}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-1.5">
@@ -292,20 +317,20 @@ export default function ProjectFilterSelector({
             {/* Footer */}
             <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
               <div className="text-sm text-gray-600">
-                {localSelection.length} project{localSelection.length !== 1 ? 's' : ''} selected
+                {localSelection.length} dự án đã chọn
               </div>
               <div className="flex space-x-3">
                 <button
                   onClick={handleCancel}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   onClick={handleConfirm}
                   className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
                 >
-                  Apply Filter
+                  Áp dụng Bộ lọc
                 </button>
               </div>
             </div>

@@ -1,10 +1,33 @@
-import React from 'react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import type { DragEvent, FormEvent, ChangeEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
 import type { UploadDocumentRequest } from '../types/document';
 import toast from 'react-hot-toast';
 import RichTextEditor from './features/RichTextEditor';
+
+const ALLOWED_TYPES = [
+  // Documents
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  // Images
+  'image/jpeg',
+  'image/jpg', 
+  'image/png',
+  'image/gif',
+  'image/webp',
+  // Excel
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  // Archives
+  'application/zip',
+  'application/x-rar-compressed',
+  'application/x-7z-compressed'
+] as const;
+
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 interface DocumentUploadProps {
   projectId: string;
@@ -34,7 +57,7 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Document uploaded successfully!');
+      toast.success('Đã tải lên tài liệu thành công!');
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       setFile(null);
@@ -42,48 +65,33 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
       onSuccess?.();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Upload failed');
+      toast.error(error.response?.data?.error || 'Tải lên thất bại');
     },
   });
 
-  const handleFileSelect = (selectedFile: File) => {
-    // Validate file type
-    const allowedTypes = [
-      // Documents
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
-      // Images
-      'image/jpeg',
-      'image/jpg', 
-      'image/png',
-      'image/gif',
-      'image/webp',
-      // Excel
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      // Archives
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/x-7z-compressed'
-    ];
+  const formatFileSize = useCallback((bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }, []);
 
-    if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error('Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed');
+  const handleFileSelect = useCallback((selectedFile: File) => {
+    if (!ALLOWED_TYPES.includes(selectedFile.type as typeof ALLOWED_TYPES[number])) {
+      toast.error('Chỉ cho phép tệp PDF, DOC, DOCX, TXT, ảnh, Excel và tệp nén');
       return;
     }
 
-    // Validate file size (25MB)
-    if (selectedFile.size > 25 * 1024 * 1024) {
-      toast.error('File size must be less than 25MB');
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      toast.error(`Kích thước tệp phải nhỏ hơn ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
       return;
     }
 
     setFile(selectedFile);
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
     
@@ -91,22 +99,22 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
     if (files.length > 0) {
       handleFileSelect(files[0]);
     }
-  };
+  }, [handleFileSelect]);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(true);
-  };
+  }, []);
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
-  };
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
     if (!file) {
-      toast.error('Please select a file');
+      toast.error('Vui lòng chọn một tệp');
       return;
     }
 
@@ -115,19 +123,11 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
       file,
       description: description.trim() || undefined,
     });
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  }, [file, projectId, description, uploadMutation]);
 
   return (
     <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-medium text-gray-900 mb-4">Upload Document</h2>
+      <h2 className="text-lg font-medium text-gray-900 mb-4">Tải lên Tài liệu</h2>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* File Upload Area */}
@@ -155,7 +155,7 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
                 onClick={() => setFile(null)}
                 className="text-sm text-red-600 hover:text-red-500"
               >
-                Remove
+                Xóa
               </button>
             </div>
           ) : (
@@ -166,17 +166,17 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
               <div className="text-sm text-gray-600">
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <span className="font-medium text-indigo-600 hover:text-indigo-500">
-                    Click to upload
+                    Nhấn để tải lên
                   </span>
-                  <span> or drag and drop</span>
+                  <span> hoặc kéo thả</span>
                 </label>
                 <input
                   id="file-upload"
                   name="file-upload"
                   type="file"
                   className="sr-only"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={(e) => {
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.zip,.rar,.7z"
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     const files = e.target.files;
                     if (files && files.length > 0) {
                       handleFileSelect(files[0]);
@@ -185,7 +185,7 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
                 />
               </div>
               <p className="text-xs text-gray-500">
-                PDF, DOC, DOCX, TXT up to 10MB
+                PDF, DOC, DOCX, TXT, ảnh, Excel, tệp nén tối đa {MAX_FILE_SIZE / (1024 * 1024)}MB
               </p>
             </div>
           )}
@@ -194,12 +194,12 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
         {/* Description */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            Description (optional)
+            Mô tả (tùy chọn)
           </label>
           <RichTextEditor
             content={description}
             onChange={setDescription}
-            placeholder="Brief description of the document..."
+            placeholder="Mô tả ngắn gọn về tài liệu..."
           />
         </div>
 
@@ -216,10 +216,10 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Uploading...
+                Đang tải lên...
               </>
             ) : (
-              'Upload Document'
+              'Tải lên Tài liệu'
             )}
           </button>
         </div>

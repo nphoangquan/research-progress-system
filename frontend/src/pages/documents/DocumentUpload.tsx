@@ -1,4 +1,3 @@
-import React from 'react';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -82,7 +81,7 @@ export default function DocumentUpload() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Document uploaded successfully!');
+      toast.success('Tải lên tài liệu thành công!');
       if (selectedProjectIds.length > 0) {
         queryClient.invalidateQueries({ queryKey: ['project', selectedProjectIds[0]] });
       }
@@ -90,7 +89,7 @@ export default function DocumentUpload() {
       navigate(selectedProjectIds.length > 0 ? `/projects/${selectedProjectIds[0]}/documents` : '/documents');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Upload failed');
+      toast.error(error.response?.data?.error || 'Tải lên thất bại');
     },
   });
 
@@ -111,6 +110,9 @@ export default function DocumentUpload() {
       // Excel
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      // PowerPoint
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       // Archives
       'application/zip',
       'application/x-rar-compressed',
@@ -118,13 +120,13 @@ export default function DocumentUpload() {
     ];
 
     if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error('Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed');
+      toast.error('Chỉ cho phép tệp PDF, DOC, DOCX, TXT, ảnh, Excel, PowerPoint và tệp nén');
       return;
     }
 
     // Validate file size (25MB)
     if (selectedFile.size > 25 * 1024 * 1024) {
-      toast.error('File size must be less than 25MB');
+      toast.error('Kích thước tệp phải nhỏ hơn 25MB');
       return;
     }
 
@@ -155,20 +157,20 @@ export default function DocumentUpload() {
     e.preventDefault();
     
     if (!file) {
-      toast.error('Please select a file');
+      toast.error('Vui lòng chọn một tệp');
       return;
     }
 
     // Validate based on category
     if (category === 'PROJECT') {
       if (!projectId && selectedProjectIds.length === 0) {
-        toast.error('Please select at least one project');
+        toast.error('Vui lòng chọn ít nhất một dự án');
         return;
       }
     } else {
       // For non-PROJECT categories, only ADMIN can upload
       if (user.role !== 'ADMIN') {
-        toast.error('Only admins can upload reference materials, templates, and guidelines');
+        toast.error('Chỉ quản trị viên mới có thể tải lên tài liệu tham khảo, mẫu và hướng dẫn');
         return;
       }
     }
@@ -195,12 +197,12 @@ export default function DocumentUpload() {
       }
       
       if (successCount > 0) {
-        toast.success(`Document uploaded to ${successCount} project${successCount > 1 ? 's' : ''} successfully!`);
+        toast.success(`Tài liệu đã được tải lên thành công vào ${successCount} dự án!`);
         if (errorCount > 0) {
-          toast.error(`Failed to upload to ${errorCount} project${errorCount > 1 ? 's' : ''}`);
+          toast.error(`Không thể tải lên vào ${errorCount} dự án`);
         }
       } else {
-        toast.error('Failed to upload document to any project');
+        toast.error('Không thể tải lên tài liệu vào bất kỳ dự án nào');
       }
     } else {
       // Single project upload or non-PROJECT category upload
@@ -231,9 +233,9 @@ export default function DocumentUpload() {
         <div className="page-header">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="page-title">Upload Document</h1>
+              <h1 className="page-title">Tải lên Tài liệu</h1>
               <p className="page-subtitle">
-                {project ? `${project.title} - Upload new document` : 'Upload new document'}
+                {project ? `${project.title} - Tải lên tài liệu mới` : 'Tải lên tài liệu mới'}
               </p>
             </div>
             
@@ -242,7 +244,7 @@ export default function DocumentUpload() {
               className="btn-secondary"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Documents
+              Quay lại Tài liệu
             </button>
           </div>
         </div>
@@ -256,22 +258,22 @@ export default function DocumentUpload() {
                 {!projectId && category === 'PROJECT' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Project(s) <span className="text-error-500">*</span>
+                      Dự án <span className="text-error-500">*</span>
                     </label>
                     <ProjectSelector
                       selectedProjects={selectedProjectIds}
                       onSelectionChange={setSelectedProjectIds}
                       multiple={true}
-                      placeholder="Select project(s)..."
+                      placeholder="Chọn dự án..."
                     />
                   </div>
                 )}
 
                 {/* Document Category */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Document Category <span className="text-error-500">*</span>
-                  </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Danh mục Tài liệu <span className="text-error-500">*</span>
+                    </label>
                   <select
                     value={category}
                     onChange={(e) => {
@@ -287,22 +289,22 @@ export default function DocumentUpload() {
                     }}
                     className="input"
                   >
-                    <option value="PROJECT">Project Document</option>
+                    <option value="PROJECT">Tài liệu Dự án</option>
                     {user.role === 'ADMIN' && (
                       <>
-                        <option value="REFERENCE">Reference Material</option>
-                        <option value="TEMPLATE">Template</option>
-                        <option value="GUIDELINE">Guideline</option>
-                        <option value="SYSTEM">System Document</option>
+                        <option value="REFERENCE">Tài liệu Tham khảo</option>
+                        <option value="TEMPLATE">Mẫu</option>
+                        <option value="GUIDELINE">Hướng dẫn</option>
+                        <option value="SYSTEM">Tài liệu Hệ thống</option>
                       </>
                     )}
                   </select>
                   <p className="text-sm text-gray-500 mt-1">
-                    {category === 'PROJECT' && 'Document specific to a project'}
-                    {category === 'REFERENCE' && 'Reference material for all students'}
-                    {category === 'TEMPLATE' && 'Template or sample document'}
-                    {category === 'GUIDELINE' && 'Guideline or instruction document'}
-                    {category === 'SYSTEM' && 'System document (admin only)'}
+                    {category === 'PROJECT' && 'Tài liệu dành riêng cho một dự án'}
+                    {category === 'REFERENCE' && 'Tài liệu tham khảo cho tất cả sinh viên'}
+                    {category === 'TEMPLATE' && 'Mẫu hoặc tài liệu mẫu'}
+                    {category === 'GUIDELINE' && 'Tài liệu hướng dẫn hoặc chỉ dẫn'}
+                    {category === 'SYSTEM' && 'Tài liệu hệ thống (chỉ quản trị viên)'}
                   </p>
                 </div>
 
@@ -310,7 +312,7 @@ export default function DocumentUpload() {
                 {category !== 'PROJECT' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Access Level
+                      Mức độ Truy cập
                     </label>
                     <select
                       value={accessLevel}
@@ -318,16 +320,16 @@ export default function DocumentUpload() {
                       className="input"
                       disabled={category === 'SYSTEM'}
                     >
-                      <option value="RESTRICTED">Project Members Only</option>
-                      <option value="STUDENT">All Students</option>
-                      <option value="LECTURER">All Lecturers</option>
-                      <option value="PUBLIC">Everyone</option>
+                      <option value="RESTRICTED">Chỉ Thành viên Dự án</option>
+                      <option value="STUDENT">Tất cả Sinh viên</option>
+                      <option value="LECTURER">Tất cả Giảng viên</option>
+                      <option value="PUBLIC">Mọi người</option>
                     </select>
                     <p className="text-sm text-gray-500 mt-1">
-                      {accessLevel === 'RESTRICTED' && 'Only project members can access'}
-                      {accessLevel === 'STUDENT' && 'All students can access'}
-                      {accessLevel === 'LECTURER' && 'All lecturers can access'}
-                      {accessLevel === 'PUBLIC' && 'Everyone can access'}
+                      {accessLevel === 'RESTRICTED' && 'Chỉ thành viên dự án mới có thể truy cập'}
+                      {accessLevel === 'STUDENT' && 'Tất cả sinh viên có thể truy cập'}
+                      {accessLevel === 'LECTURER' && 'Tất cả giảng viên có thể truy cập'}
+                      {accessLevel === 'PUBLIC' && 'Mọi người đều có thể truy cập'}
                     </p>
                   </div>
                 )}
@@ -335,7 +337,7 @@ export default function DocumentUpload() {
                 {/* File Upload Area */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Document File <span className="text-error-500">*</span>
+                    Tệp Tài liệu <span className="text-error-500">*</span>
                   </label>
                   
                   <div
@@ -367,7 +369,7 @@ export default function DocumentUpload() {
                           </div>
                         </div>
                         <p className="text-xs text-gray-500">
-                          File ready for upload. Click "Upload Document" below to proceed.
+                          Tệp sẵn sàng để tải lên. Nhấp "Tải lên Tài liệu" bên dưới để tiếp tục.
                         </p>
                       </div>
                     ) : (
@@ -376,10 +378,10 @@ export default function DocumentUpload() {
                           <Upload className="w-8 h-8 text-gray-400 mx-auto" />
                           <div>
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium text-primary-600">Click to upload</span> or drag and drop
+                              <span className="font-medium text-primary-600">Nhấp để tải lên</span> hoặc kéo và thả
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                              PDF, DOC, DOCX, TXT, Images, Excel, Archives (max 25MB)
+                              PDF, DOC, DOCX, TXT, ảnh, Excel, PowerPoint, Tệp nén (tối đa 25MB)
                             </p>
                           </div>
                         </div>
@@ -387,7 +389,7 @@ export default function DocumentUpload() {
                         <input
                           type="file"
                           onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                          accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.zip,.rar,.7z"
+                          accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z"
                           className="hidden"
                           id="file-upload"
                         />
@@ -395,7 +397,7 @@ export default function DocumentUpload() {
                           htmlFor="file-upload"
                           className="inline-block btn-secondary cursor-pointer"
                         >
-                          Choose File
+                          Chọn Tệp
                         </label>
                       </div>
                     )}
@@ -405,14 +407,14 @@ export default function DocumentUpload() {
                 {/* Description */}
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    Description (Optional)
+                    Mô tả (Tùy chọn)
                   </label>
                   <textarea
                     id="description"
                     name="description"
                     rows={4}
                     className="input"
-                    placeholder="Add a description for this document..."
+                    placeholder="Thêm mô tả cho tài liệu này..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                   />
@@ -423,12 +425,12 @@ export default function DocumentUpload() {
                   <div className="flex items-start">
                     <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                     <div className="text-sm">
-                      <h4 className="font-medium text-blue-900 mb-2">File Requirements</h4>
+                      <h4 className="font-medium text-blue-900 mb-2">Yêu cầu Tệp</h4>
                       <ul className="text-blue-800 space-y-1">
-                        <li>• Supported formats: PDF, DOC, DOCX, TXT</li>
-                        <li>• Maximum file size: 10MB</li>
-                        <li>• Documents will be indexed for AI search</li>
-                        <li>• Processing may take a few minutes</li>
+                        <li>• Định dạng hỗ trợ: PDF, DOC, DOCX, TXT, ảnh, Excel, PowerPoint, Tệp nén</li>
+                        <li>• Kích thước tệp tối đa: 25MB</li>
+                        <li>• Tài liệu sẽ được lập chỉ mục cho tìm kiếm AI</li>
+                        <li>• Xử lý có thể mất vài phút</li>
                       </ul>
                     </div>
                   </div>
@@ -441,7 +443,7 @@ export default function DocumentUpload() {
                     onClick={() => navigate(projectId ? `/projects/${projectId}/documents` : '/documents')}
                     className="btn-secondary"
                   >
-                    Cancel
+                    Hủy
                   </button>
                   <button
                     type="submit"
@@ -451,12 +453,12 @@ export default function DocumentUpload() {
                     {uploadMutation.isPending ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Uploading...
+                        Đang tải lên...
                       </>
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        Upload Document
+                        Tải lên Tài liệu
                       </>
                     )}
                   </button>

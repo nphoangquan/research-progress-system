@@ -1,6 +1,5 @@
-import React from 'react';
-import { useMemo } from 'react';
-import { TrendingUp, BarChart3, Activity } from 'lucide-react';
+import { useMemo, useCallback } from 'react';
+import { BarChart3 } from 'lucide-react';
 
 interface ProgressData {
   date: string;
@@ -19,16 +18,17 @@ export default function ProgressChart({ data, height = 200, showTasks = true }: 
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return null;
 
-    const maxProgress = Math.max(...data.map(d => d.progress));
-    const maxTasks = Math.max(...data.map(d => d.tasksTotal));
-    
+    const maxProgress = Math.max(...data.map(d => d.progress), 0);
+    const maxTasks = Math.max(...data.map(d => d.tasksTotal), 0);
+    const denominator = data.length > 1 ? data.length - 1 : 1;
+
     return {
       maxProgress,
       maxTasks,
       points: data.map((item, index) => ({
-        x: (index / (data.length - 1)) * 100,
-        progress: (item.progress / maxProgress) * 100,
-        tasks: (item.tasksCompleted / maxTasks) * 100,
+        x: (index / denominator) * 100,
+        progress: maxProgress ? (item.progress / maxProgress) * 100 : 0,
+        tasks: maxTasks ? (item.tasksCompleted / maxTasks) * 100 : 0,
         date: item.date,
         progressValue: item.progress,
         tasksValue: item.tasksCompleted,
@@ -42,13 +42,15 @@ export default function ProgressChart({ data, height = 200, showTasks = true }: 
       <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
         <div className="text-center text-gray-500">
           <BarChart3 className="w-12 h-12 mx-auto mb-2" />
-          <p>No progress data available</p>
+          <p>Chưa có dữ liệu tiến độ</p>
         </div>
       </div>
     );
   }
 
-  const createPath = (points: any[], key: 'progress' | 'tasks') => {
+  type ChartPoint = (typeof chartData.points)[number];
+
+  const createPath = useCallback((points: ChartPoint[], key: 'progress' | 'tasks') => {
     if (points.length === 0) return '';
     
     let path = `M ${points[0].x} ${100 - points[0][key]}`;
@@ -59,24 +61,35 @@ export default function ProgressChart({ data, height = 200, showTasks = true }: 
     }
     
     return path;
-  };
+  }, []);
 
   const progressPath = createPath(chartData.points, 'progress');
   const tasksPath = createPath(chartData.points, 'tasks');
 
+  const formatDate = useCallback((date: string | undefined) => {
+    if (!date) return '';
+    const parsedDate = new Date(date);
+    if (Number.isNaN(parsedDate.getTime())) return '';
+    return parsedDate.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }, []);
+
   return (
     <div className="bg-white rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-gray-900">Progress Tracking</h3>
+        <h3 className="text-lg font-medium text-gray-900">Theo dõi Tiến độ</h3>
         <div className="flex items-center space-x-4 text-sm">
           <div className="flex items-center">
             <div className="w-3 h-3 bg-primary-600 rounded-full mr-2"></div>
-            <span className="text-gray-600">Progress</span>
+            <span className="text-gray-600">Tiến độ</span>
           </div>
           {showTasks && (
             <div className="flex items-center">
               <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-              <span className="text-gray-600">Tasks Completed</span>
+              <span className="text-gray-600">Nhiệm vụ đã hoàn thành</span>
             </div>
           )}
         </div>
@@ -160,9 +173,9 @@ export default function ProgressChart({ data, height = 200, showTasks = true }: 
 
       {/* X-axis labels */}
       <div className="flex justify-between mt-2 text-xs text-gray-500">
-        <span>{new Date(data[0]?.date).toLocaleDateString()}</span>
-        <span>{new Date(data[Math.floor(data.length / 2)]?.date).toLocaleDateString()}</span>
-        <span>{new Date(data[data.length - 1]?.date).toLocaleDateString()}</span>
+        <span>{formatDate(data[0]?.date)}</span>
+        <span>{formatDate(data[Math.floor(data.length / 2)]?.date)}</span>
+        <span>{formatDate(data[data.length - 1]?.date)}</span>
       </div>
 
       {/* Stats */}
@@ -171,14 +184,14 @@ export default function ProgressChart({ data, height = 200, showTasks = true }: 
           <div className="text-2xl font-bold text-primary-600">
             {data[data.length - 1]?.progress || 0}%
           </div>
-          <div className="text-sm text-gray-500">Current Progress</div>
+          <div className="text-sm text-gray-500">Tiến độ hiện tại</div>
         </div>
         {showTasks && (
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
               {data[data.length - 1]?.tasksCompleted || 0}
             </div>
-            <div className="text-sm text-gray-500">Tasks Completed</div>
+            <div className="text-sm text-gray-500">Nhiệm vụ đã hoàn thành</div>
           </div>
         )}
       </div>

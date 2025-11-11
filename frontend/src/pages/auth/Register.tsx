@@ -35,22 +35,22 @@ export default function Register() {
     // Validation
     const newErrors: typeof errors = {};
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = 'Email là bắt buộc';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = 'Email không hợp lệ';
     }
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = 'Mật khẩu là bắt buộc';
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
     }
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Mật khẩu không khớp';
     }
     if (!formData.fullName) {
-      newErrors.fullName = 'Full name is required';
+      newErrors.fullName = 'Họ và tên là bắt buộc';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -75,10 +75,10 @@ export default function Register() {
             <GraduationCap className="w-12 h-12 text-gray-900" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
-            Create your account
+            Tạo tài khoản của bạn
           </h2>
           <p className="mt-2 text-gray-600">
-            Join the Research Progress System
+            Tham gia Hệ thống Quản lý Tiến độ Nghiên cứu
           </p>
         </div>
 
@@ -88,7 +88,7 @@ export default function Register() {
             {/* Full Name */}
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
+                Họ và tên
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -99,7 +99,7 @@ export default function Register() {
                   autoComplete="name"
                   required
                   className={`input pl-10 ${errors.fullName ? 'input-error' : ''}`}
-                  placeholder="Enter your full name"
+                  placeholder="Nhập họ và tên của bạn"
                   value={formData.fullName}
                   onChange={handleInputChange}
                 />
@@ -115,7 +115,7 @@ export default function Register() {
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Địa chỉ Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -126,7 +126,7 @@ export default function Register() {
                   autoComplete="email"
                   required
                   className={`input pl-10 ${errors.email ? 'input-error' : ''}`}
-                  placeholder="Enter your email"
+                  placeholder="Nhập địa chỉ email của bạn"
                   value={formData.email}
                   onChange={handleInputChange}
                 />
@@ -142,7 +142,7 @@ export default function Register() {
             {/* Student ID (Optional) */}
             <div>
               <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-2">
-                Student ID (Optional)
+                Mã số sinh viên (Tùy chọn)
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -151,7 +151,7 @@ export default function Register() {
                   name="studentId"
                   type="text"
                   className={`input pl-10 ${errors.studentId ? 'input-error' : ''}`}
-                  placeholder="Enter your student ID"
+                  placeholder="Nhập mã số sinh viên của bạn"
                   value={formData.studentId}
                   onChange={handleInputChange}
                 />
@@ -167,7 +167,7 @@ export default function Register() {
             {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                Mật khẩu
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -178,7 +178,7 @@ export default function Register() {
                   autoComplete="new-password"
                   required
                   className={`input pl-10 ${errors.password ? 'input-error' : ''}`}
-                  placeholder="Enter your password"
+                  placeholder="Nhập mật khẩu của bạn"
                   value={formData.password}
                   onChange={handleInputChange}
                 />
@@ -194,7 +194,7 @@ export default function Register() {
             {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
+                Xác nhận mật khẩu
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -205,7 +205,7 @@ export default function Register() {
                   autoComplete="new-password"
                   required
                   className={`input pl-10 ${errors.confirmPassword ? 'input-error' : ''}`}
-                  placeholder="Confirm your password"
+                  placeholder="Xác nhận mật khẩu của bạn"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                 />
@@ -226,16 +226,16 @@ export default function Register() {
               disabled={isLoading}
               className="w-full btn btn-primary"
             >
-              {isLoading ? 'Creating account...' : 'Sign up'}
+              {isLoading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
             </button>
           </div>
 
           {/* Login Link */}
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
+              Đã có tài khoản?{' '}
               <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
-                Sign in
+                Đăng nhập
               </Link>
             </p>
           </div>

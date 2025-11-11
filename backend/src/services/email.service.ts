@@ -69,7 +69,7 @@ class EmailService {
    * Send welcome email with email verification
    */
   async sendWelcomeEmail(user: { email: string; fullName: string }, verificationToken: string): Promise<void> {
-    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email/${verificationToken}`;
 
     const html = `
       <!DOCTYPE html>
@@ -121,7 +121,7 @@ class EmailService {
    * Send password reset email
    */
   async sendPasswordResetEmail(user: { email: string; fullName: string }, resetToken: string): Promise<void> {
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
 
     const html = `
       <!DOCTYPE html>
@@ -176,7 +176,7 @@ class EmailService {
    * Send email verification reminder
    */
   async sendVerificationReminderEmail(user: { email: string; fullName: string }, verificationToken: string): Promise<void> {
-    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email/${verificationToken}`;
 
     const html = `
       <!DOCTYPE html>

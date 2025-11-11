@@ -31,9 +31,8 @@ import {
   useCategoryOptions, 
   useStatusOptions, 
   useFileTypeOptions, 
-  useUploadDateOptions,
-  useDebounce
-} from '../../hooks/useDocumentOptimization';
+  useUploadDateOptions
+} from '../../hooks/useDocumentFilters';
 
 interface Document {
   id: string;
@@ -155,9 +154,6 @@ export default function ProjectDocumentList() {
     },
     enabled: !!projectId,
     retry: 2,
-    onError: (error) => {
-      console.error('Failed to load document statistics:', error);
-    }
   });
 
   // Delete document mutation
@@ -167,16 +163,16 @@ export default function ProjectDocumentList() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Document deleted successfully!');
+      toast.success('Xóa tài liệu thành công!');
       queryClient.invalidateQueries({ queryKey: ['documents'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to delete document');
+      toast.error(error.response?.data?.error || 'Xóa tài liệu thất bại');
     },
   });
 
   const handleDeleteDocument = (documentId: string, fileName: string) => {
-    if (window.confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa "${fileName}"? Hành động này không thể hoàn tác.`)) {
       deleteDocumentMutation.mutate(documentId);
     }
   };
@@ -250,7 +246,7 @@ export default function ProjectDocumentList() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -300,14 +296,14 @@ export default function ProjectDocumentList() {
               <button
                 onClick={() => navigate(`/projects/${projectId}`)}
                 className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
-                title="Back to Project"
+                title="Quay lại Dự án"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="page-title">Project Documents</h1>
+                <h1 className="page-title">Tài liệu dự án</h1>
                 <p className="page-subtitle">
-                  {project ? `${project.title} - Documents` : 'Project documents'} - Manage project files
+                  {project ? `${project.title} - Tài liệu` : 'Tài liệu dự án'} - Quản lý tệp dự án
                 </p>
               </div>
             </div>
@@ -318,7 +314,7 @@ export default function ProjectDocumentList() {
                 className="btn-primary"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Upload Document
+                Tải lên tài liệu
               </button>
             </div>
           </div>
@@ -329,7 +325,7 @@ export default function ProjectDocumentList() {
           <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
             <div className="flex items-center justify-center">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-              <span className="text-sm text-gray-500">Loading statistics...</span>
+              <span className="text-sm text-gray-500">Đang tải thống kê...</span>
             </div>
           </div>
         )}
@@ -338,7 +334,7 @@ export default function ProjectDocumentList() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
               <div className="text-red-600 mr-2">⚠️</div>
-              <span className="text-sm text-red-700">Failed to load statistics. Please try again.</span>
+              <span className="text-sm text-red-700">Tải thống kê thất bại. Vui lòng thử lại.</span>
             </div>
           </div>
         )}
@@ -350,10 +346,10 @@ export default function ProjectDocumentList() {
                 <div className="flex items-center space-x-2">
                   <FileText className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-500">Total:</span>
-                  <span className="text-lg font-semibold text-gray-900">{statsData.totalCount}</span>
+                  <span className="text-lg font-semibold text-gray-900">{(statsData as any).totalCount}</span>
                 </div>
                 
-                {statsData.categoryStats.map((stat: any) => (
+                {(statsData as any).categoryStats.map((stat: any) => (
                   <div key={stat.category} className="flex items-center space-x-2">
                     <FileText className="w-4 h-4 text-gray-600" />
                     <span className="text-sm text-gray-500">{getCategoryLabel(stat.category)}:</span>
@@ -376,7 +372,7 @@ export default function ProjectDocumentList() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="text"
-                      placeholder="Search documents..."
+                      placeholder="Tìm kiếm tài liệu..."
                       className="input pl-10 w-full"
                       value={filters.search}
                       onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
@@ -390,7 +386,7 @@ export default function ProjectDocumentList() {
                   }}
                   className="btn-ghost whitespace-nowrap"
                 >
-                  Clear Filters
+                  Xóa bộ lọc
                 </button>
               </div>
 
@@ -400,21 +396,21 @@ export default function ProjectDocumentList() {
                 <SelectDropdown
                   label=""
                   options={[
-                    { id: '', fullName: 'All Status' },
-                    { id: 'PENDING', fullName: 'Pending' },
-                    { id: 'APPROVED', fullName: 'Approved' },
-                    { id: 'REJECTED', fullName: 'Rejected' }
+                    { id: '', fullName: 'Tất cả trạng thái' },
+                    { id: 'PENDING', fullName: 'Chờ duyệt' },
+                    { id: 'APPROVED', fullName: 'Đã duyệt' },
+                    { id: 'REJECTED', fullName: 'Đã từ chối' }
                   ]}
                   value={filters.status}
                   onChange={(status) => setFilters(prev => ({ ...prev, status }))}
-                  placeholder="All Status"
+                  placeholder="Tất cả trạng thái"
                 />
 
                 {/* Upload Date Filter */}
                 <SelectDropdown
                   label=""
                   options={[
-                    { id: '', fullName: 'All Dates' },
+                    { id: '', fullName: 'Tất cả ngày' },
                     { id: 'today', fullName: 'Today' },
                     { id: 'this_week', fullName: 'This Week' },
                     { id: 'this_month', fullName: 'This Month' },
@@ -422,14 +418,14 @@ export default function ProjectDocumentList() {
                   ]}
                   value={filters.uploadDate}
                   onChange={(uploadDate) => setFilters(prev => ({ ...prev, uploadDate }))}
-                  placeholder="All Dates"
+                  placeholder="Tất cả ngày"
                 />
 
                 {/* File Type Filter */}
                 <SelectDropdown
                   label=""
                   options={[
-                    { id: '', fullName: 'All File Types' },
+                    { id: '', fullName: 'Tất cả loại tệp' },
                     { id: 'pdf', fullName: 'PDF' },
                     { id: 'doc', fullName: 'Word Documents' },
                     { id: 'xls', fullName: 'Excel Files' },
@@ -439,22 +435,22 @@ export default function ProjectDocumentList() {
                   ]}
                   value={filters.fileType}
                   onChange={(fileType) => setFilters(prev => ({ ...prev, fileType }))}
-                  placeholder="All File Types"
+                  placeholder="Tất cả loại tệp"
                 />
 
                 {/* Category Filter */}
                 <SelectDropdown
                   label=""
                   options={[
-                    { id: '', fullName: 'All Categories' },
-                    { id: 'PROJECT', fullName: 'Project Documents' },
+                    { id: '', fullName: 'Tất cả danh mục' },
+                    { id: 'PROJECT', fullName: 'Tài liệu dự án' },
                     { id: 'REFERENCE', fullName: 'Reference Materials' },
                     { id: 'TEMPLATE', fullName: 'Templates' },
                     { id: 'GUIDELINE', fullName: 'Guidelines' }
                   ]}
                   value={filters.category}
                   onChange={(category) => setFilters(prev => ({ ...prev, category }))}
-                  placeholder="All Categories"
+                  placeholder="Tất cả danh mục"
                 />
               </div>
 
@@ -466,7 +462,7 @@ export default function ProjectDocumentList() {
                   selectedUsers={filters.uploader}
                   onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, uploader: userIds }))}
                   multiple={true}
-                  placeholder="All Uploaders"
+                  placeholder="Tất cả người tải lên"
                 />
               </div>
             </div>
@@ -479,7 +475,7 @@ export default function ProjectDocumentList() {
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading documents...</p>
+                <p className="mt-4 text-gray-600">Đang tải tài liệu...</p>
               </div>
             ) : documents && documents.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -514,7 +510,7 @@ export default function ProjectDocumentList() {
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
                           <div className="flex items-center space-x-1">
                             <User className="w-4 h-4" />
-                            <span>{document.uploader?.fullName || 'Unknown User'}</span>
+                            <span>{document.uploader?.fullName || 'Người dùng không xác định'}</span>
                           </div>
                           
                           <div className="flex items-center space-x-1">
@@ -530,7 +526,7 @@ export default function ProjectDocumentList() {
                         <button
                           onClick={() => handleView(document)}
                           className="p-2 text-gray-400 hover:text-blue-600 rounded"
-                          title="View document"
+                          title="Xem tài liệu"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -538,7 +534,7 @@ export default function ProjectDocumentList() {
                         <button
                           onClick={() => handleDownload(document)}
                           className="p-2 text-gray-400 hover:text-green-600 rounded"
-                          title="Download document"
+                          title="Tải xuống tài liệu"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -548,14 +544,14 @@ export default function ProjectDocumentList() {
                             <button
                               onClick={() => navigate(`/documents/${document.id}/edit`)}
                               className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                              title="Edit document"
+                              title="Chỉnh sửa tài liệu"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteDocument(document.id, document.fileName)}
                               className="p-2 text-gray-400 hover:text-red-600 rounded"
-                              title="Delete document"
+                              title="Xóa tài liệu"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -569,18 +565,18 @@ export default function ProjectDocumentList() {
             ) : (
               <div className="text-center py-12">
                 <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy tài liệu</h3>
                 <p className="text-gray-600 mb-4">
                   {filters.search || filters.status
-                    ? 'Try adjusting your filters to see more documents.'
-                    : 'Get started by uploading your first document.'}
+                    ? 'Thử điều chỉnh bộ lọc để xem thêm tài liệu.'
+                    : 'Bắt đầu bằng cách tải lên tài liệu đầu tiên.'}
                 </p>
                 <button
                   onClick={() => navigate(`/projects/${projectId}/documents/upload`)}
                   className="btn-primary"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload First Document
+                  Tải lên tài liệu đầu tiên
                 </button>
               </div>
             )}

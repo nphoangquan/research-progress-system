@@ -62,11 +62,11 @@ export default function CreateProject() {
       return response.data;
     },
     onSuccess: (data) => {
-      toast.success('Project created successfully!');
+      toast.success('Tạo dự án thành công!');
       navigate(`/projects/${data.project.id}`);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to create project');
+      toast.error(error.response?.data?.error || 'Tạo dự án thất bại');
     },
   });
 
@@ -90,19 +90,19 @@ export default function CreateProject() {
     const newErrors: Partial<CreateProjectForm> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Project title is required';
+      newErrors.title = 'Tiêu đề dự án là bắt buộc';
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Project description is required';
+      newErrors.description = 'Mô tả dự án là bắt buộc';
     }
 
     if (formData.studentIds.length === 0) {
-      (newErrors as any).studentIds = 'Please select at least one student';
+      (newErrors as any).studentIds = 'Vui lòng chọn ít nhất một sinh viên';
     }
 
     if (!formData.lecturerId) {
-      newErrors.lecturerId = 'Please select a lecturer';
+      newErrors.lecturerId = 'Vui lòng chọn một giảng viên';
     }
 
     if (formData.startDate) {
@@ -111,12 +111,12 @@ export default function CreateProject() {
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       
       if (startDate < oneYearAgo) {
-        newErrors.startDate = 'Start date cannot be more than 1 year in the past';
+        newErrors.startDate = 'Ngày bắt đầu không thể quá 1 năm trong quá khứ';
       }
     }
 
     if (formData.endDate && formData.startDate && formData.endDate < formData.startDate) {
-      newErrors.endDate = 'End date must be after start date';
+        newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
     }
 
     setErrors(newErrors as Partial<Record<keyof CreateProjectForm, string>>);
@@ -156,9 +156,9 @@ export default function CreateProject() {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="page-title">Create New Project</h1>
+              <h1 className="page-title">Tạo dự án mới</h1>
               <p className="page-subtitle">
-                Set up a new research project and assign team members.
+                Thiết lập một dự án nghiên cứu mới và gán thành viên nhóm.
               </p>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function CreateProject() {
                 {/* Project Title */}
                 <div>
                   <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                    Project Title *
+                    Tiêu đề dự án *
                   </label>
                   <div className="relative">
                     <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -182,7 +182,7 @@ export default function CreateProject() {
                       type="text"
                       required
                       className={`input pl-10 ${errors.title ? 'input-error' : ''}`}
-                      placeholder="Enter project title"
+                      placeholder="Nhập tiêu đề dự án"
                       value={formData.title}
                       onChange={handleChange}
                     />
@@ -198,7 +198,7 @@ export default function CreateProject() {
                 {/* Project Description */}
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    Project Description *
+                    Mô tả dự án *
                   </label>
                   <textarea
                     id="description"
@@ -206,7 +206,7 @@ export default function CreateProject() {
                     rows={4}
                     required
                     className={`input ${errors.description ? 'input-error' : ''}`}
-                    placeholder="Describe the project objectives, methodology, and expected outcomes"
+                    placeholder="Mô tả mục tiêu, phương pháp và kết quả mong đợi của dự án"
                     value={formData.description}
                     onChange={handleChange}
                   />
@@ -220,23 +220,23 @@ export default function CreateProject() {
 
                 {/* Student Selection */}
                 <MultiSelectDropdown
-                  label="Students"
+                  label="Sinh viên"
                   options={students}
                   selectedIds={formData.studentIds}
                   onChange={(studentIds: string[]) => setFormData(prev => ({ ...prev, studentIds }))}
                   error={errors.studentIds}
-                  placeholder="Select students..."
+                  placeholder="Chọn sinh viên..."
                   required
                 />
 
                 {/* Lecturer Selection */}
                 <SelectDropdown
-                  label="Lecturer"
+                  label="Giảng viên"
                   options={lecturers}
                   value={formData.lecturerId}
                   onChange={(lecturerId: string) => setFormData(prev => ({ ...prev, lecturerId }))}
                   error={errors.lecturerId}
-                  placeholder="Select a lecturer..."
+                  placeholder="Chọn giảng viên..."
                   required
                   icon={<User className="w-5 h-5" />}
                 />
@@ -245,7 +245,7 @@ export default function CreateProject() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                      Start Date *
+                      Ngày bắt đầu *
                     </label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -263,12 +263,12 @@ export default function CreateProject() {
 
                   <div>
                     <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
-                      End Date
+                      Ngày kết thúc
                     </label>
                     <DatePicker
                       value={formData.endDate || null}
                       onChange={(value: string | null) => setFormData(prev => ({ ...prev, endDate: value || '' }))}
-                      placeholder="Select end date (optional)"
+                      placeholder="Chọn ngày kết thúc (tùy chọn)"
                       className={errors.endDate ? 'border-red-500' : ''}
                     />
                     {errors.endDate && (
@@ -287,7 +287,7 @@ export default function CreateProject() {
                     onClick={() => navigate('/projects')}
                     className="btn-secondary"
                   >
-                    Cancel
+                    Hủy
                   </button>
                   <button
                     type="submit"
@@ -299,7 +299,7 @@ export default function CreateProject() {
                     ) : (
                       <Save className="w-4 h-4 mr-2" />
                     )}
-                    {createProjectMutation.isPending ? 'Creating...' : 'Create Project'}
+                    {createProjectMutation.isPending ? 'Đang tạo...' : 'Tạo dự án'}
                   </button>
                 </div>
               </form>

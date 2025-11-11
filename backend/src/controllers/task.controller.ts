@@ -227,36 +227,60 @@ export const getTasks = async (req: Request, res: Response) => {
 
       // Due date filter
       if (dueDate) {
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const nextWeek = new Date(today);
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        const nextMonth = new Date(today);
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        // Check if it's a custom date range (format: "custom:startDate|endDate")
+        if (typeof dueDate === 'string' && dueDate.startsWith('custom:')) {
+          const dateRangeStr = dueDate.replace('custom:', '');
+          const [startDateStr, endDateStr] = dateRangeStr.split('|');
+          
+          if (startDateStr && startDateStr !== 'null') {
+            const startDate = new Date(startDateStr);
+            startDate.setHours(0, 0, 0, 0);
+            
+            if (endDateStr && endDateStr !== 'null') {
+              const endDate = new Date(endDateStr);
+              endDate.setHours(23, 59, 59, 999);
+              filters.dueDate = { gte: startDate, lte: endDate };
+            } else {
+              filters.dueDate = { gte: startDate };
+            }
+          } else if (endDateStr && endDateStr !== 'null') {
+            const endDate = new Date(endDateStr);
+            endDate.setHours(23, 59, 59, 999);
+            filters.dueDate = { lte: endDate };
+          }
+        } else {
+          // Preset options
+          const now = new Date();
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const nextWeek = new Date(today);
+          nextWeek.setDate(nextWeek.getDate() + 7);
+          const nextMonth = new Date(today);
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-        switch (dueDate) {
-          case 'overdue':
-            filters.dueDate = { lt: today };
-            break;
-          case 'today':
-            filters.dueDate = { gte: today, lt: tomorrow };
-            break;
-          case 'this_week':
-            filters.dueDate = { gte: today, lt: nextWeek };
-            break;
-          case 'next_week':
-            const weekAfter = new Date(nextWeek);
-            weekAfter.setDate(weekAfter.getDate() + 7);
-            filters.dueDate = { gte: nextWeek, lt: weekAfter };
-            break;
-          case 'this_month':
-            filters.dueDate = { gte: today, lt: nextMonth };
-            break;
-          case 'no_due_date':
-            filters.dueDate = null;
-            break;
+          switch (dueDate) {
+            case 'overdue':
+              filters.dueDate = { lt: today };
+              break;
+            case 'today':
+              filters.dueDate = { gte: today, lt: tomorrow };
+              break;
+            case 'this_week':
+              filters.dueDate = { gte: today, lt: nextWeek };
+              break;
+            case 'next_week':
+              const weekAfter = new Date(nextWeek);
+              weekAfter.setDate(weekAfter.getDate() + 7);
+              filters.dueDate = { gte: nextWeek, lt: weekAfter };
+              break;
+            case 'this_month':
+              filters.dueDate = { gte: today, lt: nextMonth };
+              break;
+            case 'no_due_date':
+              filters.dueDate = null;
+              break;
+          }
         }
       }
 

@@ -26,12 +26,12 @@ export default function Login() {
     // Validation
     const newErrors: { email?: string; password?: string } = {};
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = 'Email là bắt buộc';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = 'Email không hợp lệ';
     }
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = 'Mật khẩu là bắt buộc';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -51,10 +51,10 @@ export default function Login() {
             <GraduationCap className="w-12 h-12 text-gray-900" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
-            Welcome back
+            Chào mừng trở lại
           </h2>
           <p className="mt-2 text-gray-600">
-            Sign in to your Research Progress System account
+            Đăng nhập vào tài khoản Hệ thống Quản lý Tiến độ Nghiên cứu
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export default function Login() {
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Địa chỉ Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -75,7 +75,7 @@ export default function Login() {
                   autoComplete="email"
                   required
                   className={`input pl-10 ${errors.email ? 'input-error' : ''}`}
-                  placeholder="Enter your email"
+                  placeholder="Nhập địa chỉ email của bạn"
                   value={formData.email}
                   onChange={handleInputChange}
                 />
@@ -91,7 +91,7 @@ export default function Login() {
             {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                Mật khẩu
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -102,7 +102,7 @@ export default function Login() {
                   autoComplete="current-password"
                   required
                   className={`input pl-10 ${errors.password ? 'input-error' : ''}`}
-                  placeholder="Enter your password"
+                  placeholder="Nhập mật khẩu của bạn"
                   value={formData.password}
                   onChange={handleInputChange}
                 />
@@ -123,7 +123,7 @@ export default function Login() {
               disabled={isLoading}
               className="w-full btn btn-primary"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </div>
 
@@ -134,14 +134,14 @@ export default function Login() {
                 to="/forgot-password"
                 className="text-sm font-medium text-primary-600 hover:text-primary-500"
               >
-                Forgot your password?
+                Quên mật khẩu?
               </Link>
             </div>
             <div>
               <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
+                Chưa có tài khoản?{' '}
                 <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
-                  Sign up
+                  Đăng ký
                 </Link>
               </p>
             </div>

@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
@@ -8,23 +7,21 @@ import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import AdvancedFilter from '../../components/ui/AdvancedFilter';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
+import DueDateFilter from '../../components/ui/DueDateFilter';
 import LabelFilter from '../../components/ui/LabelFilter';
 import LabelChip from '../../components/ui/LabelChip';
 import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
 import type { Label } from '../../types/label';
 import toast from 'react-hot-toast';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Calendar, 
-  User, 
+import {
+  Plus,
+  Search,
+  Calendar,
+  User,
   Clock,
   CheckCircle,
   AlertCircle,
-  XCircle,
-  MoreVertical,
   Edit,
   Trash2,
   ArrowLeft
@@ -57,6 +54,7 @@ export default function TaskList() {
   const navigate = useNavigate();
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
+  const queryClient = useQueryClient();
 
   // WebSocket integration
   useWebSocketEvents({
@@ -68,7 +66,7 @@ export default function TaskList() {
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
-    assignee: '',
+    assignees: [] as string[], // Changed to array for multi-select
     dueDate: '',
     search: '',
     labelIds: [] as string[]
@@ -82,7 +80,7 @@ export default function TaskList() {
   const pageSize = 20;
 
   // Fetch tasks
-  const { data: tasksData, isLoading } = useQuery({
+  const { data: tasksData, isLoading, isError, refetch } = useQuery({
     queryKey: ['tasks', projectId, filters, advancedFilters, currentPage, pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -91,13 +89,10 @@ export default function TaskList() {
       // Basic filters
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
-      if (filters.assignee) {
-        if (Array.isArray(filters.assignee)) {
-          filters.assignee.forEach(assignee => params.append('assignee', assignee));
-        } else {
-          params.append('assignee', filters.assignee);
-        }
-      }
+      // Add assignee IDs as multiple parameters
+      filters.assignees.forEach(assigneeId => {
+        params.append('assignee', assigneeId);
+      });
       if (filters.dueDate) params.append('dueDate', filters.dueDate);
       if (filters.search) params.append('search', filters.search);
       if (filters.labelIds.length > 0) {
@@ -123,43 +118,12 @@ export default function TaskList() {
   const tasks = tasksData?.tasks || [];
   const pagination = tasksData?.pagination;
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 when filters change (exclude search to keep input focus)
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.status, filters.priority, filters.assignee, filters.dueDate, filters.search, filters.labelIds.length, advancedFilters]);
+  }, [filters.status, filters.priority, filters.assignees.length, filters.dueDate, filters.labelIds.length, advancedFilters]);
 
-  // Fetch project members for assignee filter (only for admin/lecturer)
-  const { data: projectMembers } = useQuery({
-    queryKey: ['project-members', projectId],
-    queryFn: async () => {
-      if (!projectId) return [];
-      const response = await api.get(`/projects/${projectId}`);
-      const project = response.data.project;
-      
-      // Get lecturer and students
-      const members = [];
-      if (project.lecturer) {
-        members.push({
-          id: project.lecturer.id,
-          fullName: project.lecturer.fullName,
-          email: project.lecturer.email,
-          role: 'LECTURER'
-        });
-      }
-      if (project.students) {
-        project.students.forEach((student: any) => {
-          members.push({
-            id: student.student.id,
-            fullName: student.student.fullName,
-            email: student.student.email,
-            role: 'STUDENT'
-          });
-        });
-      }
-      return members;
-    },
-    enabled: (user?.role === 'ADMIN' || user?.role === 'LECTURER') && !!projectId,
-  });
+  // Note: UserFilterSelector will fetch users/project members internally
 
   // Delete task mutation
   const deleteTaskMutation = useMutation({
@@ -168,21 +132,44 @@ export default function TaskList() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Task deleted successfully!');
+      toast.success('Xóa nhiệm vụ thành công!');
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to delete task');
+      toast.error(error.response?.data?.error || 'Xóa nhiệm vụ thất bại');
     },
   });
 
   const handleDeleteTask = (taskId: string, taskTitle: string) => {
-    if (window.confirm(`Are you sure you want to delete "${taskTitle}"? This action cannot be undone.`)) {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa "${taskTitle}"? Hành động này không thể hoàn tác.`)) {
       deleteTaskMutation.mutate(taskId);
     }
   };
 
+  const statusLabels = useMemo<Record<Task['status'], string>>(() => ({
+    TODO: 'Cần làm',
+    IN_PROGRESS: 'Đang thực hiện',
+    REVIEW: 'Đang xem xét',
+    COMPLETED: 'Hoàn thành'
+  }), []);
+
+  const priorityLabels = useMemo<Record<Task['priority'], string>>(() => ({
+    LOW: 'Thấp',
+    MEDIUM: 'Trung bình',
+    HIGH: 'Cao',
+    URGENT: 'Khẩn cấp'
+  }), []);
+
+  const statusColors = useMemo<Record<Task['status'], string>>(() => ({
+    TODO: 'bg-gray-100 text-gray-800',
+    IN_PROGRESS: 'bg-blue-100 text-blue-800',
+    REVIEW: 'bg-yellow-100 text-yellow-800',
+    COMPLETED: 'bg-green-100 text-green-800'
+  }), []);
+
+  const translateStatus = (status: string) => statusLabels[status as Task['status']] || status.replace('_', ' ');
+  const translatePriority = (priority: string) => priorityLabels[priority as Task['priority']] || priority;
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'TODO':
@@ -198,20 +185,7 @@ export default function TaskList() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'TODO':
-        return 'bg-gray-100 text-gray-800';
-      case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
-      case 'REVIEW':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const getStatusColor = (status: string) => statusColors[status as Task['status']] || 'bg-gray-100 text-gray-800';
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -229,10 +203,12 @@ export default function TaskList() {
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'No due date';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
+    if (!dateString) return 'Chưa có hạn chót';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Ngày không hợp lệ';
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric'
     });
   };
@@ -242,16 +218,10 @@ export default function TaskList() {
     return new Date(dueDate) < new Date();
   };
 
-  if (isLoading) {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
-        <div className="container py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading tasks...</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -269,15 +239,15 @@ export default function TaskList() {
                 <button
                   onClick={() => navigate(`/projects/${projectId}`)}
                   className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
-                  title="Back to Project"
+                  title="Quay lại Dự án"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               )}
               <div>
-                <h1 className="page-title">Tasks</h1>
+                <h1 className="page-title">Nhiệm vụ</h1>
                 <p className="page-subtitle">
-                  {projectId ? 'Project tasks' : 'All tasks'} - Manage and track your work
+                  {projectId ? 'Nhiệm vụ dự án' : 'Tất cả nhiệm vụ'} - Quản lý và theo dõi công việc của bạn
                 </p>
               </div>
             </div>
@@ -287,15 +257,17 @@ export default function TaskList() {
                 onClick={() => navigate(projectId ? `/projects/${projectId}/tasks/kanban` : '/tasks/kanban')}
                 className="btn-secondary"
               >
-                Kanban View
+                Xem Kanban
               </button>
-              <button
-                onClick={() => navigate(projectId ? `/projects/${projectId}/tasks/new` : '/tasks/new')}
-                className="btn-primary"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Task
-              </button>
+              {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
+                <button
+                  onClick={() => navigate(projectId ? `/projects/${projectId}/tasks/new` : '/tasks/new')}
+                  className="btn-primary"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Tạo nhiệm vụ
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -319,7 +291,7 @@ export default function TaskList() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="text"
-                      placeholder="Search tasks..."
+                      placeholder="Tìm kiếm nhiệm vụ..."
                       className="input pl-10 w-full"
                       value={filters.search}
                       onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
@@ -328,80 +300,68 @@ export default function TaskList() {
                 </div>
                 <button
                   onClick={() => {
-                    setFilters({ status: '', priority: '', assignee: '', dueDate: '', search: '', labelIds: [] });
+                    setFilters({ status: '', priority: '', assignees: [], dueDate: '', search: '', labelIds: [] });
                     setCurrentPage(1);
                   }}
                   className="btn-ghost whitespace-nowrap"
                 >
-                  Clear Filters
+                  Xóa bộ lọc
                 </button>
               </div>
 
-              {/* Filter Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              {/* Filter Row 1: Status and Priority */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Status Filter */}
                 <SelectDropdown
                   label=""
                   options={[
-                    { id: '', fullName: 'All Status' },
-                    { id: 'TODO', fullName: 'To Do' },
-                    { id: 'IN_PROGRESS', fullName: 'In Progress' },
-                    { id: 'REVIEW', fullName: 'Review' },
-                    { id: 'COMPLETED', fullName: 'Completed' }
+                    { id: '', fullName: 'Tất cả trạng thái' },
+                    { id: 'TODO', fullName: 'Cần làm' },
+                    { id: 'IN_PROGRESS', fullName: 'Đang thực hiện' },
+                    { id: 'REVIEW', fullName: 'Đang xem xét' },
+                    { id: 'COMPLETED', fullName: 'Hoàn thành' }
                   ]}
                   value={filters.status}
                   onChange={(status) => setFilters(prev => ({ ...prev, status }))}
-                  placeholder="All Status"
+                  placeholder="Tất cả trạng thái"
                 />
 
                 {/* Priority Filter */}
                 <SelectDropdown
                   label=""
                   options={[
-                    { id: '', fullName: 'All Priority' },
-                    { id: 'LOW', fullName: 'Low' },
-                    { id: 'MEDIUM', fullName: 'Medium' },
-                    { id: 'HIGH', fullName: 'High' },
-                    { id: 'URGENT', fullName: 'Urgent' }
+                    { id: '', fullName: 'Tất cả mức độ ưu tiên' },
+                    { id: 'LOW', fullName: 'Thấp' },
+                    { id: 'MEDIUM', fullName: 'Trung bình' },
+                    { id: 'HIGH', fullName: 'Cao' },
+                    { id: 'URGENT', fullName: 'Khẩn cấp' }
                   ]}
                   value={filters.priority}
                   onChange={(priority) => setFilters(prev => ({ ...prev, priority }))}
-                  placeholder="All Priority"
-                />
-
-                {/* Due Date Filter */}
-                <SelectDropdown
-                  label=""
-                  options={[
-                    { id: '', fullName: 'All Due Dates' },
-                    { id: 'overdue', fullName: 'Overdue' },
-                    { id: 'today', fullName: 'Due Today' },
-                    { id: 'this_week', fullName: 'This Week' },
-                    { id: 'next_week', fullName: 'Next Week' },
-                    { id: 'this_month', fullName: 'This Month' },
-                    { id: 'no_due_date', fullName: 'No Due Date' }
-                  ]}
-                  value={filters.dueDate}
-                  onChange={(dueDate) => setFilters(prev => ({ ...prev, dueDate }))}
-                  placeholder="All Due Dates"
+                  placeholder="Tất cả mức độ ưu tiên"
                 />
               </div>
 
-              {/* Assignee Filter Row - Only show for Admin/Lecturer or when projectId is provided */}
-              {(user.role === 'ADMIN' || user.role === 'LECTURER' || projectId) && (
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <UserFilterSelector
-                      projectId={projectId}
-                      selectedUsers={Array.isArray(filters.assignee) ? filters.assignee : (filters.assignee ? [filters.assignee] : [])}
-                      onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignee: userIds.length > 0 ? userIds : '' }))}
-                      multiple={true}
-                      placeholder="All Assignees"
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              )}
+              {/* Filter Row 2: Assignee and Due Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Assignee Filter - Multi-select with search */}
+                {(user.role === 'ADMIN' || user.role === 'LECTURER' || projectId) && (
+                  <UserFilterSelector
+                    projectId={projectId}
+                    selectedUsers={filters.assignees}
+                    onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignees: userIds }))}
+                    multiple={true}
+                    placeholder="Tất cả người được gán"
+                  />
+                )}
+
+                {/* Due Date Filter - Enhanced with preset options and custom date range */}
+                <DueDateFilter
+                  value={filters.dueDate}
+                  onChange={(dueDate) => setFilters(prev => ({ ...prev, dueDate }))}
+                  placeholder="Tất cả hạn chót"
+                />
+              </div>
 
               {/* Label Filter Row */}
               <div className="grid grid-cols-1 gap-4">
@@ -418,7 +378,27 @@ export default function TaskList() {
         {/* Tasks List */}
         <div className="card">
           <div className="card-body">
-            {tasks && tasks.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
+              </div>
+            ) : isError ? (
+              <div className="text-center py-12 space-y-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                  <AlertCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900">Không thể tải danh sách nhiệm vụ</h3>
+                <p className="text-gray-600">Đã xảy ra lỗi khi truy vấn dữ liệu. Vui lòng thử lại.</p>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="btn-primary"
+                >
+                  Thử lại
+                </button>
+              </div>
+            ) : tasks && tasks.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {tasks.map((task: Task) => (
                   <div
@@ -434,10 +414,10 @@ export default function TaskList() {
                           </div>
                           <h3 className="font-medium text-gray-900 flex-1">{task.title}</h3>
                           <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${getStatusColor(task.status)}`}>
-                            {task.status.replace('_', ' ')}
+                            {translateStatus(task.status)}
                           </span>
                           <span className={`text-sm font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${getPriorityColor(task.priority)}`}>
-                            {task.priority}
+                            {translatePriority(task.priority)}
                           </span>
                         </div>
                         
@@ -508,19 +488,21 @@ export default function TaskList() {
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <AlertCircle className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy nhiệm vụ</h3>
                 <p className="text-gray-600 mb-6">
-                  {filters.search || filters.status || filters.priority || filters.assignee
-                    ? 'Try adjusting your filters to see more tasks.'
-                    : 'Get started by creating your first task.'}
+                  {filters.search || filters.status || filters.priority || filters.assignees.length > 0 || filters.dueDate || filters.labelIds.length > 0
+                    ? 'Thử điều chỉnh bộ lọc để xem thêm nhiệm vụ.'
+                    : 'Bắt đầu bằng cách tạo nhiệm vụ đầu tiên.'}
                 </p>
-                <button
-                  onClick={() => navigate(projectId ? `/projects/${projectId}/tasks/new` : '/tasks/new')}
-                  className="btn-primary"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Task
-                </button>
+                {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
+                  <button
+                    onClick={() => navigate(projectId ? `/projects/${projectId}/tasks/new` : '/tasks/new')}
+                    className="btn-primary"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Tạo nhiệm vụ đầu tiên
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -534,7 +516,7 @@ export default function TaskList() {
               totalPages={pagination.totalPages}
               totalCount={pagination.totalCount}
               limit={pagination.limit}
-              onPageChange={(page) => {
+              onPageChange={(page: number) => {
                 setCurrentPage(page);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}

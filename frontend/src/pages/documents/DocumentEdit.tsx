@@ -1,4 +1,3 @@
-import React from 'react';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -52,7 +51,7 @@ export default function DocumentEdit() {
   });
 
   // Fetch document data
-  const { data: document, isLoading } = useQuery({
+  const { data: document, isLoading, isError, refetch } = useQuery({
     queryKey: ['document', id],
     queryFn: async () => {
       const response = await api.get(`/documents/${id}`);
@@ -80,18 +79,14 @@ export default function DocumentEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['document', id] });
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      toast.success('Document updated successfully!');
-      navigate('/documents');
+      toast.success('Cập nhật tài liệu thành công!');
+      navigate(document?.projectId ? `/projects/${document.projectId}/documents` : '/documents');
     },
     onError: (err: any) => {
-      const errorMessage = err.response?.data?.error || 'Failed to update document';
+      const errorMessage = err.response?.data?.error || 'Cập nhật tài liệu thất bại';
       toast.error(errorMessage);
     },
   });
-
-  const handleSave = () => {
-    updateDocumentMutation.mutate(editData);
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +111,7 @@ export default function DocumentEdit() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -135,6 +130,15 @@ export default function DocumentEdit() {
       default:
         return 'bg-yellow-100 text-yellow-800';
     }
+  };
+
+  const translateStatus = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'PENDING': 'Đang chờ',
+      'APPROVED': 'Đã phê duyệt',
+      'REJECTED': 'Đã từ chối'
+    };
+    return statusMap[status] || status;
   };
 
   if (isLoading) {
@@ -157,6 +161,28 @@ export default function DocumentEdit() {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user!} />
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="text-center py-12 space-y-4">
+            <FileText className="w-16 h-16 text-red-400 mx-auto" />
+            <h3 className="text-lg font-medium text-gray-900">Không thể tải tài liệu</h3>
+            <p className="text-gray-600">Đã xảy ra lỗi khi truy vấn dữ liệu tài liệu. Vui lòng thử lại.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="btn-primary"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!document) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -164,13 +190,13 @@ export default function DocumentEdit() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Document Not Found</h2>
-            <p className="text-gray-600 mb-6">The document you're looking for doesn't exist or you don't have permission to view it.</p>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Không tìm thấy Tài liệu</h2>
+            <p className="text-gray-600 mb-6">Tài liệu bạn đang tìm không tồn tại hoặc bạn không có quyền xem nó.</p>
             <button
               onClick={() => navigate('/documents')}
               className="btn-primary"
             >
-              Back to Documents
+              Quay lại Tài liệu
             </button>
           </div>
         </div>
@@ -185,7 +211,7 @@ export default function DocumentEdit() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="page-header mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Edit Document</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Chỉnh sửa Tài liệu</h1>
           <p className="text-gray-600 mt-1">{document.project.title}</p>
         </div>
 
@@ -195,7 +221,7 @@ export default function DocumentEdit() {
               {/* File Name - Read Only */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
-                  File Name
+                  Tên Tệp
                 </label>
                 <div className="relative">
                   <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -207,21 +233,21 @@ export default function DocumentEdit() {
                   />
                 </div>
                 <p className="text-xs text-gray-500">
-                  File name cannot be changed after upload
+                  Tên tệp không thể thay đổi sau khi tải lên
                 </p>
               </div>
 
               {/* Description */}
               <div className="space-y-2">
                 <label htmlFor="description" className="block text-sm font-semibold text-gray-700">
-                  Description
+                  Mô tả
                 </label>
                 <textarea
                   id="description"
                   name="description"
                   rows={4}
                   className="input"
-                  placeholder="Add a description for this document..."
+                  placeholder="Thêm mô tả cho tài liệu này..."
                   value={editData.description}
                   onChange={handleChange}
                 />
@@ -230,35 +256,35 @@ export default function DocumentEdit() {
               {/* Status */}
               <div className="space-y-2">
                 <SelectDropdown
-                  label="Status"
+                  label="Trạng thái"
                   options={[
-                    { id: 'PENDING', fullName: 'Pending' },
-                    { id: 'APPROVED', fullName: 'Approved' },
-                    { id: 'REJECTED', fullName: 'Rejected' },
-                    { id: 'ARCHIVED', fullName: 'Archived' },
+                    { id: 'PENDING', fullName: 'Đang chờ' },
+                    { id: 'APPROVED', fullName: 'Đã phê duyệt' },
+                    { id: 'REJECTED', fullName: 'Đã từ chối' },
+                    { id: 'ARCHIVED', fullName: 'Đã lưu trữ' },
                   ]}
                   value={editData.status}
                   onChange={(status) => setEditData({ ...editData, status: status as 'PENDING' | 'APPROVED' | 'REJECTED' })}
-                  placeholder="Select status..."
+                  placeholder="Chọn trạng thái..."
                   icon={<CheckSquare className="w-5 h-5" />}
                 />
               </div>
 
               {/* Document Details */}
               <div className="space-y-4 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Document Details</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Chi tiết Tài liệu</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                     <User className="w-5 h-5 text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Uploaded by</p>
+                      <p className="text-sm font-medium text-gray-900">Tải lên bởi</p>
                       <p className="text-sm text-gray-600">{document.uploader.fullName}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                     <Calendar className="w-5 h-5 text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Upload Date</p>
+                      <p className="text-sm font-medium text-gray-900">Ngày Tải lên</p>
                       <p className="text-sm text-gray-600">{formatDate(document.createdAt)}</p>
                     </div>
                   </div>
@@ -266,9 +292,9 @@ export default function DocumentEdit() {
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <Tag className="w-5 h-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Current Status</p>
+                    <p className="text-sm font-medium text-gray-900">Trạng thái Hiện tại</p>
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(document.status)}`}>
-                      {document.status}
+                      {translateStatus(document.status)}
                     </span>
                   </div>
                 </div>
@@ -281,7 +307,7 @@ export default function DocumentEdit() {
                   onClick={handleCancel}
                   className="btn-secondary px-6 py-3"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   type="submit"
@@ -291,12 +317,12 @@ export default function DocumentEdit() {
                   {updateDocumentMutation.isPending ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Saving...
+                      Đang lưu...
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4 mr-2" />
-                      Save Changes
+                      Lưu Thay đổi
                     </>
                   )}
                 </button>

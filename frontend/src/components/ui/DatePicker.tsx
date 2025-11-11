@@ -1,4 +1,3 @@
-import React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Calendar, X } from 'lucide-react';
 
@@ -13,7 +12,7 @@ interface DatePickerProps {
 export default function DatePicker({ 
   value, 
   onChange, 
-  placeholder = "Select date", 
+  placeholder = "Chọn ngày", 
   className = "",
   disabled = false 
 }: DatePickerProps) {
@@ -34,9 +33,14 @@ export default function DatePicker({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   // Update selectedDate when value prop changes
   useEffect(() => {
@@ -48,9 +52,9 @@ export default function DatePicker({
 
   const formatDate = (date: Date | null) => {
     if (!date) return '';
-    return date.toLocaleDateString('en-US', {
-      month: '2-digit',
+    return date.toLocaleDateString('vi-VN', {
       day: '2-digit',
+      month: '2-digit',
       year: 'numeric'
     });
   };
@@ -170,7 +174,7 @@ export default function DatePicker({
               </svg>
             </button>
             <h3 className="text-sm font-medium text-gray-900">
-              {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              {currentMonth.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
             </h3>
             <button
               type="button"
@@ -187,7 +191,7 @@ export default function DatePicker({
           <div className="p-3">
             {/* Days of week header */}
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+              {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map(day => (
                 <div key={day} className="text-xs font-medium text-gray-500 text-center py-1">
                   {day}
                 </div>
@@ -227,14 +231,14 @@ export default function DatePicker({
               onClick={handleNoDueDateClick}
               className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
             >
-              No Due Date
+              Không có hạn chót
             </button>
             <button
               type="button"
               onClick={handleTodayClick}
               className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
             >
-              Today
+              Hôm nay
             </button>
           </div>
         </div>

@@ -18,7 +18,7 @@ export default function LabelFilter({
   selectedLabelIds,
   onSelectionChange,
   className = '',
-  placeholder = 'Filter by labels...'
+  placeholder = 'Lọc theo nhãn...'
 }: LabelFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,8 +32,17 @@ export default function LabelFilter({
     queryFn: () => getLabels(projectId),
   });
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside or pressing Escape
   useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        setSearchQuery('');
+      }
+    };
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -41,9 +50,13 @@ export default function LabelFilter({
       }
     };
 
+    document.addEventListener('keydown', handleEscape);
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   // Focus input when dropdown opens
   useEffect(() => {
@@ -81,7 +94,7 @@ export default function LabelFilter({
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Labels
+        Nhãn
       </label>
 
       {/* Selected labels display - Collapsible */}
@@ -116,7 +129,7 @@ export default function LabelFilter({
                   }}
                   className="text-xs text-gray-600 hover:text-gray-900 px-2 py-1 rounded-md hover:bg-gray-100"
                 >
-                  +{hiddenCount} more
+                  +{hiddenCount} thêm
                 </button>
               )}
               {showAllSelected && hiddenCount > 0 && (
@@ -128,7 +141,7 @@ export default function LabelFilter({
                   }}
                   className="text-xs text-gray-600 hover:text-gray-900 px-2 py-1 rounded-md hover:bg-gray-100"
                 >
-                  Show less
+                  Hiển thị ít hơn
                 </button>
               )}
             </>
@@ -149,7 +162,7 @@ export default function LabelFilter({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search labels..."
+                placeholder="Tìm kiếm nhãn..."
                 className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
                 onClick={(e) => e.stopPropagation()}
               />
@@ -160,7 +173,7 @@ export default function LabelFilter({
           {selectedLabels.length > 0 && (
             <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
               <span className="text-xs text-gray-600">
-                {selectedLabels.length} label{selectedLabels.length !== 1 ? 's' : ''} selected
+                {selectedLabels.length} nhãn đã chọn
               </span>
               <button
                 type="button"
@@ -171,7 +184,7 @@ export default function LabelFilter({
                 className="text-xs text-gray-600 hover:text-red-600 flex items-center gap-1"
               >
                 <X className="w-3 h-3" />
-                Clear all
+                Xóa tất cả
               </button>
             </div>
           )}
@@ -180,12 +193,12 @@ export default function LabelFilter({
           <div className="overflow-y-auto max-h-48">
             {isLoading ? (
               <div className="p-4 text-center text-gray-500">
-                <p className="text-sm">Loading labels...</p>
+                <p className="text-sm">Đang tải nhãn...</p>
               </div>
             ) : filteredLabels.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
                 <p className="text-sm">
-                  {searchQuery ? 'No labels found' : 'No labels available'}
+                  {searchQuery ? 'Không tìm thấy nhãn nào' : 'Không có nhãn nào'}
                 </p>
               </div>
             ) : (
@@ -202,7 +215,7 @@ export default function LabelFilter({
                     <div className="flex-1">
                       <span className="text-sm text-gray-900">{label.name}</span>
                       {label.projectId === null && (
-                        <span className="text-xs text-gray-400 ml-2">(Global)</span>
+                        <span className="text-xs text-gray-400 ml-2">(Toàn cục)</span>
                       )}
                     </div>
                     <div className="flex-shrink-0">
@@ -224,7 +237,7 @@ export default function LabelFilter({
           {availableLabels.length > 0 && (
             <div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
               <p className="text-xs text-gray-500 text-center">
-                {availableLabels.length} label{availableLabels.length !== 1 ? 's' : ''} available
+                {availableLabels.length} nhãn có sẵn
               </p>
             </div>
           )}

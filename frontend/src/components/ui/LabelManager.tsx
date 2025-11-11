@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tag, Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react';
 import { getLabels, createLabel, updateLabel, deleteLabel } from '../../lib/labelApi';
@@ -17,8 +17,10 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newLabelName, setNewLabelName] = useState('');
   const [newLabelColor, setNewLabelColor] = useState('#9CA3AF'); // Default gray color (not displayed)
+  const [newLabelNameError, setNewLabelNameError] = useState('');
   const [editLabelName, setEditLabelName] = useState('');
   const [editLabelColor, setEditLabelColor] = useState('#9CA3AF'); // Default gray color (not displayed)
+  const [editLabelNameError, setEditLabelNameError] = useState('');
 
   // Fetch labels
   const { data: labels = [], isLoading } = useQuery({
@@ -35,10 +37,11 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       setIsCreating(false);
       setNewLabelName('');
       setNewLabelColor('#9CA3AF'); // Default gray color (not displayed)
-      toast.success('Label created successfully');
+      setNewLabelNameError('');
+      toast.success('Đã tạo nhãn thành công');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to create label');
+      toast.error(error.response?.data?.error || 'Không thể tạo nhãn');
     },
   });
 
@@ -53,10 +56,11 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       setEditingId(null);
       setEditLabelName('');
       setEditLabelColor('#9CA3AF'); // Default gray color (not displayed)
-      toast.success('Label updated successfully');
+      setEditLabelNameError('');
+      toast.success('Đã cập nhật nhãn thành công');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to update label');
+      toast.error(error.response?.data?.error || 'Không thể cập nhật nhãn');
     },
   });
 
@@ -69,21 +73,43 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       queryClient.invalidateQueries({ queryKey: ['labels'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task'] });
-      toast.success('Label deleted successfully');
+      toast.success('Đã xóa nhãn thành công');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to delete label');
+      toast.error(error.response?.data?.error || 'Không thể xóa nhãn');
     },
   });
 
+  const validateLabelName = (name: string): string => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return 'Tên nhãn không được để trống';
+    }
+    if (trimmed.length < 2) {
+      return 'Tên nhãn phải có ít nhất 2 ký tự';
+    }
+    if (trimmed.length > 50) {
+      return 'Tên nhãn không được vượt quá 50 ký tự';
+    }
+    // Check for only whitespace or special characters
+    if (!/^[\p{L}\p{N}\s\-_]+$/u.test(trimmed)) {
+      return 'Tên nhãn chỉ được chứa chữ cái, số, khoảng trắng, dấu gạch ngang và gạch dưới';
+    }
+    return '';
+  };
+
   const handleCreate = () => {
-    if (!newLabelName.trim()) {
-      toast.error('Label name is required');
+    const trimmedName = newLabelName.trim();
+    const error = validateLabelName(trimmedName);
+    
+    if (error) {
+      setNewLabelNameError(error);
       return;
     }
 
+    setNewLabelNameError('');
     createMutation.mutate({
-      name: newLabelName.trim(),
+      name: trimmedName,
       color: newLabelColor,
       projectId: projectId || null,
     });
@@ -93,25 +119,30 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
     setEditingId(label.id);
     setEditLabelName(label.name);
     setEditLabelColor(label.color);
+    setEditLabelNameError('');
   };
 
   const handleUpdate = (id: string) => {
-    if (!editLabelName.trim()) {
-      toast.error('Label name is required');
+    const trimmedName = editLabelName.trim();
+    const error = validateLabelName(trimmedName);
+    
+    if (error) {
+      setEditLabelNameError(error);
       return;
     }
 
+    setEditLabelNameError('');
     updateMutation.mutate({
       id,
       data: {
-        name: editLabelName.trim(),
+        name: trimmedName,
         color: editLabelColor,
       },
     });
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this label? This will remove it from all tasks.')) {
+    if (window.confirm('Bạn có chắc chắn muốn xóa nhãn này? Điều này sẽ xóa nhãn khỏi tất cả nhiệm vụ.')) {
       deleteMutation.mutate(id);
     }
   };
@@ -126,7 +157,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Tag className="w-5 h-5" />
-          {projectId ? 'Project Labels' : 'Global Labels'}
+          {projectId ? 'Nhãn Dự án' : 'Nhãn Toàn cục'}
         </h3>
         {!isCreating && (
           <button
@@ -135,7 +166,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
             className="btn-primary flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            Create Label
+            Tạo Nhãn
           </button>
         )}
       </div>
@@ -143,7 +174,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       {isLoading ? (
         <div className="text-center py-8">
           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-400" />
-          <p className="text-sm text-gray-500">Loading labels...</p>
+          <p className="text-sm text-gray-500">Đang tải nhãn...</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -153,27 +184,43 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Label Name
+                    Tên Nhãn
                   </label>
                   <input
                     type="text"
                     value={newLabelName}
-                    onChange={(e) => setNewLabelName(e.target.value)}
-                    placeholder="Enter label name"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    onChange={(e) => {
+                      setNewLabelName(e.target.value);
+                      if (newLabelNameError) {
+                        setNewLabelNameError(validateLabelName(e.target.value));
+                      }
+                    }}
+                    onBlur={() => {
+                      const error = validateLabelName(newLabelName);
+                      setNewLabelNameError(error);
+                    }}
+                    placeholder="Nhập tên nhãn"
+                    className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-1 ${
+                      newLabelNameError
+                        ? 'border-error-300 focus:ring-error-500'
+                        : 'border-gray-300 focus:ring-primary-500'
+                    }`}
                     autoFocus
                     maxLength={50}
                   />
+                  {newLabelNameError && (
+                    <p className="text-xs text-error-600 mt-1">{newLabelNameError}</p>
+                  )}
                 </div>
                 {/* Color picker removed for minimalist design */}
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={handleCreate}
-                    disabled={!newLabelName.trim() || createMutation.isPending}
+                    disabled={!newLabelName.trim() || !!newLabelNameError || createMutation.isPending}
                     className="btn-primary flex-1"
                   >
-                    {createMutation.isPending ? 'Creating...' : 'Create'}
+                    {createMutation.isPending ? 'Đang tạo...' : 'Tạo'}
                   </button>
                   <button
                     type="button"
@@ -181,10 +228,11 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
                       setIsCreating(false);
                       setNewLabelName('');
                       setNewLabelColor('#9CA3AF'); // Default gray color (not displayed)
+                      setNewLabelNameError('');
                     }}
                     className="btn-secondary"
                   >
-                    Cancel
+                    Hủy
                   </button>
                 </div>
               </div>
@@ -197,7 +245,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
             projectLabels.length === 0 && !isCreating ? (
               <div className="text-center py-8 text-gray-500">
                 <Tag className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">No project labels yet. Create one to get started.</p>
+                <p className="text-sm">Chưa có nhãn dự án nào. Tạo một nhãn để bắt đầu.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -209,7 +257,10 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
                     editLabelName={editLabelName}
                     editLabelColor={editLabelColor}
                     onEditNameChange={setEditLabelName}
+                    onEditNameErrorChange={setEditLabelNameError}
                     onEditColorChange={setEditLabelColor}
+                    validateLabelName={validateLabelName}
+                    editLabelNameError={editLabelNameError}
                     onStartEdit={handleStartEdit}
                     onUpdate={handleUpdate}
                     onDelete={handleDelete}
@@ -217,6 +268,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
                       setEditingId(null);
                       setEditLabelName('');
                       setEditLabelColor('#9CA3AF'); // Default gray color (not displayed)
+                      setEditLabelNameError('');
                     }}
                     predefinedColors={[]}
                     isUpdating={updateMutation.isPending}
@@ -230,7 +282,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
             globalLabels.length === 0 && !isCreating ? (
               <div className="text-center py-8 text-gray-500">
                 <Tag className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">No global labels yet. Create one to get started.</p>
+                <p className="text-sm">Chưa có nhãn toàn cục nào. Tạo một nhãn để bắt đầu.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -242,7 +294,10 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
                     editLabelName={editLabelName}
                     editLabelColor={editLabelColor}
                     onEditNameChange={setEditLabelName}
+                    onEditNameErrorChange={setEditLabelNameError}
                     onEditColorChange={setEditLabelColor}
+                    validateLabelName={validateLabelName}
+                    editLabelNameError={editLabelNameError}
                     onStartEdit={handleStartEdit}
                     onUpdate={handleUpdate}
                     onDelete={handleDelete}
@@ -250,6 +305,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
                       setEditingId(null);
                       setEditLabelName('');
                       setEditLabelColor('#9CA3AF'); // Default gray color (not displayed)
+                      setEditLabelNameError('');
                     }}
                     predefinedColors={[]}
                     isUpdating={updateMutation.isPending}
@@ -270,7 +326,9 @@ interface LabelItemProps {
   editingId: string | null;
   editLabelName: string;
   editLabelColor: string;
+  editLabelNameError: string;
   onEditNameChange: (name: string) => void;
+  onEditNameErrorChange: (error: string) => void;
   onEditColorChange: (color: string) => void;
   onStartEdit: (label: Label) => void;
   onUpdate: (id: string) => void;
@@ -279,6 +337,7 @@ interface LabelItemProps {
   predefinedColors: string[]; // Not used in minimalist design, kept for compatibility
   isUpdating: boolean;
   isDeleting: boolean;
+  validateLabelName: (name: string) => string;
 }
 
 function LabelItem({
@@ -286,7 +345,9 @@ function LabelItem({
   editingId,
   editLabelName,
   editLabelColor,
+  editLabelNameError,
   onEditNameChange,
+  onEditNameErrorChange,
   onEditColorChange,
   onStartEdit,
   onUpdate,
@@ -295,6 +356,7 @@ function LabelItem({
   predefinedColors,
   isUpdating,
   isDeleting,
+  validateLabelName,
 }: LabelItemProps) {
   const isEditing = editingId === label.id;
 
@@ -306,21 +368,37 @@ function LabelItem({
             <input
               type="text"
               value={editLabelName}
-              onChange={(e) => onEditNameChange(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500"
+              onChange={(e) => {
+                onEditNameChange(e.target.value);
+                if (editLabelNameError) {
+                  onEditNameErrorChange(validateLabelName(e.target.value));
+                }
+              }}
+              onBlur={() => {
+                const error = validateLabelName(editLabelName);
+                onEditNameErrorChange(error);
+              }}
+              className={`w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-1 ${
+                editLabelNameError
+                  ? 'border-error-300 focus:ring-error-500'
+                  : 'border-gray-300 focus:ring-primary-500'
+              }`}
               autoFocus
               maxLength={50}
             />
+            {editLabelNameError && (
+              <p className="text-xs text-error-600 mt-1">{editLabelNameError}</p>
+            )}
           </div>
           {/* Color picker removed for minimalist design */}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => onUpdate(label.id)}
-              disabled={!editLabelName.trim() || isUpdating}
+              disabled={!editLabelName.trim() || !!editLabelNameError || isUpdating}
               className="btn-primary text-sm flex-1"
             >
-              {isUpdating ? 'Saving...' : 'Save'}
+              {isUpdating ? 'Đang lưu...' : 'Lưu'}
             </button>
             <button
               type="button"
@@ -341,7 +419,7 @@ function LabelItem({
         <LabelChip label={label} size="md" />
         {label.projectId === null && (
           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-            Global
+            Toàn cục
           </span>
         )}
       </div>
@@ -350,7 +428,7 @@ function LabelItem({
           type="button"
           onClick={() => onStartEdit(label)}
           className="p-1.5 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-          title="Edit label"
+          title="Chỉnh sửa nhãn"
         >
           <Edit2 className="w-4 h-4" />
         </button>
@@ -359,7 +437,7 @@ function LabelItem({
           onClick={() => onDelete(label.id)}
           disabled={isDeleting}
           className="p-1.5 text-gray-600 hover:text-error-600 hover:bg-error-50 rounded transition-colors disabled:opacity-50"
-          title="Delete label"
+          title="Xóa nhãn"
         >
           {isDeleting ? (
             <Loader2 className="w-4 h-4 animate-spin" />

@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import Navbar from '../components/layout/Navbar';
@@ -52,7 +51,7 @@ export default function UserActivity() {
   }
 
   // Fetch user activity data
-  const { data: activityData, isLoading } = useQuery({
+  const { data: activityData, isLoading, isError, refetch } = useQuery({
     queryKey: ['user-activity', timeRange],
     queryFn: async () => {
       const response = await api.get(`/analytics/user-activity?timeRange=${timeRange}`);
@@ -98,17 +97,41 @@ export default function UserActivity() {
     }
   };
 
+  const formatDuration = (value: number, unit: string) =>
+    `${value} ${unit}${value > 1 ? '' : ''}`;
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return date.toLocaleDateString();
+    if (diffInSeconds < 60) return 'Vừa xong';
+    if (diffInSeconds < 3600) return `${formatDuration(Math.floor(diffInSeconds / 60), 'phút')} trước`;
+    if (diffInSeconds < 86400) return `${formatDuration(Math.floor(diffInSeconds / 3600), 'giờ')} trước`;
+    if (diffInSeconds < 2592000) return `${formatDuration(Math.floor(diffInSeconds / 86400), 'ngày')} trước`;
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
+
+  const formatDateLabel = (dateString: string) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const periodLabels = useMemo(() => ({
+    week: 'Tuần trước',
+    month: 'Tháng trước',
+    quarter: 'Quý trước',
+    year: 'Năm trước'
+  }), []);
 
   if (isLoading) {
     return (
@@ -117,7 +140,31 @@ export default function UserActivity() {
         <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading user activity...</p>
+            <p className="mt-4 text-gray-600">Đang tải hoạt động người dùng...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} />
+        <div className="w-full px-6 py-8">
+          <div className="text-center py-12 space-y-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+              <Activity className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">Không thể tải hoạt động người dùng</h3>
+            <p className="text-gray-600">Đã xảy ra lỗi khi truy vấn dữ liệu. Vui lòng thử lại.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              Thử lại
+            </button>
           </div>
         </div>
       </div>
@@ -129,12 +176,12 @@ export default function UserActivity() {
       <div className="min-h-screen bg-gray-50">
         <Navbar user={user} />
         <div className="w-full px-6 py-8">
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="text-center py-12 space-y-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
               <Activity className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No activity data</h3>
-            <p className="text-gray-600">User activity data is not available at the moment.</p>
+            <h3 className="text-lg font-medium text-gray-900">Chưa có dữ liệu hoạt động</h3>
+            <p className="text-gray-600">Chúng tôi chưa ghi nhận hoạt động nào.</p>
           </div>
         </div>
       </div>
@@ -150,22 +197,22 @@ export default function UserActivity() {
         <div className="page-header">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="page-title">User Activity</h1>
+              <h1 className="page-title">Hoạt động Người dùng</h1>
               <p className="page-subtitle">
-                Track user engagement and activity across the platform.
+                Theo dõi mức độ tương tác và hoạt động của người dùng trên hệ thống.
               </p>
             </div>
             <div className="flex gap-2">
               <div className="relative">
                 <select
                   value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value as any)}
+                  onChange={(e) => setTimeRange(e.target.value as 'week' | 'month' | 'quarter' | 'year')}
                   className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors cursor-pointer"
                 >
-                  <option value="week">Last Week</option>
-                  <option value="month">Last Month</option>
-                  <option value="quarter">Last Quarter</option>
-                  <option value="year">Last Year</option>
+                  <option value="week">{periodLabels.week}</option>
+                  <option value="month">{periodLabels.month}</option>
+                  <option value="quarter">{periodLabels.quarter}</option>
+                  <option value="year">{periodLabels.year}</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,7 +230,7 @@ export default function UserActivity() {
             <div className="card-body">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Tasks</p>
+                  <p className="text-sm font-medium text-gray-600">Tổng số Nhiệm vụ</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.totalTasks}</p>
                 </div>
                 <CheckSquare className="w-6 h-6 text-gray-900" />
@@ -195,7 +242,7 @@ export default function UserActivity() {
             <div className="card-body">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Completed Tasks</p>
+                  <p className="text-sm font-medium text-gray-600">Nhiệm vụ Hoàn thành</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.completedTasks}</p>
                 </div>
                 <CheckSquare className="w-6 h-6 text-gray-900" />
@@ -207,7 +254,7 @@ export default function UserActivity() {
             <div className="card-body">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Documents Uploaded</p>
+                  <p className="text-sm font-medium text-gray-600">Tài liệu Đã tải lên</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.uploadedDocuments}</p>
                 </div>
                 <FileText className="w-6 h-6 text-gray-900" />
@@ -219,7 +266,7 @@ export default function UserActivity() {
             <div className="card-body">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Comments Added</p>
+                  <p className="text-sm font-medium text-gray-600">Bình luận Đã thêm</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.commentsAdded}</p>
                 </div>
                 <MessageSquare className="w-6 h-6 text-gray-900" />
@@ -231,7 +278,7 @@ export default function UserActivity() {
             <div className="card-body">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Projects Involved</p>
+                  <p className="text-sm font-medium text-gray-600">Dự án Tham gia</p>
                   <p className="text-2xl font-bold text-gray-900">{activityData.userStats.projectsInvolved}</p>
                 </div>
                 <TrendingUp className="w-6 h-6 text-gray-900" />
@@ -246,7 +293,7 @@ export default function UserActivity() {
           <div className="lg:col-span-2">
             <div className="card">
               <div className="card-header">
-                <h3 className="card-title">Recent Activity Feed</h3>
+                <h3 className="card-title">Hoạt động Gần đây</h3>
               </div>
               <div className="card-body">
                 <div className="space-y-4">
@@ -265,7 +312,7 @@ export default function UserActivity() {
                           </p>
                           {activity.projectName && (
                             <p className="text-xs text-gray-500 mt-1">
-                              in {activity.projectName}
+                              trong {activity.projectName}
                             </p>
                           )}
                         </div>
@@ -285,7 +332,7 @@ export default function UserActivity() {
           {/* Top Active Users */}
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">Most Active Users</h3>
+              <h3 className="card-title">Người dùng Tích cực nhất</h3>
             </div>
             <div className="card-body">
               <div className="space-y-4">
@@ -299,7 +346,7 @@ export default function UserActivity() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">{user.userName}</p>
-                        <p className="text-xs text-gray-500">{user.activityCount} activities</p>
+                        <p className="text-xs text-gray-500">{user.activityCount} hoạt động</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
@@ -315,7 +362,7 @@ export default function UserActivity() {
         {/* Activity Chart */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Activity Over Time</h3>
+            <h3 className="card-title">Mức độ hoạt động theo thời gian</h3>
           </div>
           <div className="card-body">
             {activityData.activityByDay && activityData.activityByDay.length > 0 ? (
@@ -328,9 +375,9 @@ export default function UserActivity() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">
-                          {new Date(day.date).toLocaleDateString()}
+                          {formatDateLabel(day.date)}
                         </p>
-                        <p className="text-xs text-gray-500">{day.count} activities</p>
+                        <p className="text-xs text-gray-500">{day.count} hoạt động</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -349,8 +396,8 @@ export default function UserActivity() {
               <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
                 <div className="text-center">
                   <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No activity data available</p>
-                  <p className="text-sm text-gray-500">Activity will appear here as you use the system</p>
+                  <p className="text-gray-600">Chưa có dữ liệu hoạt động</p>
+                  <p className="text-sm text-gray-500">Hoạt động sẽ xuất hiện khi người dùng tương tác với hệ thống</p>
                 </div>
               </div>
             )}

@@ -15,12 +15,12 @@ export default function ForgotPassword() {
     setError('');
 
     if (!email) {
-      setError('Email is required');
+      setError('Email là bắt buộc');
       return;
     }
 
     if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Email is invalid');
+      setError('Email không hợp lệ');
       return;
     }
 
@@ -28,10 +28,10 @@ export default function ForgotPassword() {
     try {
       await api.post('/auth/forgot-password', { email });
       setIsSubmitted(true);
-      toast.success('If an account with that email exists, a password reset link has been sent.');
+      toast.success('Nếu tài khoản với email đó tồn tại, một liên kết đặt lại mật khẩu đã được gửi.');
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Failed to send reset email');
-      toast.error(error.response?.data?.error || 'Failed to send reset email');
+      setError(error.response?.data?.error || 'Gửi email đặt lại mật khẩu thất bại');
+      toast.error(error.response?.data?.error || 'Gửi email đặt lại mật khẩu thất bại');
     } finally {
       setIsLoading(false);
     }
@@ -46,20 +46,20 @@ export default function ForgotPassword() {
               <CheckCircle className="w-12 h-12 text-green-600" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">
-              Check your email
+              Kiểm tra email của bạn
             </h2>
             <p className="mt-2 text-gray-600">
-              If an account with that email exists, we've sent a password reset link to <strong>{email}</strong>.
+              Nếu tài khoản với email đó tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu đến <strong>{email}</strong>.
             </p>
             <p className="mt-4 text-sm text-gray-500">
-              Please check your inbox and click the link to reset your password. The link will expire in 1 hour.
+              Vui lòng kiểm tra hộp thư đến và nhấp vào liên kết để đặt lại mật khẩu. Liên kết sẽ hết hạn sau 1 giờ.
             </p>
             <div className="mt-6">
               <Link
                 to="/login"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
               >
-                Back to Login
+                Quay lại Đăng nhập
               </Link>
             </div>
           </div>
@@ -77,10 +77,10 @@ export default function ForgotPassword() {
             <GraduationCap className="w-12 h-12 text-gray-900" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
-            Forgot your password?
+            Quên mật khẩu?
           </h2>
           <p className="mt-2 text-gray-600">
-            Enter your email address and we'll send you a link to reset your password.
+            Nhập địa chỉ email của bạn và chúng tôi sẽ gửi cho bạn một liên kết để đặt lại mật khẩu.
           </p>
         </div>
 
@@ -88,7 +88,7 @@ export default function ForgotPassword() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
+              Địa chỉ Email
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -99,7 +99,7 @@ export default function ForgotPassword() {
                 autoComplete="email"
                 required
                 className={`input pl-10 ${error ? 'input-error' : ''}`}
-                placeholder="Enter your email"
+                placeholder="Nhập địa chỉ email của bạn"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -122,7 +122,7 @@ export default function ForgotPassword() {
               disabled={isLoading}
               className="w-full btn btn-primary"
             >
-              {isLoading ? 'Sending...' : 'Send Reset Link'}
+              {isLoading ? 'Đang gửi...' : 'Gửi liên kết đặt lại'}
             </button>
           </div>
 
@@ -132,7 +132,7 @@ export default function ForgotPassword() {
               to="/login"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              Back to Login
+              Quay lại Đăng nhập
             </Link>
           </div>
         </form>

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../lib/axios';
 import { GraduationCap, CheckCircle, XCircle, Loader } from 'lucide-react';
 
 export default function VerifyEmail() {
-  const { token } = useParams<{ token: string }>();
+  const { token: pathToken } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const queryToken = searchParams.get('token');
+  const token = pathToken || queryToken; // Support both path and query params
   const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
@@ -13,14 +16,14 @@ export default function VerifyEmail() {
     const verifyEmail = async () => {
       if (!token) {
         setStatus('error');
-        setMessage('Invalid verification link');
+        setMessage('Liên kết xác minh không hợp lệ');
         return;
       }
 
       try {
         const response = await api.get(`/auth/verify-email/${token}`);
         setStatus('success');
-        setMessage(response.data.message || 'Email verified successfully!');
+        setMessage(response.data.message || 'Email đã được xác minh thành công!');
         
         // Redirect to login after 3 seconds
         setTimeout(() => {
@@ -28,7 +31,7 @@ export default function VerifyEmail() {
         }, 3000);
       } catch (error: any) {
         setStatus('error');
-        setMessage(error.response?.data?.error || 'Failed to verify email. The link may have expired.');
+        setMessage(error.response?.data?.error || 'Xác minh email thất bại. Liên kết có thể đã hết hạn.');
       }
     };
 
@@ -51,16 +54,16 @@ export default function VerifyEmail() {
             )}
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
-            {status === 'loading' && 'Verifying Email...'}
-            {status === 'success' && 'Email Verified!'}
-            {status === 'error' && 'Verification Failed'}
+            {status === 'loading' && 'Đang xác minh Email...'}
+            {status === 'success' && 'Email đã được xác minh!'}
+            {status === 'error' && 'Xác minh thất bại'}
           </h2>
           <p className="mt-2 text-gray-600">
-            {message || 'Please wait while we verify your email address.'}
+            {message || 'Vui lòng đợi trong khi chúng tôi xác minh địa chỉ email của bạn.'}
           </p>
           {status === 'success' && (
             <p className="mt-4 text-sm text-gray-500">
-              Redirecting to login page...
+              Đang chuyển hướng đến trang đăng nhập...
             </p>
           )}
           {status === 'error' && (
@@ -69,10 +72,10 @@ export default function VerifyEmail() {
                 to="/login"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
               >
-                Go to Login
+                Đi đến Đăng nhập
               </Link>
               <p className="text-sm text-gray-500">
-                Need a new verification link? Please contact support or try registering again.
+                Cần liên kết xác minh mới? Vui lòng liên hệ hỗ trợ hoặc thử đăng ký lại.
               </p>
             </div>
           )}

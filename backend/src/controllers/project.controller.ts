@@ -182,7 +182,7 @@ export const getProjects = async (req: Request, res: Response) => {
   try {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
-    const { status, lecturer, progress, dateRange, search, includeArchived = false, page = 1, limit = 10 } = req.query;
+    const { status, lecturer, progress, dateRange, startDate, endDate, search, includeArchived = false, page = 1, limit = 10 } = req.query;
 
     let whereClause: any = {};
 
@@ -230,7 +230,24 @@ export const getProjects = async (req: Request, res: Response) => {
     }
 
     // Filter by date range if provided
-    if (dateRange && typeof dateRange === 'string') {
+    // Support both preset dateRange string and explicit startDate/endDate
+    if (startDate && typeof startDate === 'string') {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      
+      if (endDate && typeof endDate === 'string') {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        whereClause.createdAt = { gte: start, lte: end };
+      } else {
+        whereClause.createdAt = { gte: start };
+      }
+    } else if (endDate && typeof endDate === 'string') {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      whereClause.createdAt = { lte: end };
+    } else if (dateRange && typeof dateRange === 'string') {
+      // Support preset date range strings for backward compatibility
       const now = new Date();
       const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);

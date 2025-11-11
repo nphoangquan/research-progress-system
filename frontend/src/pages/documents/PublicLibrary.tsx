@@ -60,7 +60,7 @@ export default function PublicLibrary() {
   const pageSize = 20;
 
   // Fetch public documents
-  const { data: documentsData, isLoading } = useQuery({
+  const { data: documentsData, isLoading, isError, refetch } = useQuery({
     queryKey: ['public-documents', filters, currentPage, pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -102,13 +102,13 @@ export default function PublicLibrary() {
   const getCategoryLabel = (category: string) => {
     switch (category) {
       case 'REFERENCE':
-        return 'Reference Material';
+        return 'Tài liệu Tham khảo';
       case 'TEMPLATE':
-        return 'Template';
+        return 'Mẫu';
       case 'GUIDELINE':
-        return 'Guideline';
+        return 'Hướng dẫn';
       case 'SYSTEM':
-        return 'System Document';
+        return 'Tài liệu Hệ thống';
       default:
         return category;
     }
@@ -139,7 +139,7 @@ export default function PublicLibrary() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -149,13 +149,13 @@ export default function PublicLibrary() {
   };
 
   const handleDownload = (doc: PublicDocument) => {
-    const link = document.createElement('a');
+    const link = window.document.createElement('a');
     link.href = doc.fileUrl;
     link.download = doc.fileName;
     link.target = '_blank';
-    document.body.appendChild(link);
+    window.document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    window.document.body.removeChild(link);
   };
 
   const handleView = (doc: PublicDocument) => {
@@ -169,7 +169,29 @@ export default function PublicLibrary() {
         <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading public library...</p>
+            <p className="mt-4 text-gray-600">Đang tải thư viện công khai...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} />
+        <div className="w-full px-6 py-8">
+          <div className="text-center py-12 space-y-4">
+            <BookOpen className="w-16 h-16 text-red-400 mx-auto" />
+            <h3 className="text-lg font-medium text-gray-900">Không thể tải thư viện công khai</h3>
+            <p className="text-gray-600">Đã xảy ra lỗi khi truy vấn dữ liệu thư viện. Vui lòng thử lại.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="btn-primary"
+            >
+              Thử lại
+            </button>
           </div>
         </div>
       </div>
@@ -187,9 +209,9 @@ export default function PublicLibrary() {
             <div className="flex items-center gap-4">
               <BookOpen className="w-6 h-6 text-gray-900" />
               <div>
-                <h1 className="page-title">Public Library</h1>
+                <h1 className="page-title">Thư viện Công khai</h1>
                 <p className="page-subtitle">
-                  Access reference materials, templates, and guidelines
+                  Truy cập tài liệu tham khảo, mẫu và hướng dẫn
                 </p>
               </div>
             </div>
@@ -208,7 +230,7 @@ export default function PublicLibrary() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                     <input
                       type="text"
-                      placeholder="Search library documents..."
+                      placeholder="Tìm kiếm tài liệu trong thư viện..."
                       className="input pl-10 w-full h-10"
                       value={filters.search}
                       onChange={(e) =>
@@ -229,7 +251,7 @@ export default function PublicLibrary() {
                   }}
                   className="btn-ghost whitespace-nowrap h-10 px-4"
                 >
-                  Clear Filters
+                  Xóa bộ lọc
                 </button>
               </div>
 
@@ -238,15 +260,15 @@ export default function PublicLibrary() {
                 <SelectDropdown
                   label=""
                   options={[
-                    { id: '', fullName: 'All Categories' },
-                    { id: 'REFERENCE', fullName: 'Reference Materials' },
-                    { id: 'TEMPLATE', fullName: 'Templates' },
-                    { id: 'GUIDELINE', fullName: 'Guidelines' },
-                    { id: 'SYSTEM', fullName: 'System Documents' }
+                    { id: '', fullName: 'Tất cả Danh mục' },
+                    { id: 'REFERENCE', fullName: 'Tài liệu Tham khảo' },
+                    { id: 'TEMPLATE', fullName: 'Mẫu' },
+                    { id: 'GUIDELINE', fullName: 'Hướng dẫn' },
+                    { id: 'SYSTEM', fullName: 'Tài liệu Hệ thống' }
                   ]}
                   value={filters.category}
                   onChange={(category) => setFilters(prev => ({ ...prev, category }))}
-                  placeholder="All Categories"
+                  placeholder="Tất cả Danh mục"
                 />
               </div>
             </div>
@@ -290,7 +312,7 @@ export default function PublicLibrary() {
                             <span>{formatFileSize(document.fileSize)}</span>
                           </div>
                           <div className="text-gray-400 truncate">
-                            by {document.uploader?.fullName || 'Unknown User'}
+                            bởi {document.uploader?.fullName || 'Người dùng Không xác định'}
                           </div>
                         </div>
                       </div>
@@ -299,14 +321,14 @@ export default function PublicLibrary() {
                         <button
                           onClick={() => handleView(document)}
                           className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                          title="View Document"
+                          title="Xem Tài liệu"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDownload(document)}
                           className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                          title="Download Document"
+                          title="Tải xuống Tài liệu"
                         >
                           <Download className="w-4 h-4" />
                         </button>
@@ -320,11 +342,11 @@ export default function PublicLibrary() {
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <BookOpen className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy tài liệu</h3>
                 <p className="text-gray-600 mb-6">
                   {filters.search || filters.category
-                    ? 'Try adjusting your filters to see more documents.'
-                    : 'No public documents are available yet.'}
+                    ? 'Thử điều chỉnh bộ lọc để xem thêm tài liệu.'
+                    : 'Chưa có tài liệu công khai nào.'}
                 </p>
               </div>
             )}

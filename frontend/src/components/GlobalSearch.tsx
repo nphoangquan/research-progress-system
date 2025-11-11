@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useDebounce } from 'use-debounce';
@@ -136,15 +135,61 @@ export default function GlobalSearch() {
     }
   }, [isOpen]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const saveSearchHistory = useCallback((searchQuery: string) => {
+    try {
+      const existingHistory = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+      const newHistory = [searchQuery, ...existingHistory.filter((item: string) => item !== searchQuery)].slice(0, 10);
+      localStorage.setItem('recentSearches', JSON.stringify(newHistory));
+    } catch (error) {
+      console.error('Error saving search history:', error);
+    }
+  }, []);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
     setShowSuggestions(value.length === 0);
     setSelectedSuggestionIndex(-1);
     setSelectedResultIndex(-1);
-  };
+  }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleSearch = useCallback(() => {
+    if (query.trim()) {
+      setShowSuggestions(false);
+      // Save to search history
+      saveSearchHistory(query.trim());
+    }
+  }, [query, saveSearchHistory]);
+
+  const navigateToResult = useCallback((result: SearchResult) => {
+    switch (result.type) {
+      case 'project':
+        navigate(`/projects/${result.id}`);
+        break;
+      case 'task':
+        navigate(`/tasks/${result.id}`);
+        break;
+      case 'document':
+        navigate(`/documents/${result.id}`);
+        break;
+    }
+  }, [navigate]);
+
+  const handleItemClick = useCallback((item: SearchResult | SearchSuggestion) => {
+    if ('type' in item && item.type) {
+      // Search result
+      navigateToResult(item as SearchResult);
+    } else {
+      // Suggestion
+      const suggestion = item as SearchSuggestion;
+      setQuery(suggestion.text);
+      setShowSuggestions(false);
+      handleSearch();
+    }
+    setIsOpen(false);
+  }, [navigateToResult, handleSearch]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (showSuggestions && suggestions) {
       // Navigation trong suggestions
       switch (e.key) {
@@ -190,53 +235,7 @@ export default function GlobalSearch() {
           break;
       }
     }
-  };
-
-  const handleItemClick = (item: SearchResult | SearchSuggestion) => {
-    if ('type' in item && item.type) {
-      // Search result
-      navigateToResult(item as SearchResult);
-    } else {
-      // Suggestion
-      const suggestion = item as SearchSuggestion;
-      setQuery(suggestion.text);
-      setShowSuggestions(false);
-      handleSearch();
-    }
-    setIsOpen(false);
-  };
-
-  const navigateToResult = (result: SearchResult) => {
-    switch (result.type) {
-      case 'project':
-        navigate(`/projects/${result.id}`);
-        break;
-      case 'task':
-        navigate(`/tasks/${result.id}`);
-        break;
-      case 'document':
-        navigate(`/documents/${result.id}`);
-        break;
-    }
-  };
-
-  const handleSearch = () => {
-    if (query.trim()) {
-      setShowSuggestions(false);
-      // Save to search history
-      saveSearchHistory(query.trim());
-    }
-  };
-
-  const saveSearchHistory = (searchQuery: string) => {
-    try {
-      const existingHistory = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-      const newHistory = [searchQuery, ...existingHistory.filter((item: string) => item !== searchQuery)].slice(0, 10);
-      localStorage.setItem('recentSearches', JSON.stringify(newHistory));
-    } catch (error) {
-      console.error('Error saving search history:', error);
-    }
-  };
+  }, [showSuggestions, suggestions, selectedSuggestionIndex, query, searchResults, selectedResultIndex, handleItemClick, handleSearch]);
 
   const getSearchHistory = (): SearchSuggestion[] => {
     try {
@@ -252,13 +251,13 @@ export default function GlobalSearch() {
     }
   };
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setQuery('');
     setShowSuggestions(true);
     setSelectedSuggestionIndex(-1);
     setSelectedResultIndex(-1);
     searchInputRef.current?.focus();
-  };
+  }, []);
 
   const getResultIcon = (type: string) => {
     switch (type) {
@@ -284,13 +283,13 @@ export default function GlobalSearch() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
-  };
+  }, []);
 
   return (
     <>
@@ -300,7 +299,7 @@ export default function GlobalSearch() {
         className="flex items-center space-x-2 px-3 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
       >
         <Search className="w-4 h-4" />
-        <span className="hidden sm:block text-sm">Search...</span>
+        <span className="hidden sm:block text-sm">Tìm kiếm...</span>
         <kbd className="hidden sm:block text-xs bg-gray-200 px-1.5 py-0.5 rounded">⌘K</kbd>
       </button>
 
@@ -317,7 +316,7 @@ export default function GlobalSearch() {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search projects, tasks, documents..."
+                placeholder="Tìm kiếm dự án, nhiệm vụ, tài liệu..."
                 className="flex-1 text-lg outline-none placeholder-gray-400"
                 value={query}
                 onChange={handleInputChange}
@@ -339,7 +338,7 @@ export default function GlobalSearch() {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <Filter className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">Filters:</span>
+                  <span className="text-sm text-gray-600">Bộ lọc:</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   {['project', 'task', 'document'].map((type) => (
@@ -362,7 +361,9 @@ export default function GlobalSearch() {
                         }}
                         className="rounded"
                       />
-                      <span className="text-sm capitalize">{type}s</span>
+                      <span className="text-sm capitalize">
+                        {type === 'project' ? 'Dự án' : type === 'task' ? 'Nhiệm vụ' : 'Tài liệu'}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -374,14 +375,14 @@ export default function GlobalSearch() {
               {isSearching && (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
-                  <span className="ml-2 text-gray-600">Searching...</span>
+                  <span className="ml-2 text-gray-600">Đang tìm kiếm...</span>
                 </div>
               )}
 
               {!isSearching && showSuggestions && suggestions && (
                 <div className="py-2">
                   <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Suggestions
+                    Gợi ý
                   </div>
                   {suggestions.map((suggestion, index) => (
                     <button
@@ -403,12 +404,12 @@ export default function GlobalSearch() {
                   {searchResults.length === 0 ? (
                     <div className="px-4 py-8 text-center text-gray-500">
                       <Search className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                      <p>No results found for "{query}"</p>
+                      <p>Không tìm thấy kết quả cho "{query}"</p>
                     </div>
                   ) : (
                     <>
                       <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        Results ({searchResults.length})
+                        Kết quả ({searchResults.length})
                       </div>
                       {searchResults.map((result, index) => (
                         <button
@@ -423,7 +424,7 @@ export default function GlobalSearch() {
                             <div className="flex items-center space-x-2">
                               <span className="font-medium text-gray-900">{result.title}</span>
                               <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full capitalize">
-                                {result.type}
+                                {result.type === 'project' ? 'Dự án' : result.type === 'task' ? 'Nhiệm vụ' : 'Tài liệu'}
                               </span>
                               {result.status && (
                                 <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full">
@@ -443,11 +444,11 @@ export default function GlobalSearch() {
                             )}
                             {result.projectTitle && (
                               <p className="text-xs text-gray-500 mt-1">
-                                Project: {result.projectTitle}
+                                Dự án: {result.projectTitle}
                               </p>
                             )}
                             <p className="text-xs text-gray-400 mt-1">
-                              Updated {formatDate(result.updatedAt)}
+                              Cập nhật {formatDate(result.updatedAt)}
                             </p>
                           </div>
                           <ArrowRight className="w-4 h-4 text-gray-400" />
@@ -463,13 +464,13 @@ export default function GlobalSearch() {
             <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 rounded-b-xl">
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <div className="flex items-center space-x-4">
-                  <span>↑↓ Navigate</span>
-                  <span>↵ Select</span>
-                  <span>Esc Close</span>
+                  <span>↑↓ Điều hướng</span>
+                  <span>↵ Chọn</span>
+                  <span>Esc Đóng</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <kbd className="bg-white px-1.5 py-0.5 rounded">⌘K</kbd>
-                  <span>to search</span>
+                  <span>để tìm kiếm</span>
                 </div>
               </div>
             </div>

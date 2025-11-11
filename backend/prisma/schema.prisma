@@ -19,6 +19,7 @@ model User {
   role          Role     @default(STUDENT)
   studentId     String?  @unique @map("student_id")
   avatarUrl     String?  @map("avatar_url")
+  preferences   Json?    @default("{}") @map("preferences")
   isActive      Boolean  @default(true) @map("is_active")
   emailVerified Boolean  @default(false) @map("email_verified")
   createdAt     DateTime @default(now()) @map("created_at")

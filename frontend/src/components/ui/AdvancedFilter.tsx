@@ -1,5 +1,5 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { KeyboardEvent } from 'react';
 import { 
   Filter, 
   X, 
@@ -35,72 +35,73 @@ export default function AdvancedFilter({
     setPendingFilters(filters);
   }, [filters]);
 
-  const handleFilterChange = (key: string, value: any) => {
-    const newFilters = { ...pendingFilters, [key]: value };
-    setPendingFilters(newFilters);
+  const handleFilterChange = useCallback((key: string, value: any) => {
+    setPendingFilters(prev => ({ ...prev, [key]: value }));
     // Don't apply immediately - wait for Apply button or Enter
-  };
+  }, []);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     setLocalFilters(pendingFilters);
     onFiltersChange(pendingFilters);
-  };
+  }, [pendingFilters, onFiltersChange]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     const clearedFilters = {};
     setLocalFilters(clearedFilters);
     setPendingFilters(clearedFilters);
     onFiltersChange(clearedFilters);
-  };
+  }, [onFiltersChange]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       applyFilters();
     }
-  };
+  }, [applyFilters]);
 
-  const hasActiveFilters = Object.keys(localFilters).some(key => 
-    localFilters[key] !== undefined && localFilters[key] !== '' && localFilters[key] !== null
-  );
+  const hasActiveFilters = useMemo(() => {
+    return Object.keys(localFilters).some(key => 
+      localFilters[key] !== undefined && localFilters[key] !== '' && localFilters[key] !== null
+    );
+  }, [localFilters]);
 
-  const getFilterCount = () => {
+  const getFilterCount = useMemo(() => {
     return Object.keys(localFilters).filter(key => 
       localFilters[key] !== undefined && localFilters[key] !== '' && localFilters[key] !== null
     ).length;
-  };
+  }, [localFilters]);
 
   const renderProjectFilters = () => (
     <div className="space-y-4">
       {/* Status Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Status
+          Trạng thái
         </label>
         <select
           value={pendingFilters.status || ''}
           onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
-          <option value="">All Statuses</option>
-          <option value="NOT_STARTED">Not Started</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="UNDER_REVIEW">Under Review</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
+          <option value="">Tất cả Trạng thái</option>
+          <option value="NOT_STARTED">Chưa bắt đầu</option>
+          <option value="IN_PROGRESS">Đang thực hiện</option>
+          <option value="UNDER_REVIEW">Đang xem xét</option>
+          <option value="COMPLETED">Hoàn thành</option>
+          <option value="CANCELLED">Đã hủy</option>
         </select>
       </div>
 
       {/* Progress Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Progress Range
+          Khoảng Tiến độ
         </label>
         <select
           value={pendingFilters.progress || ''}
           onChange={(e) => handleFilterChange('progress', e.target.value || undefined)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
-          <option value="">All Progress</option>
+          <option value="">Tất cả Tiến độ</option>
           <option value="0-25">0-25%</option>
           <option value="25-50">25-50%</option>
           <option value="50-75">50-75%</option>
@@ -111,13 +112,13 @@ export default function AdvancedFilter({
       {/* Lecturer Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Lecturer
+          Giảng viên
         </label>
         <input
           type="text"
           value={pendingFilters.lecturer || ''}
           onChange={(e) => handleFilterChange('lecturer', e.target.value || undefined)}
-          placeholder="Filter by lecturer..."
+          placeholder="Lọc theo giảng viên..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </div>
@@ -125,18 +126,18 @@ export default function AdvancedFilter({
       {/* Created Date Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Created Date
+          Ngày Tạo
         </label>
         <select
           value={pendingFilters.createdDate || ''}
           onChange={(e) => handleFilterChange('createdDate', e.target.value || undefined)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
-          <option value="">All Time</option>
-          <option value="today">Today</option>
-          <option value="this_week">This Week</option>
-          <option value="this_month">This Month</option>
-          <option value="this_year">This Year</option>
+          <option value="">Tất cả Thời gian</option>
+          <option value="today">Hôm nay</option>
+          <option value="this_week">Tuần này</option>
+          <option value="this_month">Tháng này</option>
+          <option value="this_year">Năm này</option>
         </select>
       </div>
     </div>
@@ -147,49 +148,49 @@ export default function AdvancedFilter({
       {/* Status Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Status
+          Trạng thái
         </label>
         <select
           value={pendingFilters.status || ''}
           onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
-          <option value="">All Statuses</option>
-          <option value="TODO">To Do</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="REVIEW">Review</option>
-          <option value="COMPLETED">Completed</option>
+          <option value="">Tất cả Trạng thái</option>
+          <option value="TODO">Cần làm</option>
+          <option value="IN_PROGRESS">Đang thực hiện</option>
+          <option value="REVIEW">Xem xét</option>
+          <option value="COMPLETED">Hoàn thành</option>
         </select>
       </div>
 
       {/* Priority Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Priority
+          Độ Ưu tiên
         </label>
         <select
           value={pendingFilters.priority || ''}
           onChange={(e) => handleFilterChange('priority', e.target.value || undefined)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
-          <option value="">All Priorities</option>
-          <option value="LOW">Low</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="HIGH">High</option>
-          <option value="URGENT">Urgent</option>
+          <option value="">Tất cả Độ Ưu tiên</option>
+          <option value="LOW">Thấp</option>
+          <option value="MEDIUM">Trung bình</option>
+          <option value="HIGH">Cao</option>
+          <option value="URGENT">Khẩn cấp</option>
         </select>
       </div>
 
       {/* Assignee Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Assignee
+          Người được gán
         </label>
         <UserFilterSelector
           selectedUsers={Array.isArray(pendingFilters.assignee) ? pendingFilters.assignee : (pendingFilters.assignee ? [pendingFilters.assignee] : [])}
           onSelectionChange={(userIds) => handleFilterChange('assignee', userIds.length > 0 ? userIds : undefined)}
           multiple={true}
-          placeholder="All Assignees"
+          placeholder="Tất cả Người được gán"
           className="w-full"
         />
       </div>
@@ -197,13 +198,13 @@ export default function AdvancedFilter({
       {/* Project Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Project
+          Dự án
         </label>
         <input
           type="text"
           value={pendingFilters.project || ''}
           onChange={(e) => handleFilterChange('project', e.target.value || undefined)}
-          placeholder="Filter by project..."
+          placeholder="Lọc theo dự án..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </div>
@@ -211,18 +212,18 @@ export default function AdvancedFilter({
       {/* Due Date Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Due Date
+          Hạn chót
         </label>
         <select
           value={pendingFilters.dueDate || ''}
           onChange={(e) => handleFilterChange('dueDate', e.target.value || undefined)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
-          <option value="">All Due Dates</option>
-          <option value="overdue">Overdue</option>
-          <option value="today">Due Today</option>
-          <option value="this_week">Due This Week</option>
-          <option value="no_due_date">No Due Date</option>
+          <option value="">Tất cả Hạn chót</option>
+          <option value="overdue">Quá hạn</option>
+          <option value="today">Hạn hôm nay</option>
+          <option value="this_week">Hạn tuần này</option>
+          <option value="no_due_date">Không có hạn chót</option>
         </select>
       </div>
     </div>
@@ -233,31 +234,31 @@ export default function AdvancedFilter({
       {/* Status Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Status
+          Trạng thái
         </label>
         <select
           value={pendingFilters.status || ''}
           onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
-          <option value="">All Statuses</option>
-          <option value="PENDING">Pending</option>
-          <option value="PROCESSING">Processing</option>
-          <option value="INDEXED">Indexed</option>
-          <option value="FAILED">Failed</option>
+          <option value="">Tất cả Trạng thái</option>
+          <option value="PENDING">Đang chờ</option>
+          <option value="PROCESSING">Đang xử lý</option>
+          <option value="INDEXED">Đã lập chỉ mục</option>
+          <option value="FAILED">Thất bại</option>
         </select>
       </div>
 
       {/* Project Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Project
+          Dự án
         </label>
         <input
           type="text"
           value={pendingFilters.project || ''}
           onChange={(e) => handleFilterChange('project', e.target.value || undefined)}
-          placeholder="Filter by project..."
+          placeholder="Lọc theo dự án..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </div>
@@ -265,13 +266,13 @@ export default function AdvancedFilter({
       {/* Uploader Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Uploader
+          Người tải lên
         </label>
         <input
           type="text"
           value={pendingFilters.uploader || ''}
           onChange={(e) => handleFilterChange('uploader', e.target.value || undefined)}
-          placeholder="Filter by uploader..."
+          placeholder="Lọc theo người tải lên..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </div>
@@ -279,38 +280,38 @@ export default function AdvancedFilter({
       {/* File Type Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          File Type
+          Loại Tệp
         </label>
         <select
           value={pendingFilters.fileType || ''}
           onChange={(e) => handleFilterChange('fileType', e.target.value || undefined)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
-          <option value="">All File Types</option>
+          <option value="">Tất cả Loại Tệp</option>
           <option value="pdf">PDF</option>
-          <option value="doc">Word Documents</option>
-          <option value="xls">Excel Spreadsheets</option>
-          <option value="ppt">PowerPoint Presentations</option>
-          <option value="image">Images</option>
-          <option value="archive">Archives</option>
+          <option value="doc">Tài liệu Word</option>
+          <option value="xls">Bảng tính Excel</option>
+          <option value="ppt">Trình bày PowerPoint</option>
+          <option value="image">Hình ảnh</option>
+          <option value="archive">Tệp nén</option>
         </select>
       </div>
 
       {/* Upload Date Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Upload Date
+          Ngày Tải lên
         </label>
         <select
           value={pendingFilters.uploadDate || ''}
           onChange={(e) => handleFilterChange('uploadDate', e.target.value || undefined)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
-          <option value="">All Time</option>
-          <option value="today">Today</option>
-          <option value="this_week">This Week</option>
-          <option value="this_month">This Month</option>
-          <option value="this_year">This Year</option>
+          <option value="">Tất cả Thời gian</option>
+          <option value="today">Hôm nay</option>
+          <option value="this_week">Tuần này</option>
+          <option value="this_month">Tháng này</option>
+          <option value="this_year">Năm này</option>
         </select>
       </div>
     </div>
@@ -335,10 +336,10 @@ export default function AdvancedFilter({
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <Filter className="w-5 h-5 text-gray-500" />
-          <h3 className="text-lg font-medium text-gray-900">Advanced Filters</h3>
+          <h3 className="text-lg font-medium text-gray-900">Bộ lọc Nâng cao</h3>
           {hasActiveFilters && (
             <span className="px-2 py-1 text-xs font-medium bg-primary-100 text-primary-600 rounded-full">
-              {getFilterCount()} active
+              {getFilterCount} đang hoạt động
             </span>
           )}
         </div>
@@ -363,7 +364,7 @@ export default function AdvancedFilter({
           {/* Search Filter */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search
+              Tìm kiếm
             </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -372,7 +373,7 @@ export default function AdvancedFilter({
                 value={pendingFilters.search || ''}
                 onChange={(e) => handleFilterChange('search', e.target.value || undefined)}
                 onKeyPress={handleKeyPress}
-                placeholder={`Search ${entityType}s...`}
+                placeholder={`Tìm kiếm ${entityType === 'project' ? 'dự án' : entityType === 'task' ? 'nhiệm vụ' : 'tài liệu'}...`}
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
@@ -390,18 +391,18 @@ export default function AdvancedFilter({
               className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200"
             >
               <X className="w-4 h-4" />
-              <span>Clear All Filters</span>
+              <span>Xóa Tất cả Bộ lọc</span>
             </button>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-500">
-                {getFilterCount()} filter{getFilterCount() !== 1 ? 's' : ''} applied
+                {getFilterCount} bộ lọc đã áp dụng
               </div>
               <button
                 onClick={applyFilters}
                 className="flex items-center space-x-2 px-4 py-2 text-white bg-primary-600 border border-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200"
               >
                 <Filter className="w-4 h-4" />
-                <span>Apply Filters</span>
+                <span>Áp dụng Bộ lọc</span>
               </button>
             </div>
           </div>

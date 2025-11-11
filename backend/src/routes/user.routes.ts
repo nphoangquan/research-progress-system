@@ -5,7 +5,9 @@ import {
   getUserById,
   updateUser,
   changePassword,
-  uploadAvatar
+  uploadAvatar,
+  getUserPreferences,
+  updateUserPreferences
 } from '../controllers/user.controller';
 import { verifyToken, requireUser } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
@@ -51,6 +53,8 @@ router.put('/:id', requireUser, updateUser);
  * @body    { currentPassword, newPassword }
  */
 router.put('/:id/password', requireUser, changePassword);
+router.get('/:id/preferences', requireUser, getUserPreferences);
+router.put('/:id/preferences', requireUser, updateUserPreferences);
 
 /**
  * @route   POST /api/users/:id/avatar

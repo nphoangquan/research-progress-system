@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
+import UserFilterSelector from '../../components/ui/UserFilterSelector';
+import DateRangePicker from '../../components/ui/DateRangePicker';
 import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
 import type { Project } from '../../types/project';
@@ -26,9 +28,9 @@ export default function ProjectList() {
 
   const [filters, setFilters] = useState({
     status: '',
-    lecturer: '',
+    lecturers: [] as string[],
     progress: '',
-    dateRange: '',
+    dateRange: null as { startDate: string | null; endDate: string | null } | null,
     search: '',
     showArchived: false
   });
@@ -42,9 +44,18 @@ export default function ProjectList() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.status) params.append('status', filters.status);
-      if (filters.lecturer) params.append('lecturer', filters.lecturer);
+      // Add lecturer IDs as multiple parameters
+      filters.lecturers.forEach(lecturerId => {
+        params.append('lecturer', lecturerId);
+      });
       if (filters.progress) params.append('progress', filters.progress);
-      if (filters.dateRange) params.append('dateRange', filters.dateRange);
+      // Add date range parameters
+      if (filters.dateRange?.startDate) {
+        params.append('startDate', filters.dateRange.startDate);
+      }
+      if (filters.dateRange?.endDate) {
+        params.append('endDate', filters.dateRange.endDate);
+      }
       if (filters.search) params.append('search', filters.search);
       if (filters.showArchived) params.append('includeArchived', 'true');
 
@@ -63,7 +74,7 @@ export default function ProjectList() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.status, filters.lecturer, filters.progress, filters.dateRange, filters.search, filters.showArchived]);
+  }, [filters.status, filters.lecturers.length, filters.progress, filters.dateRange?.startDate, filters.dateRange?.endDate, filters.search, filters.showArchived]);
 
   if (!user) {
     return (
@@ -82,9 +93,9 @@ export default function ProjectList() {
         <div className="page-header">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="page-title">Projects</h1>
+              <h1 className="page-title">Dự án</h1>
               <p className="page-subtitle">
-                Manage your research projects and track progress.
+                Quản lý các dự án nghiên cứu và theo dõi tiến độ.
               </p>
             </div>
             <div className="flex items-center space-x-3">
@@ -94,7 +105,7 @@ export default function ProjectList() {
                   className="btn-primary"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Project
+                  Tạo dự án
                 </Link>
               )}
               <Link
@@ -102,7 +113,7 @@ export default function ProjectList() {
                 className="btn-secondary"
               >
                 <Archive className="w-4 h-4 mr-2" />
-                Archived Projects
+                Dự án đã lưu trữ
               </Link>
             </div>
           </div>
@@ -118,7 +129,7 @@ export default function ProjectList() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
                     type="text"
-                    placeholder="Search projects..."
+                    placeholder="Tìm kiếm dự án..."
                     className="input pl-10"
                     value={filters.search}
                     onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
@@ -126,51 +137,62 @@ export default function ProjectList() {
                 </div>
                 <button
                   onClick={() => {
-                    setFilters({ status: '', lecturer: '', progress: '', dateRange: '', search: '', showArchived: false });
+                    setFilters({ status: '', lecturers: [], progress: '', dateRange: null, search: '', showArchived: false });
                     setCurrentPage(1);
                   }}
                   className="btn-ghost whitespace-nowrap"
                 >
-                  Clear Filters
+                  Xóa bộ lọc
                 </button>
               </div>
 
-              {/* Filter Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Filter Row 1: Lecturer Filter and Date Range Picker */}
+              {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Lecturer Filter - Only for Admin/Lecturer */}
+                  <UserFilterSelector
+                    selectedUsers={filters.lecturers}
+                    onSelectionChange={(lecturerIds) => setFilters(prev => ({ ...prev, lecturers: lecturerIds }))}
+                    multiple={true}
+                    placeholder="Tất cả giảng viên"
+                    className="w-full"
+                    roleFilter="LECTURER"
+                  />
+
+                  {/* Date Range Filter */}
+                  <DateRangePicker
+                    value={filters.dateRange}
+                    onChange={(range) => setFilters(prev => ({ ...prev, dateRange: range }))}
+                    placeholder="Chọn khoảng ngày"
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              {/* Filter Row 2: Status and Progress */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Status Filter */}
                 <SelectDropdown
                   label=""
                   options={[
-                    { id: '', fullName: 'All Status' },
-                    { id: 'NOT_STARTED', fullName: 'Not Started' },
-                    { id: 'IN_PROGRESS', fullName: 'In Progress' },
-                    { id: 'UNDER_REVIEW', fullName: 'Under Review' },
-                    { id: 'COMPLETED', fullName: 'Completed' },
-                    { id: 'CANCELLED', fullName: 'Cancelled' },
-                    { id: 'ARCHIVED', fullName: 'Archived' }
+                    { id: '', fullName: 'Tất cả trạng thái' },
+                    { id: 'NOT_STARTED', fullName: 'Chưa bắt đầu' },
+                    { id: 'IN_PROGRESS', fullName: 'Đang thực hiện' },
+                    { id: 'UNDER_REVIEW', fullName: 'Đang xem xét' },
+                    { id: 'COMPLETED', fullName: 'Hoàn thành' },
+                    { id: 'CANCELLED', fullName: 'Đã hủy' },
+                    { id: 'ARCHIVED', fullName: 'Đã lưu trữ' }
                   ]}
                   value={filters.status}
                   onChange={(status) => setFilters(prev => ({ ...prev, status }))}
-                  placeholder="All Status"
-                />
-
-                {/* Lecturer Filter */}
-                <SelectDropdown
-                  label=""
-                  options={[
-                    { id: '', fullName: 'All Lecturers' },
-                    // Lecturers will be populated from API
-                  ]}
-                  value={filters.lecturer}
-                  onChange={(lecturer) => setFilters(prev => ({ ...prev, lecturer }))}
-                  placeholder="All Lecturers"
+                  placeholder="Tất cả trạng thái"
                 />
 
                 {/* Progress Filter */}
                 <SelectDropdown
                   label=""
                   options={[
-                    { id: '', fullName: 'All Progress' },
+                    { id: '', fullName: 'Tất cả tiến độ' },
                     { id: '0-25', fullName: '0-25%' },
                     { id: '25-50', fullName: '25-50%' },
                     { id: '50-75', fullName: '50-75%' },
@@ -178,24 +200,21 @@ export default function ProjectList() {
                   ]}
                   value={filters.progress}
                   onChange={(progress) => setFilters(prev => ({ ...prev, progress }))}
-                  placeholder="All Progress"
-                />
-
-                {/* Date Range Filter */}
-                <SelectDropdown
-                  label=""
-                  options={[
-                    { id: '', fullName: 'All Dates' },
-                    { id: 'this_month', fullName: 'This Month' },
-                    { id: 'last_month', fullName: 'Last Month' },
-                    { id: 'this_quarter', fullName: 'This Quarter' },
-                    { id: 'this_year', fullName: 'This Year' }
-                  ]}
-                  value={filters.dateRange}
-                  onChange={(dateRange) => setFilters(prev => ({ ...prev, dateRange }))}
-                  placeholder="All Dates"
+                  placeholder="Tất cả tiến độ"
                 />
               </div>
+
+              {/* Date Range Filter for Student (only show if student) */}
+              {user.role === 'STUDENT' && (
+                <div className="grid grid-cols-1 gap-4">
+                  <DateRangePicker
+                    value={filters.dateRange}
+                    onChange={(range) => setFilters(prev => ({ ...prev, dateRange: range }))}
+                    placeholder="Chọn khoảng ngày"
+                    className="w-full"
+                  />
+                </div>
+              )}
 
               {/* Archive Toggle */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
@@ -208,12 +227,12 @@ export default function ProjectList() {
                     className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
                   />
                   <label htmlFor="showArchived" className="text-sm font-medium text-gray-700">
-                    Show Archived Projects
+                    Hiển thị dự án đã lưu trữ
                   </label>
                 </div>
                 {filters.showArchived && (
                   <div className="text-sm text-gray-500">
-                    Showing archived projects
+                    Đang hiển thị dự án đã lưu trữ
                   </div>
                 )}
               </div>
@@ -225,7 +244,7 @@ export default function ProjectList() {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading projects...</p>
+            <p className="mt-4 text-gray-600">Đang tải dự án...</p>
           </div>
         ) : error ? (
           <div className="card">
@@ -233,10 +252,10 @@ export default function ProjectList() {
               <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FolderOpen className="w-8 h-8 text-error-600" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading projects</h3>
-              <p className="text-gray-600 mb-6">Please try again later.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi khi tải dự án</h3>
+              <p className="text-gray-600 mb-6">Vui lòng thử lại sau.</p>
               <button className="btn-primary">
-                Try Again
+                Thử lại
               </button>
             </div>
           </div>
@@ -246,11 +265,11 @@ export default function ProjectList() {
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FolderOpen className="w-8 h-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy dự án</h3>
               <p className="text-gray-600 mb-6">
                 {user.role === 'STUDENT' 
-                  ? "You don't have any projects assigned yet."
-                  : "Get started by creating your first project."
+                  ? "Bạn chưa được gán dự án nào."
+                  : "Bắt đầu bằng cách tạo dự án đầu tiên của bạn."
                 }
               </p>
               {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
@@ -259,7 +278,7 @@ export default function ProjectList() {
                   className="btn-primary"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Project
+                  Tạo dự án
                 </Link>
               )}
             </div>
@@ -281,7 +300,7 @@ export default function ProjectList() {
                       </Link>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className={`badge ${
+                      <span className={`badge whitespace-nowrap ${
                         project.status === 'COMPLETED' ? 'badge-success' :
                         project.status === 'IN_PROGRESS' ? 'badge-primary' :
                         project.status === 'UNDER_REVIEW' ? 'badge-warning' :
@@ -293,7 +312,7 @@ export default function ProjectList() {
                         <Link
                           to={`/projects/${project.id}/edit`}
                           className="btn-ghost p-1"
-                          title="Edit project"
+                          title="Chỉnh sửa dự án"
                         >
                           <Edit className="w-4 h-4" />
                         </Link>
@@ -308,7 +327,7 @@ export default function ProjectList() {
                   {/* Progress Section */}
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                      <span>Progress</span>
+                      <span>Tiến độ</span>
                       <span className="font-medium">{project.progress}%</span>
                     </div>
                     <div className="progress-bar">
@@ -324,11 +343,11 @@ export default function ProjectList() {
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center">
                         <CheckSquare className="w-4 h-4 mr-1" />
-                        {project._count.tasks} tasks
+                        {project._count.tasks} nhiệm vụ
                       </div>
                       <div className="flex items-center">
                         <FileText className="w-4 h-4 mr-1" />
-                        {project._count.documents} docs
+                        {project._count.documents} tài liệu
                       </div>
                     </div>
                   </div>
@@ -338,14 +357,14 @@ export default function ProjectList() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center text-sm text-gray-500">
                         <User className="w-4 h-4 mr-1" />
-                        {user.role === 'STUDENT' ? 'Lecturer' : 'Students'}
+                        {user.role === 'STUDENT' ? 'Giảng viên' : 'Sinh viên'}
                       </div>
                       <div className="text-sm font-medium text-gray-900">
                         {user.role === 'STUDENT' 
                           ? project.lecturer.fullName 
                           : project.students?.length > 0 
-                            ? `${project.students.length} student${project.students.length > 1 ? 's' : ''}`
-                            : 'No students'
+                            ? `${project.students.length} sinh viên`
+                            : 'Chưa có sinh viên'
                         }
                       </div>
                     </div>
@@ -364,7 +383,7 @@ export default function ProjectList() {
               totalPages={pagination.pages}
               totalCount={pagination.total}
               limit={pagination.limit}
-              onPageChange={(page) => {
+              onPageChange={(page: number) => {
                 setCurrentPage(page);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}

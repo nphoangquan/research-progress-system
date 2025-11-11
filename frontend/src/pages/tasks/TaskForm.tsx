@@ -1,5 +1,5 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
@@ -54,7 +54,7 @@ export default function TaskForm() {
   const [errors, setErrors] = useState<Partial<Record<keyof TaskFormData, string>>>({});
 
   // Fetch task data for editing
-  const { data: task, isLoading: taskLoading } = useQuery({
+  const { data: task, isLoading: taskLoading, isError: taskError, refetch: refetchTask } = useQuery({
     queryKey: ['task', id],
     queryFn: async () => {
       const response = await api.get(`/tasks/${id}`);
@@ -161,7 +161,7 @@ export default function TaskForm() {
                   try {
                     await addLabelToTask(task.id, labelId);
                   } catch (error: any) {
-                    labelErrors.push(`Failed to add label to task "${task.title}": ${error.response?.data?.error || 'Unknown error'}`);
+                    labelErrors.push(`Không thể thêm label cho nhiệm vụ "${task.title}": ${error.response?.data?.error || 'Lỗi không xác định'}`);
                   }
                 })
               );
@@ -171,7 +171,7 @@ export default function TaskForm() {
           if (labelErrors.length > 0) {
             console.warn('Some labels could not be added:', labelErrors);
             // Still show success but warn about partial failure
-            toast.error(`Tasks created but some labels could not be added. Check console for details.`);
+            toast.error(`Nhiệm vụ đã được tạo nhưng một số label không thể thêm. Kiểm tra console để biết chi tiết.`);
           }
         }
         
@@ -193,14 +193,14 @@ export default function TaskForm() {
               try {
                 await addLabelToTask(createdTask.id, labelId);
               } catch (error: any) {
-                labelErrors.push(error.response?.data?.error || 'Unknown error');
+                labelErrors.push(error.response?.data?.error || 'Lỗi không xác định');
               }
             })
           );
           
           if (labelErrors.length > 0) {
             console.warn('Some labels could not be added:', labelErrors);
-            toast.error(`Task created but some labels could not be added. Check console for details.`);
+            toast.error(`Nhiệm vụ đã được tạo nhưng một số label không thể thêm. Kiểm tra console để biết chi tiết.`);
           }
         }
         
@@ -212,11 +212,11 @@ export default function TaskForm() {
       // Invalidate queries to refresh task lists
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['labels'] });
-      toast.success(`Task${taskCount > 1 ? 's' : ''} created successfully!`);
+      toast.success(`Nhiệm vụ${taskCount > 1 ? '' : ''} đã được tạo thành công!`);
       navigate(projectId ? `/projects/${projectId}/tasks` : '/tasks');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to create task');
+      toast.error(error.response?.data?.error || 'Tạo nhiệm vụ thất bại');
     },
   });
 
@@ -245,15 +245,15 @@ export default function TaskForm() {
       queryClient.invalidateQueries({ queryKey: ['task', id] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['labels'] });
-      toast.success('Task updated successfully!');
+      toast.success('Cập nhật nhiệm vụ thành công!');
       navigate(projectId ? `/projects/${projectId}/tasks` : '/tasks');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to update task');
+      toast.error(error.response?.data?.error || 'Cập nhật nhiệm vụ thất bại');
     },
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = useCallback((e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -267,13 +267,13 @@ export default function TaskForm() {
         [name]: undefined
       }));
     }
-  };
+  }, [errors]);
 
-  const validateForm = (): boolean => {
+  const validateForm = useCallback((): boolean => {
     const newErrors: Partial<Record<keyof TaskFormData, string>> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Task title is required';
+      newErrors.title = 'Tiêu đề nhiệm vụ là bắt buộc';
     }
 
     if (formData.dueDate) {
@@ -282,19 +282,19 @@ export default function TaskForm() {
       today.setHours(0, 0, 0, 0);
       
       if (dueDate < today) {
-        newErrors.dueDate = 'Due date cannot be in the past';
+        newErrors.dueDate = 'Hạn chót không thể ở quá khứ';
       }
     }
 
     if (formData.projectIds.length === 0) {
-      newErrors.projectIds = 'Please select at least one project';
+      newErrors.projectIds = 'Vui lòng chọn ít nhất một dự án';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -306,7 +306,16 @@ export default function TaskForm() {
     } else {
       createTaskMutation.mutate(formData);
     }
-  };
+  }, [isEditing, formData, validateForm, createTaskMutation, updateTaskMutation]);
+
+  const assigneeOptions = useMemo(() => [
+    { id: '', fullName: 'Không gán cụ thể (Chỉ dự án)' },
+    ...((projectId ? projectMembers : users)?.map((user: any) => ({
+      id: user.id,
+      fullName: projectId ? `${user.fullName} (${user.role})` : user.fullName,
+      email: user.email
+    })) || [])
+  ], [projectId, projectMembers, users]);
 
   if (taskLoading) {
     return (
@@ -315,7 +324,29 @@ export default function TaskForm() {
         <div className="container py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading task...</p>
+            <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (taskError && isEditing) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user as any} />
+        <div className="container py-8">
+          <div className="text-center py-12 space-y-4">
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto" />
+            <h3 className="text-lg font-medium text-gray-900">Không thể tải nhiệm vụ</h3>
+            <p className="text-gray-600">Đã xảy ra lỗi khi tải dữ liệu nhiệm vụ. Vui lòng thử lại.</p>
+            <button
+              type="button"
+              onClick={() => refetchTask()}
+              className="btn-primary"
+            >
+              Thử lại
+            </button>
           </div>
         </div>
       </div>
@@ -339,10 +370,10 @@ export default function TaskForm() {
               </button>
               <div>
                 <h1 className="page-title">
-                  {isEditing ? 'Edit Task' : 'Create New Task'}
+                  {isEditing ? 'Chỉnh sửa Nhiệm vụ' : 'Tạo Nhiệm vụ Mới'}
                 </h1>
                 <p className="page-subtitle">
-                  {isEditing ? 'Update task details and settings.' : 'Add a new task to track work and progress.'}
+                  {isEditing ? 'Cập nhật chi tiết và cài đặt nhiệm vụ.' : 'Thêm nhiệm vụ mới để theo dõi công việc và tiến độ.'}
                 </p>
               </div>
             </div>
@@ -357,7 +388,7 @@ export default function TaskForm() {
                 {/* Task Title */}
                 <div className="space-y-2">
                   <label htmlFor="title" className="block text-sm font-semibold text-gray-700">
-                    Task Title *
+                    Tiêu đề Nhiệm vụ *
                   </label>
                   <div className="relative">
                     <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -367,7 +398,7 @@ export default function TaskForm() {
                       type="text"
                       required
                       className={`input pl-10 h-12 text-base ${errors.title ? 'input-error' : ''}`}
-                      placeholder="Enter task title"
+                      placeholder="Nhập tiêu đề nhiệm vụ"
                       value={formData.title}
                       onChange={handleChange}
                     />
@@ -383,14 +414,14 @@ export default function TaskForm() {
                 {/* Task Description */}
                 <div className="space-y-2">
                   <label htmlFor="description" className="block text-sm font-semibold text-gray-700">
-                    Description
+                    Mô tả
                   </label>
                   <textarea
                     id="description"
                     name="description"
                     rows={4}
                     className={`input ${errors.description ? 'input-error' : ''}`}
-                    placeholder="Describe the task requirements and objectives"
+                    placeholder="Mô tả yêu cầu và mục tiêu của nhiệm vụ"
                     value={formData.description}
                     onChange={handleChange}
                   />
@@ -406,13 +437,13 @@ export default function TaskForm() {
                 {!isEditing && (
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
-                      Projects *
+                      Dự án *
                     </label>
                     <ProjectSelector
                       selectedProjects={formData.projectIds}
                       onSelectionChange={(projectIds) => setFormData(prev => ({ ...prev, projectIds }))}
                       multiple={true}
-                      placeholder="Select projects..."
+                      placeholder="Chọn dự án..."
                       className="w-full"
                     />
                     {errors.projectIds && (
@@ -427,23 +458,16 @@ export default function TaskForm() {
                 {/* Assignee Selection */}
                 <div className="space-y-2">
                   <SelectDropdown
-                    label="Assignee (Optional)"
-                    options={[
-                      { id: '', fullName: 'No specific assignee (Project only)' },
-                      ...((projectId ? projectMembers : users)?.map((user: any) => ({
-                        id: user.id,
-                        fullName: projectId ? `${user.fullName} (${user.role})` : user.fullName,
-                        email: user.email
-                      })) || [])
-                    ]}
+                    label="Người được gán (Tùy chọn)"
+                    options={assigneeOptions}
                     value={formData.assigneeId}
                     onChange={(assigneeId) => setFormData(prev => ({ ...prev, assigneeId }))}
                     error={errors.assigneeId}
-                    placeholder="Select an assignee (optional)..."
+                    placeholder="Chọn người được gán (tùy chọn)..."
                     icon={<User className="w-5 h-5" />}
                   />
                   <p className="text-sm text-gray-500">
-                    Leave empty to assign task to project only (no specific person)
+                    Để trống để gán nhiệm vụ cho dự án (không gán cho người cụ thể)
                   </p>
                 </div>
 
@@ -451,32 +475,32 @@ export default function TaskForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <SelectDropdown
-                      label="Status"
+                      label="Trạng thái"
                       options={[
-                        { id: 'TODO', fullName: 'To Do' },
-                        { id: 'IN_PROGRESS', fullName: 'In Progress' },
-                        { id: 'REVIEW', fullName: 'Review' },
-                        { id: 'COMPLETED', fullName: 'Completed' }
+                        { id: 'TODO', fullName: 'Cần làm' },
+                        { id: 'IN_PROGRESS', fullName: 'Đang thực hiện' },
+                        { id: 'REVIEW', fullName: 'Đang xem xét' },
+                        { id: 'COMPLETED', fullName: 'Hoàn thành' }
                       ]}
                       value={formData.status}
                       onChange={(status) => setFormData(prev => ({ ...prev, status }))}
-                      placeholder="Select status..."
+                      placeholder="Chọn trạng thái..."
                       icon={<CheckSquare className="w-5 h-5" />}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <SelectDropdown
-                      label="Priority"
+                      label="Mức độ ưu tiên"
                       options={[
-                        { id: 'LOW', fullName: 'Low' },
-                        { id: 'MEDIUM', fullName: 'Medium' },
-                        { id: 'HIGH', fullName: 'High' },
-                        { id: 'URGENT', fullName: 'Urgent' }
+                        { id: 'LOW', fullName: 'Thấp' },
+                        { id: 'MEDIUM', fullName: 'Trung bình' },
+                        { id: 'HIGH', fullName: 'Cao' },
+                        { id: 'URGENT', fullName: 'Khẩn cấp' }
                       ]}
                       value={formData.priority}
                       onChange={(priority) => setFormData(prev => ({ ...prev, priority }))}
-                      placeholder="Select priority..."
+                      placeholder="Chọn mức độ ưu tiên..."
                       icon={<AlertTriangle className="w-5 h-5" />}
                     />
                   </div>
@@ -485,12 +509,12 @@ export default function TaskForm() {
                 {/* Due Date */}
                 <div className="space-y-2">
                   <label htmlFor="dueDate" className="block text-sm font-semibold text-gray-700">
-                    Due Date
+                    Hạn chót
                   </label>
                   <DatePicker
                     value={formData.dueDate || null}
                     onChange={(value) => setFormData(prev => ({ ...prev, dueDate: value || '' }))}
-                    placeholder="Select due date (optional)"
+                    placeholder="Chọn hạn chót (tùy chọn)"
                     className={errors.dueDate ? 'border-red-500' : ''}
                   />
                   {errors.dueDate && (
@@ -533,7 +557,7 @@ export default function TaskForm() {
                     onClick={() => navigate(projectId ? `/projects/${projectId}/tasks` : '/tasks')}
                     className="btn-secondary px-6 py-3"
                   >
-                    Cancel
+                    Hủy
                   </button>
                   <button
                     type="submit"
@@ -543,12 +567,12 @@ export default function TaskForm() {
                     {createTaskMutation.isPending || updateTaskMutation.isPending ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        {isEditing ? 'Updating...' : 'Creating...'}
+                        {isEditing ? 'Đang cập nhật...' : 'Đang tạo...'}
                       </>
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        {isEditing ? 'Update Task' : 'Create Task'}
+                        {isEditing ? 'Cập nhật Nhiệm vụ' : 'Tạo Nhiệm vụ'}
                       </>
                     )}
                   </button>
