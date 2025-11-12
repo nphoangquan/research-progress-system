@@ -41,6 +41,7 @@ interface ProjectFilterSelectorProps {
   multiple?: boolean;
   placeholder?: string;
   className?: string;
+  label?: string; // Optional: label for the filter
 }
 
 export default function ProjectFilterSelector({ 
@@ -48,7 +49,8 @@ export default function ProjectFilterSelector({
   onSelectionChange, 
   multiple = true,
   placeholder = "Tất cả Dự án",
-  className = ""
+  className = "",
+  label
 }: ProjectFilterSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,14 +163,19 @@ export default function ProjectFilterSelector({
 
   return (
     <div className={`relative ${className}`}>
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
+      )}
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="w-full px-4 py-2 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+        className="w-full px-3 py-2 text-sm min-h-[42px] text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
       >
         <div className="flex items-center justify-between">
-          <span className={`${selectedProjects.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
+          <span className={`text-sm ${selectedProjects.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
             {getSelectedProjectNames()}
           </span>
           <FolderOpen className="w-4 h-4 text-gray-400" />

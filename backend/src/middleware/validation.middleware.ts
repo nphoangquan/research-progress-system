@@ -153,3 +153,46 @@ export const userSchemas = {
   }),
 };
 
+/**
+ * Validation schemas for admin operations
+ */
+export const adminSchemas = {
+  createUser: z.object({
+    fullName: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự').max(100, 'Họ tên quá dài'),
+    email: z.string().email('Địa chỉ email không hợp lệ'),
+    password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+    role: z.enum(['ADMIN', 'LECTURER', 'STUDENT'], {
+      message: 'Vai trò phải là ADMIN, LECTURER hoặc STUDENT',
+    }),
+    studentId: z.string().optional().or(z.literal('')),
+    sendWelcomeEmail: z.boolean().optional(),
+    requireEmailVerification: z.boolean().optional(),
+  }),
+
+  updateUser: z.object({
+    fullName: z.string().min(2, 'Họ tên phải có ít nhất 2 ký tự').max(100, 'Họ tên quá dài').optional(),
+    email: z.string().email('Địa chỉ email không hợp lệ').optional(),
+    role: z.enum(['ADMIN', 'LECTURER', 'STUDENT'], {
+      message: 'Vai trò phải là ADMIN, LECTURER hoặc STUDENT',
+    }).optional(),
+    studentId: z.string().optional().or(z.literal('')),
+  }),
+
+  activateUser: z.object({
+    isActive: z.boolean({
+      message: 'isActive phải là true hoặc false',
+    }),
+  }),
+
+  resetPassword: z.object({
+    newPassword: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự').optional(),
+    generatePassword: z.boolean().optional(),
+    sendEmail: z.boolean().optional(),
+  }).refine(
+    (data) => data.newPassword || data.generatePassword,
+    {
+      message: 'Phải cung cấp newPassword hoặc set generatePassword = true',
+    }
+  ),
+};
+

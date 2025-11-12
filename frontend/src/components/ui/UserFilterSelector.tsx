@@ -29,6 +29,7 @@ interface UserFilterSelectorProps {
   className?: string;
   projectId?: string; // Optional: if provided, fetch project members instead of all users
   roleFilter?: 'ADMIN' | 'LECTURER' | 'STUDENT'; // Optional: filter users by role
+  label?: string; // Optional: label for the filter
 }
 
 export default function UserFilterSelector({ 
@@ -38,7 +39,8 @@ export default function UserFilterSelector({
   placeholder = "Tất cả Người tải lên",
   className = "",
   projectId,
-  roleFilter
+  roleFilter,
+  label
 }: UserFilterSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -182,14 +184,19 @@ export default function UserFilterSelector({
 
   return (
     <div className={`relative ${className}`}>
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
+      )}
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="w-full px-4 py-2 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+        className="w-full px-3 py-2 text-sm min-h-[42px] text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
       >
         <div className="flex items-center justify-between">
-          <span className={`${selectedUsers.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
+          <span className={`text-sm ${selectedUsers.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
             {getSelectedUserNames()}
           </span>
           <User className="w-4 h-4 text-gray-400" />

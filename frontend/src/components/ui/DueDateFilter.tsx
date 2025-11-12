@@ -7,6 +7,7 @@ interface DueDateFilterProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  label?: string; // Optional: label for the filter
 }
 
 // Preset options - moved outside component to avoid recreation
@@ -25,7 +26,8 @@ export default function DueDateFilter({
   value,
   onChange,
   placeholder = "Tất cả hạn chót",
-  className = ""
+  className = "",
+  label
 }: DueDateFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filterMode, setFilterMode] = useState<'preset' | 'custom'>('preset');
@@ -132,13 +134,18 @@ export default function DueDateFilter({
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
+      )}
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors flex items-center justify-between"
+        className="w-full px-3 py-2 text-sm min-h-[42px] text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors flex items-center justify-between"
       >
-        <span className={`${!value || value === '' ? 'text-gray-500' : 'text-gray-900'}`}>
+        <span className={`text-sm ${!value || value === '' ? 'text-gray-500' : 'text-gray-900'}`}>
           {displayValue}
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'transform rotate-180' : ''}`} />

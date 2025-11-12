@@ -18,6 +18,7 @@ interface ProjectUserFilterSelectorProps {
   multiple?: boolean;
   placeholder?: string;
   className?: string;
+  label?: string; // Optional: label for the filter
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -38,7 +39,8 @@ export default function ProjectUserFilterSelector({
   onSelectionChange,
   multiple = false,
   placeholder = "Chọn người dùng...",
-  className = ""
+  className = "",
+  label
 }: ProjectUserFilterSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -149,16 +151,21 @@ export default function ProjectUserFilterSelector({
 
   return (
     <div className={`relative ${className}`}>
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
+      )}
       {/* Trigger Button */}
       <button
         type="button"
         ref={triggerRef}
         onClick={() => setIsOpen(prev => !prev)}
-        className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        className="w-full flex items-center justify-between px-3 py-2 text-sm min-h-[42px] border border-gray-300 rounded-lg shadow-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       >
         <div className="flex items-center space-x-2">
           <Users className="w-4 h-4 text-gray-400" />
-          <span className={`${localSelection.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
+          <span className={`text-sm ${localSelection.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
             {getDisplayText}
           </span>
         </div>

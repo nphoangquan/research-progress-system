@@ -36,6 +36,7 @@ import UserActivity from './pages/UserActivity';
 import ProjectProgress from './pages/projects/ProjectProgress';
 import AccountSettingsPage from './pages/account/AccountSettingsPage';
 import ArchivedProjects from './pages/projects/ArchivedProjects';
+import UserManagement from './pages/admin/UserManagement';
 
 // Components
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -147,7 +148,17 @@ function AppContent() {
               <ProtectedRoute>
                 <AccountSettingsPage />
               </ProtectedRoute>
-            } 
+            }
+          />
+          
+          {/* Admin Routes */}
+          <Route 
+            path="/admin/users" 
+            element={
+              <ProtectedRoute>
+                <UserManagement />
+              </ProtectedRoute>
+            }
           />
           <Route 
             path="/projects/:id/progress" 

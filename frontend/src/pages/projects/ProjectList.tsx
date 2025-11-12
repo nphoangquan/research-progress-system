@@ -130,17 +130,22 @@ export default function ProjectList() {
           <div className="space-y-4">
             {/* Search Row */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm dự án..."
-                  className="input pl-10"
-                  value={filters.search}
-                  onChange={(e) =>
-                    setFilters((prev) => ({ ...prev, search: e.target.value }))
-                  }
-                />
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tìm kiếm
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm dự án..."
+                    className="input pl-10 text-sm min-h-[42px]"
+                    value={filters.search}
+                    onChange={(e) =>
+                      setFilters((prev) => ({ ...prev, search: e.target.value }))
+                    }
+                  />
+                </div>
               </div>
               <button
                 onClick={() => {
@@ -173,6 +178,7 @@ export default function ProjectList() {
                   placeholder="Tất cả giảng viên"
                   className="w-full"
                   roleFilter="LECTURER"
+                  label="Giảng viên"
                 />
 
                 {/* Date Range Filter */}
@@ -183,6 +189,7 @@ export default function ProjectList() {
                   }
                   placeholder="Chọn khoảng ngày"
                   className="w-full"
+                  label="Khoảng ngày"
                 />
               </div>
             )}
@@ -191,7 +198,7 @@ export default function ProjectList() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Status Filter */}
               <SelectDropdown
-                label=""
+                label="Trạng thái"
                 options={[
                   { id: "", fullName: "Tất cả trạng thái" },
                   { id: "NOT_STARTED", fullName: "Chưa bắt đầu" },
@@ -210,7 +217,7 @@ export default function ProjectList() {
 
               {/* Progress Filter */}
               <SelectDropdown
-                label=""
+                label="Tiến độ"
                 options={[
                   { id: "", fullName: "Tất cả tiến độ" },
                   { id: "0-25", fullName: "0-25%" },
@@ -236,6 +243,7 @@ export default function ProjectList() {
                   }
                   placeholder="Chọn khoảng ngày"
                   className="w-full"
+                  label="Khoảng ngày"
                 />
               </div>
             )}

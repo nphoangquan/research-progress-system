@@ -16,6 +16,7 @@ import searchRoutes from './routes/search.routes';
 import filterRoutes from './routes/filter.routes';
 import taskAttachmentRoutes from './routes/taskAttachment.routes';
 import labelRoutes from './routes/label.routes';
+import adminRoutes from './routes/admin.routes';
 import WebSocketService from './services/websocket.service';
 
 // Load environment variables
@@ -108,6 +109,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/filters', filterRoutes);
 app.use('/api/task-attachments', taskAttachmentRoutes);
 app.use('/api/labels', labelRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler (must be before error handler)
 app.use((req, res) => {

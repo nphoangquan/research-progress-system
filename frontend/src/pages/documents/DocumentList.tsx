@@ -380,12 +380,15 @@ export default function DocumentList() {
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 {/* Search */}
                 <div className="flex-1 min-w-0">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tìm kiếm
+                  </label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Tìm kiếm tài liệu..."
-                      className="input pl-10 w-full h-10"
+                      className="input pl-10 w-full text-sm min-h-[42px]"
                       value={filters.search}
                       onChange={(e) => handleSearchChange(e.target.value)}
                     />
@@ -406,7 +409,7 @@ export default function DocumentList() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Status Filter */}
                 <SelectDropdown
-                  label=""
+                  label="Trạng thái"
                   options={[...statusOptions]}
                   value={filters.status}
                   onChange={(status) => handleFilterChange('status', status)}
@@ -415,7 +418,7 @@ export default function DocumentList() {
 
                 {/* Upload Date Filter */}
                 <SelectDropdown
-                  label=""
+                  label="Thời gian"
                   options={[...uploadDateOptions]}
                   value={filters.uploadDate}
                   onChange={(uploadDate) => handleFilterChange('uploadDate', uploadDate)}
@@ -424,7 +427,7 @@ export default function DocumentList() {
 
                 {/* File Type Filter */}
                 <SelectDropdown
-                  label=""
+                  label="Loại tệp"
                   options={[...fileTypeOptions]}
                   value={filters.fileType}
                   onChange={(fileType) => handleFilterChange('fileType', fileType)}
@@ -433,7 +436,7 @@ export default function DocumentList() {
 
                 {/* Category Filter */}
                 <SelectDropdown
-                  label=""
+                  label="Danh mục"
                   options={[...categoryOptions]}
                   value={filters.category}
                   onChange={(category) => handleFilterChange('category', category)}
@@ -449,6 +452,7 @@ export default function DocumentList() {
                   onSelectionChange={(projectIds) => handleFilterChange('projectFilter', projectIds)}
                   multiple={true}
                   placeholder="Tất cả dự án"
+                  label="Dự án"
                 />
 
                 {/* Uploader Filter - Only for ADMIN and LECTURER */}
@@ -458,6 +462,7 @@ export default function DocumentList() {
                     onSelectionChange={(userIds) => handleFilterChange('uploader', userIds)}
                     multiple={true}
                     placeholder="Tất cả người tải lên"
+                    label="Người tải lên"
                   />
                 )}
               </div>

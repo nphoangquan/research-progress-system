@@ -40,6 +40,7 @@ model User {
   createdLabels           Label[]                  @relation("CreatedLabels")
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
+  auditLogs               AuditLog[]
 
   @@map("users")
 }
@@ -500,4 +501,29 @@ model PasswordResetToken {
   @@index([expiresAt])
   @@index([used])
   @@map("password_reset_tokens")
+}
+
+// ============================================================================
+// AUDIT LOGS (Admin Actions Tracking)
+// ============================================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String   // 'CREATE', 'UPDATE', 'DELETE', 'ACTIVATE', 'DEACTIVATE', 'RESET_PASSWORD', etc.
+  entityType String   // 'User', 'Project', 'Task', 'Document', 'SystemSetting', etc.
+  entityId   String?
+  changes    Json?    // { field: { old: value, new: value } }
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

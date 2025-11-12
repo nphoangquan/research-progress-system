@@ -61,12 +61,15 @@ export default function ArchivedProjects() {
       {/* Search Bar */}
       <div className="card mb-6">
         <div className="card-body">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tìm kiếm
+          </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Tìm kiếm dự án đã lưu trữ..."
-              className="input pl-10"
+              className="input pl-10 text-sm min-h-[42px]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />

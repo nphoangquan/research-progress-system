@@ -223,12 +223,15 @@ export default function PublicLibrary() {
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
               {/* Search */}
               <div className="flex-1 min-w-0">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tìm kiếm
+                </label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Tìm kiếm tài liệu trong thư viện..."
-                    className="input pl-10 w-full h-10"
+                    className="input pl-10 w-full text-sm min-h-[42px]"
                     value={filters.search}
                     onChange={(e) =>
                       setFilters((prev) => ({
@@ -255,7 +258,7 @@ export default function PublicLibrary() {
             {/* Category Filter */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <SelectDropdown
-                label=""
+                label="Danh mục"
                 options={[
                   { id: "", fullName: "Tất cả Danh mục" },
                   { id: "REFERENCE", fullName: "Tài liệu Tham khảo" },

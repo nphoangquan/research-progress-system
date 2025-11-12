@@ -283,12 +283,15 @@ export default function TaskList() {
               {/* Search Row */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tìm kiếm
+                  </label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="text"
                       placeholder="Tìm kiếm nhiệm vụ..."
-                      className="input pl-10 w-full"
+                      className="input pl-10 w-full text-sm min-h-[42px]"
                       value={filters.search}
                       onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                     />
@@ -309,7 +312,7 @@ export default function TaskList() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Status Filter */}
                 <SelectDropdown
-                  label=""
+                  label="Trạng thái"
                   options={[
                     { id: '', fullName: 'Tất cả trạng thái' },
                     { id: 'TODO', fullName: 'Cần làm' },
@@ -324,7 +327,7 @@ export default function TaskList() {
 
                 {/* Priority Filter */}
                 <SelectDropdown
-                  label=""
+                  label="Mức độ ưu tiên"
                   options={[
                     { id: '', fullName: 'Tất cả mức độ ưu tiên' },
                     { id: 'LOW', fullName: 'Thấp' },
@@ -348,6 +351,7 @@ export default function TaskList() {
                     onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignees: userIds }))}
                     multiple={true}
                     placeholder="Tất cả người được gán"
+                    label="Người được gán"
                   />
                 )}
 
@@ -356,6 +360,7 @@ export default function TaskList() {
                   value={filters.dueDate}
                   onChange={(dueDate) => setFilters(prev => ({ ...prev, dueDate }))}
                   placeholder="Tất cả hạn chót"
+                  label="Hạn chót"
                 />
               </div>
 

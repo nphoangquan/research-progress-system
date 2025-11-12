@@ -332,12 +332,15 @@ export default function TaskKanban() {
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 {/* Search */}
                 <div className="flex-1 min-w-0">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tìm kiếm
+                  </label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Tìm kiếm nhiệm vụ..."
-                      className="input pl-10 w-full h-10"
+                      className="input pl-10 w-full text-sm min-h-[42px]"
                       value={filters.search}
                       onChange={(e) =>
                         setFilters((prev) => ({
@@ -369,6 +372,7 @@ export default function TaskKanban() {
                       multiple={true}
                       placeholder="Tất cả người được gán"
                       className="w-full"
+                      label="Người được gán"
                     />
                   </div>
                 </div>

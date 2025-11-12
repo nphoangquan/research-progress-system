@@ -19,7 +19,7 @@ export default function TopBar({
   }
 
   return (
-    <header className="sticky top-0 z-30">
+    <header className="sticky top-0 z-30 bg-gray-50">
       <div className="flex items-center justify-between h-14 px-4 sm:px-6 lg:px-8">
         {/* Left: Sidebar Toggle + Search */}
         <div className="flex items-center gap-4 flex-1">

@@ -7,6 +7,7 @@ interface DateRangePickerProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  label?: string; // Optional: label for the filter
 }
 
 export default function DateRangePicker({ 
@@ -14,7 +15,8 @@ export default function DateRangePicker({
   onChange, 
   placeholder = "Chọn khoảng ngày", 
   className = "",
-  disabled = false 
+  disabled = false,
+  label
 }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(
@@ -241,6 +243,11 @@ export default function DateRangePicker({
 
   return (
     <div className={`relative ${className}`} ref={datePickerRef}>
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
+      )}
       {/* Input Field */}
       <div className="relative">
           <input
@@ -250,7 +257,7 @@ export default function DateRangePicker({
           readOnly
           disabled={disabled}
           onClick={() => !disabled && setIsOpen(!isOpen)}
-          className={`w-full px-3 py-2 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+          className={`w-full px-3 py-2 pr-20 text-sm min-h-[42px] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
             disabled ? 'bg-gray-100 cursor-not-allowed' : 'cursor-pointer'
           }`}
         />

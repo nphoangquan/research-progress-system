@@ -388,12 +388,15 @@ export default function ProjectDocumentList() {
             {/* Search Row */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tìm kiếm
+                </label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
                     placeholder="Tìm kiếm tài liệu..."
-                    className="input pl-10 w-full"
+                    className="input pl-10 w-full text-sm min-h-[42px]"
                     value={filters.search}
                     onChange={(e) =>
                       setFilters((prev) => ({
@@ -426,7 +429,7 @@ export default function ProjectDocumentList() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Status Filter */}
               <SelectDropdown
-                label=""
+                label="Trạng thái"
                 options={[
                   { id: "", fullName: "Tất cả trạng thái" },
                   { id: "PENDING", fullName: "Chờ duyệt" },
@@ -442,7 +445,7 @@ export default function ProjectDocumentList() {
 
               {/* Upload Date Filter */}
               <SelectDropdown
-                label=""
+                label="Thời gian"
                 options={[
                   { id: "", fullName: "Tất cả ngày" },
                   { id: "today", fullName: "Today" },
@@ -459,7 +462,7 @@ export default function ProjectDocumentList() {
 
               {/* File Type Filter */}
               <SelectDropdown
-                label=""
+                label="Loại tệp"
                 options={[
                   { id: "", fullName: "Tất cả loại tệp" },
                   { id: "pdf", fullName: "PDF" },
@@ -478,7 +481,7 @@ export default function ProjectDocumentList() {
 
               {/* Category Filter */}
               <SelectDropdown
-                label=""
+                label="Danh mục"
                 options={[
                   { id: "", fullName: "Tất cả danh mục" },
                   { id: "PROJECT", fullName: "Tài liệu dự án" },
@@ -505,6 +508,7 @@ export default function ProjectDocumentList() {
                 }
                 multiple={true}
                 placeholder="Tất cả người tải lên"
+                label="Người tải lên"
               />
             </div>
           </div>
