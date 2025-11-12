@@ -318,7 +318,7 @@ export default function TaskForm() {
 
   if (taskLoading) {
     return (
-      <div className="container py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
@@ -329,7 +329,7 @@ export default function TaskForm() {
 
   if (taskError && isEditing) {
     return (
-      <div className="container py-8">
+      <div className="w-full">
         <div className="text-center py-12 space-y-4">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto" />
           <h3 className="text-lg font-medium text-gray-900">Không thể tải nhiệm vụ</h3>
@@ -347,9 +347,9 @@ export default function TaskForm() {
   }
 
   return (
-    <div className="container py-8">
-        {/* Header */}
-        <div className="page-header">
+    <div className="w-full">
+      {/* Header */}
+      <div className="page-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button

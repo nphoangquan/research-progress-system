@@ -294,7 +294,7 @@ export default function ProjectDocumentList() {
   }
 
   return (
-    <div className="w-full px-6 py-8">
+    <div className="w-full">
       {/* Header */}
       <div className="page-header">
         <div className="flex items-center justify-between">

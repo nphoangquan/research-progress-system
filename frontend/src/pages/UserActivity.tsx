@@ -151,7 +151,7 @@ export default function UserActivity() {
 
   if (isLoading) {
     return (
-      <div className="w-full px-6 py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Đang tải hoạt động người dùng...</p>
@@ -162,7 +162,7 @@ export default function UserActivity() {
 
   if (isError) {
     return (
-      <div className="w-full px-6 py-8">
+      <div className="w-full">
         <div className="text-center py-12 space-y-4">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
             <Activity className="w-8 h-8 text-red-500" />
@@ -187,7 +187,7 @@ export default function UserActivity() {
 
   if (!activityData) {
     return (
-      <div className="w-full px-6 py-8">
+      <div className="w-full">
         <div className="text-center py-12 space-y-4">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
             <Activity className="w-8 h-8 text-gray-400" />
@@ -204,7 +204,7 @@ export default function UserActivity() {
   }
 
   return (
-    <div className="w-full px-6 py-8">
+    <div className="w-full">
       {/* Page Header */}
       <div className="page-header">
         <div className="flex justify-between items-start">

@@ -203,7 +203,7 @@ export default function EditProject() {
 
   if (projectLoading) {
     return (
-      <div className="container py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Đang tải dự án...</p>
@@ -214,7 +214,7 @@ export default function EditProject() {
 
   if (!project) {
     return (
-      <div className="container py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Không tìm thấy dự án
@@ -231,7 +231,7 @@ export default function EditProject() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="w-full">
       {/* Header */}
       <div className="page-header">
         <div className="flex items-center justify-between">

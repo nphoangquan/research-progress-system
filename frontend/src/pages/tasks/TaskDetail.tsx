@@ -273,22 +273,18 @@ export default function TaskDetail() {
 
   if (isLoading) {
     return (
-      <div>
-        <div className="w-full px-6 py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
-          </div>
+      <div className="w-full">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
         </div>
-
-        </div>
+      </div>
     );
-}
+  }
 
   if (isError) {
     return (
-      <div>
-        <div className="w-full px-6 py-8">
+      <div className="w-full">
           <div className="text-center py-12 space-y-4">
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
               <AlertCircle className="w-8 h-8 text-red-500" />
@@ -307,41 +303,33 @@ export default function TaskDetail() {
               Thử lại
             </button>
           </div>
-        </div>
-
-        </div>
+      </div>
     );
-}
+  }
 
   if (!task) {
     return (
-      <div>
-        <div className="w-full px-6 py-8">
+      <div className="w-full">
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Không tìm thấy nhiệm vụ
             </h3>
             <p className="text-gray-600 mb-6">
-              Nhiệm vụ bạn đang tìm không tồn tại hoặc bạn không có quyền truy cập.
+              Nhiệm vụ bạn đang tìm không tồn tại hoặc bạn không có quyền truy
+              cập.
             </p>
-            <button
-              onClick={() => navigate("/tasks")}
-              className="btn-primary"
-            >
+            <button onClick={() => navigate("/tasks")} className="btn-primary">
               Quay lại Danh sách Nhiệm vụ
             </button>
           </div>
-        </div>
-
-        </div>
+      </div>
     );
-}
+  }
 
   return (
-    <div>
-      <div className="w-full px-6 py-8">
-        {/* Header */}
-        <div className="page-header">
+    <div className="w-full">
+      {/* Header */}
+      <div className="page-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
@@ -537,8 +525,6 @@ export default function TaskDetail() {
             });
           }}
         />
-      </div>
-
-      </div>
-    );
+    </div>
+  );
 }

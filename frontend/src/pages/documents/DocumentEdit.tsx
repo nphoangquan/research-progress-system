@@ -215,9 +215,9 @@ export default function DocumentEdit() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="w-full max-w-4xl mx-auto">
       {/* Header */}
-      <div className="page-header mb-8">
+      <div className="page-header">
         <h1 className="text-3xl font-bold text-gray-900">Chỉnh sửa Tài liệu</h1>
         <p className="text-gray-600 mt-1">{document.project.title}</p>
       </div>

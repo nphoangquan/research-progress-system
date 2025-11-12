@@ -240,7 +240,7 @@ export default function TaskKanban() {
 
   if (isLoading) {
     return (
-      <div className="w-full px-6 py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Đang tải bảng Kanban...</p>
@@ -251,7 +251,7 @@ export default function TaskKanban() {
 
   if (isError) {
     return (
-      <div className="w-full px-6 py-8">
+      <div className="w-full">
         <div className="text-center py-12 space-y-4">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
             <AlertCircle className="w-8 h-8 text-red-500" />
@@ -273,9 +273,9 @@ export default function TaskKanban() {
   const translateStatus = (status: Task['status']) => columns.find(col => col.status === status)?.title || status;
 
   return (
-    <div className="w-full px-6 py-8">
-        {/* Header */}
-        <div className="page-header">
+    <div className="w-full">
+      {/* Header */}
+      <div className="page-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {projectId && (

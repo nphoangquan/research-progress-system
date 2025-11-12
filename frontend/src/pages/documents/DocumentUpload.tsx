@@ -237,7 +237,7 @@ export default function DocumentUpload() {
   };
 
   return (
-    <div className="container py-8">
+    <div className="w-full">
       {/* Header */}
       <div className="page-header">
         <div className="flex items-center justify-between">

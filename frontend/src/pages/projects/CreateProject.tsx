@@ -151,7 +151,7 @@ export default function CreateProject() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="w-full">
       {/* Header */}
       <div className="page-header">
         <div className="flex items-center space-x-4">

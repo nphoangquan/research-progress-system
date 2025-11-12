@@ -266,7 +266,7 @@ export default function ProjectProgress() {
 
   if (isLoading) {
     return (
-      <div className="container py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Đang tải tiến độ dự án...</p>
@@ -277,7 +277,7 @@ export default function ProjectProgress() {
 
   if (!project) {
     return (
-      <div className="container py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-gray-400" />
@@ -307,9 +307,9 @@ export default function ProjectProgress() {
     : null;
 
   return (
-    <div className="w-full px-6 py-8">
-        {/* Header */}
-        <div className="page-header">
+    <div className="w-full">
+      {/* Header */}
+      <div className="page-header">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="page-title">Tiến độ dự án</h1>

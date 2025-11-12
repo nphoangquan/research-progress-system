@@ -259,7 +259,7 @@ export default function ProjectSettings() {
   // Check permissions - only ADMIN and LECTURER can access settings
   if (user.role === "STUDENT") {
     return (
-      <div className="container py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Shield className="w-8 h-8 text-error-600" />
@@ -283,7 +283,7 @@ export default function ProjectSettings() {
 
   if (projectLoading) {
     return (
-      <div className="container py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Đang tải cài đặt dự án...</p>
@@ -294,7 +294,7 @@ export default function ProjectSettings() {
 
   if (!project) {
     return (
-      <div className="container py-8">
+      <div className="w-full">
         <div className="text-center py-12">
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Không tìm thấy dự án
@@ -311,7 +311,7 @@ export default function ProjectSettings() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="w-full">
       {/* Header */}
       <div className="page-header">
         <div className="flex items-center justify-between">

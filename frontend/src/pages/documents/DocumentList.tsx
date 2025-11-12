@@ -297,9 +297,9 @@ export default function DocumentList() {
   }, [filters]);
 
   return (
-    <div className="w-full px-6 py-8">
-        {/* Header */}
-        <div className="page-header">
+    <div className="w-full">
+      {/* Header */}
+      <div className="page-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {projectId && (

@@ -99,7 +99,7 @@ export default function ProjectList() {
   }
 
   return (
-    <div className="w-full px-6 py-8">
+    <div className="w-full">
       {/* Page Header */}
       <div className="page-header">
         <div className="flex justify-between items-start">
