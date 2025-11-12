@@ -3,7 +3,6 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import ProjectSelector from '../../components/ui/ProjectSelector';
 import DatePicker from '../../components/ui/DatePicker';
@@ -130,7 +129,7 @@ export default function TaskForm() {
         assigneeId: task.assignee?.id || '',
         projectIds: task.project?.id ? [task.project.id] : [],
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-        labelIds: task.labels?.map(l => l.id) || []
+        labelIds: task.labels?.map((l: { id: string }) => l.id) || []
       });
     }
   }, [task]);
@@ -228,13 +227,13 @@ export default function TaskForm() {
       
       // Update labels if changed
       if (labelIds !== undefined && id) {
-        const currentLabelIds = task?.labels?.map(l => l.id) || [];
-        const labelsToAdd = labelIds.filter(id => !currentLabelIds.includes(id));
-        const labelsToRemove = currentLabelIds.filter(id => !labelIds.includes(id));
+        const currentLabelIds = task?.labels?.map((l: { id: string }) => l.id) || [];
+        const labelsToAdd = labelIds.filter((labelId: string) => !currentLabelIds.includes(labelId));
+        const labelsToRemove = currentLabelIds.filter((labelId: string) => !labelIds.includes(labelId));
         
         await Promise.all([
-          ...labelsToAdd.map(labelId => addLabelToTask(id, labelId)),
-          ...labelsToRemove.map(labelId => removeLabelFromTask(id, labelId))
+          ...labelsToAdd.map((labelId: string) => addLabelToTask(id, labelId)),
+          ...labelsToRemove.map((labelId: string) => removeLabelFromTask(id, labelId))
         ]);
       }
       
@@ -319,13 +318,10 @@ export default function TaskForm() {
 
   if (taskLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user as any} />
-        <div className="container py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
-          </div>
+      <div className="container py-8">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
         </div>
       </div>
     );
@@ -333,31 +329,25 @@ export default function TaskForm() {
 
   if (taskError && isEditing) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user as any} />
-        <div className="container py-8">
-          <div className="text-center py-12 space-y-4">
-            <AlertCircle className="w-16 h-16 text-red-400 mx-auto" />
-            <h3 className="text-lg font-medium text-gray-900">Không thể tải nhiệm vụ</h3>
-            <p className="text-gray-600">Đã xảy ra lỗi khi tải dữ liệu nhiệm vụ. Vui lòng thử lại.</p>
-            <button
-              type="button"
-              onClick={() => refetchTask()}
-              className="btn-primary"
-            >
-              Thử lại
-            </button>
-          </div>
+      <div className="container py-8">
+        <div className="text-center py-12 space-y-4">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto" />
+          <h3 className="text-lg font-medium text-gray-900">Không thể tải nhiệm vụ</h3>
+          <p className="text-gray-600">Đã xảy ra lỗi khi tải dữ liệu nhiệm vụ. Vui lòng thử lại.</p>
+          <button
+            type="button"
+            onClick={() => refetchTask()}
+            className="btn-primary"
+          >
+            Thử lại
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-        <Navbar user={user as any} />
-      
-      <div className="container py-8">
+    <div className="container py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -582,6 +572,5 @@ export default function TaskForm() {
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 }

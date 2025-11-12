@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { DragEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import RichTextEditor from '../features/RichTextEditor';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { sanitizeHTML } from '../../utils/sanitize';
 import { 
   Upload, 
   FileText, 
@@ -213,6 +214,13 @@ export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSub
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }, []);
 
+  // Sanitize current submission content for preview
+  const sanitizedCurrentSubmission = useMemo(() => {
+    if (!currentSubmission?.content) return null;
+    const previewContent = currentSubmission.content.substring(0, 200) + (currentSubmission.content.length > 200 ? '...' : '');
+    return sanitizeHTML(previewContent);
+  }, [currentSubmission?.content]);
+
   return (
     <div className="space-y-6">
       {/* Due Date Warning */}
@@ -259,7 +267,7 @@ export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSub
       })()}
 
       {/* Current Submission Info */}
-      {currentSubmission?.content && (
+      {sanitizedCurrentSubmission && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center space-x-2 mb-3">
             <CheckCircle className="w-5 h-5 text-blue-600" />
@@ -271,9 +279,7 @@ export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSub
           <div className="bg-white border border-blue-200 rounded p-3 max-h-32 overflow-hidden">
             <div 
               className="text-sm text-gray-700 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ 
-                __html: currentSubmission.content.substring(0, 200) + (currentSubmission.content.length > 200 ? '...' : '')
-              }}
+              dangerouslySetInnerHTML={{ __html: sanitizedCurrentSubmission }}
             />
           </div>
         </div>

@@ -11,6 +11,7 @@ import {
 } from '../controllers/user.controller';
 import { verifyToken, requireUser } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
+import { validate, userSchemas } from '../middleware/validation.middleware';
 
 const router = Router();
 
@@ -44,7 +45,7 @@ router.get('/:id', getUserById);
  * @access  Private (User can update own profile, Admin can update any)
  * @body    { fullName?, email?, studentId? }
  */
-router.put('/:id', requireUser, updateUser);
+router.put('/:id', requireUser, validate(userSchemas.update), updateUser);
 
 /**
  * @route   PUT /api/users/:id/password
@@ -52,9 +53,9 @@ router.put('/:id', requireUser, updateUser);
  * @access  Private (User can change own password, Admin can change any)
  * @body    { currentPassword, newPassword }
  */
-router.put('/:id/password', requireUser, changePassword);
+router.put('/:id/password', requireUser, validate(userSchemas.changePassword), changePassword);
 router.get('/:id/preferences', requireUser, getUserPreferences);
-router.put('/:id/preferences', requireUser, updateUserPreferences);
+router.put('/:id/preferences', requireUser, validate(userSchemas.updatePreferences), updateUserPreferences);
 
 /**
  * @route   POST /api/users/:id/avatar

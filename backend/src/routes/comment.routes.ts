@@ -6,6 +6,7 @@ import {
   deleteComment
 } from '../controllers/comment.controller';
 import { verifyToken } from '../middleware/auth.middleware';
+import { validate, commentSchemas } from '../middleware/validation.middleware';
 
 const router = Router();
 
@@ -25,7 +26,7 @@ router.get('/task/:taskId', getComments);
  * @access  Private (Project member)
  * @body    { content }
  */
-router.post('/task/:taskId', addComment);
+router.post('/task/:taskId', validate(commentSchemas.create), addComment);
 
 /**
  * @route   PUT /api/comments/:commentId
@@ -33,7 +34,7 @@ router.post('/task/:taskId', addComment);
  * @access  Private (Comment author, Lecturer, Admin)
  * @body    { content }
  */
-router.put('/:commentId', updateComment);
+router.put('/:commentId', validate(commentSchemas.update), updateComment);
 
 /**
  * @route   DELETE /api/comments/:commentId

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
@@ -41,14 +40,7 @@ export default function PublicLibrary() {
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
+  // Must call hooks before any conditional returns
   // Allow all authenticated users to access public library
   // (Students, Lecturers, and Admins can all view public documents)
 
@@ -83,6 +75,14 @@ export default function PublicLibrary() {
 
   const documents = documentsData?.documents || [];
   const pagination = documentsData?.pagination;
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -164,22 +164,21 @@ export default function PublicLibrary() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
+      <div>
         <div className="w-full px-6 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Đang tải thư viện công khai...</p>
           </div>
         </div>
-      </div>
+
+        </div>
     );
-  }
+}
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
+      <div>
         <div className="w-full px-6 py-8">
           <div className="text-center py-12 space-y-4">
             <BookOpen className="w-16 h-16 text-red-400 mx-auto" />
@@ -194,13 +193,13 @@ export default function PublicLibrary() {
             </button>
           </div>
         </div>
-      </div>
+
+        </div>
     );
-  }
+}
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
+    <div>
       
       <div className="w-full px-6 py-8">
         {/* Header */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { queryClient } from './lib/queryClient';
@@ -314,14 +314,22 @@ function AppContent() {
               element={
                 <div className="min-h-screen flex items-center justify-center bg-gray-50">
                   <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-900">404 - Page Not Found</h1>
-                    <p className="mt-2 text-gray-600">The page you're looking for doesn't exist.</p>
-                    <button
-                      onClick={() => window.history.back()}
-                      className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      Go Back
-                    </button>
+                    <h1 className="text-2xl font-bold text-gray-900">404 - Trang không tìm thấy</h1>
+                    <p className="mt-2 text-gray-600">Trang bạn đang tìm kiếm không tồn tại.</p>
+                    <div className="mt-6 space-x-4">
+                      <button
+                        onClick={() => window.history.back()}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+                      >
+                        Quay lại
+                      </button>
+                      <Link
+                        to="/dashboard"
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Về Trang chủ
+                      </Link>
+                    </div>
                   </div>
                 </div>
               } 

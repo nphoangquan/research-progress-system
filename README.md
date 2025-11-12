@@ -79,6 +79,7 @@ cd backend
 npm install
 cp .env.example .env
 # Edit .env with your database and Cloudinary credentials
+# See ENVIRONMENT_VARIABLES.md for detailed documentation
 npx prisma db push
 npx prisma db seed
 npm run dev
@@ -90,8 +91,14 @@ cd frontend
 npm install
 cp .env.example .env
 # Edit .env with your API URL
+# See ENVIRONMENT_VARIABLES.md for detailed documentation
 npm run dev
 ```
+
+### Environment Variables
+
+None - Still Working On It
+
 ### User Roles
 
 **Administrator:**

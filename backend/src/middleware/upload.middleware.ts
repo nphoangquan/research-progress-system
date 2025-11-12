@@ -50,7 +50,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed'), false);
+    cb(new Error('Chỉ cho phép tệp PDF, DOC, DOCX, TXT, ảnh, Excel và tệp nén'), false);
   }
 };
 
@@ -79,24 +79,24 @@ export const handleUploadError = (error: any, req: any, res: any, next: any) => 
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
-        error: 'File too large. Maximum size is 25MB.'
+        error: 'Tệp quá lớn. Kích thước tối đa là 25MB.'
       });
     }
     if (error.code === 'LIMIT_FILE_COUNT') {
       return res.status(400).json({
-        error: 'Too many files. Only one file is allowed.'
+        error: 'Quá nhiều tệp. Chỉ cho phép một tệp.'
       });
     }
     if (error.code === 'LIMIT_UNEXPECTED_FILE') {
       return res.status(400).json({
-        error: 'Unexpected file field.'
+        error: 'Trường tệp không hợp lệ.'
       });
     }
   }
 
-  if (error.message.includes('Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed')) {
+  if (error.message.includes('Chỉ cho phép tệp PDF, DOC, DOCX, TXT, ảnh, Excel và tệp nén')) {
     return res.status(400).json({
-      error: 'Invalid file type. Only PDF, DOC, DOCX, TXT, images, Excel, and archive files are allowed.'
+      error: 'Loại tệp không hợp lệ. Chỉ cho phép tệp PDF, DOC, DOCX, TXT, ảnh, Excel và tệp nén.'
     });
   }
 

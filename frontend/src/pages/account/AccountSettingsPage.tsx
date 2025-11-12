@@ -1,4 +1,3 @@
-import Navbar from '../../components/layout/Navbar';
 import { useAccountSettings } from '../../features/account/hooks/useAccountSettings';
 import { SettingsSidebar } from '../../features/account/components/SettingsSidebar';
 import { ProfileSettings } from '../../features/account/components/ProfileSettings';
@@ -43,7 +42,7 @@ export default function AccountSettingsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
@@ -51,21 +50,20 @@ export default function AccountSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
+      <div>
         <div className="container py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Đang tải hồ sơ...</p>
           </div>
         </div>
-      </div>
+
+        </div>
     );
-  }
+}
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
+    <div>
 
       <div className="container py-8">
         <div className="page-header">
@@ -123,6 +121,7 @@ export default function AccountSettingsPage() {
           </div>
         </div>
       </div>
-    </div>
-  );
+
+      </div>
+    );
 }

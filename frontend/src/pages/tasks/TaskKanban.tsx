@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from '../../hooks/useAuth';
 import { useWebSocketEvents } from '../../hooks/useWebSocketEvents';
-import Navbar from '../../components/layout/Navbar';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
 import LabelFilter from '../../components/ui/LabelFilter';
 import LabelChip from '../../components/ui/LabelChip';
@@ -90,20 +89,13 @@ export default function TaskKanban() {
   const user = getCurrentUser();
   const queryClient = useQueryClient();
 
+  // Must call hooks before any conditional returns
   // WebSocket integration
   useWebSocketEvents({
     projectId: projectId,
     enableTaskEvents: true,
     enableCommentEvents: false
   });
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
 
   const [filters, setFilters] = useState({
     assignees: [] as string[],
@@ -238,15 +230,20 @@ export default function TaskKanban() {
     return tasks?.filter((task: Task) => task.status === status) || [];
   };
 
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
-        <div className="w-full px-6 py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Đang tải bảng Kanban...</p>
-          </div>
+      <div className="w-full px-6 py-8">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải bảng Kanban...</p>
         </div>
       </div>
     );
@@ -254,23 +251,20 @@ export default function TaskKanban() {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
-        <div className="w-full px-6 py-8">
-          <div className="text-center py-12 space-y-4">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-              <AlertCircle className="w-8 h-8 text-red-500" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900">Không thể tải bảng Kanban</h3>
-            <p className="text-gray-600">Đã xảy ra lỗi khi truy vấn dữ liệu. Vui lòng thử lại.</p>
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              Thử lại
-            </button>
+      <div className="w-full px-6 py-8">
+        <div className="text-center py-12 space-y-4">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+            <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
+          <h3 className="text-lg font-medium text-gray-900">Không thể tải bảng Kanban</h3>
+          <p className="text-gray-600">Đã xảy ra lỗi khi truy vấn dữ liệu. Vui lòng thử lại.</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            Thử lại
+          </button>
         </div>
       </div>
     );
@@ -279,10 +273,7 @@ export default function TaskKanban() {
   const translateStatus = (status: Task['status']) => columns.find(col => col.status === status)?.title || status;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
-
-      <div className="w-full px-6 py-8">
+    <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -518,9 +509,10 @@ export default function TaskKanban() {
                     </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
+
+                </div>
+    );
+})}
         </div>
 
         {/* Empty State */}
@@ -627,6 +619,5 @@ export default function TaskKanban() {
           </div>
         )}
       </div>
-    </div>
-  );
+    );
 }

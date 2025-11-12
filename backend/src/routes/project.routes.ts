@@ -8,6 +8,7 @@ import {
   getArchivedProjects
 } from '../controllers/project.controller';
 import { verifyToken, requireUser } from '../middleware/auth.middleware';
+import { validate, projectSchemas } from '../middleware/validation.middleware';
 
 const router = Router();
 
@@ -20,7 +21,7 @@ router.use(verifyToken);
  * @access  Private (Admin, Lecturer)
  * @body    { title, description, studentId, lecturerId, startDate?, endDate? }
  */
-router.post('/', requireUser, createProject);
+router.post('/', requireUser, validate(projectSchemas.create), createProject);
 
 /**
  * @route   GET /api/projects
@@ -51,7 +52,7 @@ router.get('/:id', getProjectById);
  * @access  Private (Project member)
  * @body    { title?, description?, status?, progress?, endDate? }
  */
-router.put('/:id', updateProject);
+router.put('/:id', validate(projectSchemas.update), updateProject);
 
 /**
  * @route   DELETE /api/projects/:id

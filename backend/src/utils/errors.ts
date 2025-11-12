@@ -60,22 +60,22 @@ export const createError = {
   badRequest: (message: string, details?: any) =>
     new AppError(400, ErrorCode.INVALID_INPUT, message, details),
   
-  unauthorized: (message: string = 'Unauthorized') =>
+  unauthorized: (message: string = 'Không được phép truy cập') =>
     new AppError(401, ErrorCode.UNAUTHORIZED, message),
   
-  forbidden: (message: string = 'Forbidden') =>
+  forbidden: (message: string = 'Truy cập bị từ chối') =>
     new AppError(403, ErrorCode.FORBIDDEN, message),
   
-  notFound: (message: string = 'Resource not found') =>
+  notFound: (message: string = 'Không tìm thấy dữ liệu') =>
     new AppError(404, ErrorCode.NOT_FOUND, message),
   
   conflict: (message: string, details?: any) =>
     new AppError(409, ErrorCode.CONFLICT, message, details),
   
-  internal: (message: string = 'Internal server error', details?: any) =>
+  internal: (message: string = 'Lỗi máy chủ. Vui lòng thử lại sau.', details?: any) =>
     new AppError(500, ErrorCode.INTERNAL_ERROR, message, details, false),
   
-  database: (message: string = 'Database error', details?: any) =>
+  database: (message: string = 'Lỗi cơ sở dữ liệu', details?: any) =>
     new AppError(500, ErrorCode.DATABASE_ERROR, message, details, false),
 };
 

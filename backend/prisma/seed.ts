@@ -98,21 +98,21 @@ async function seedUsers(): Promise<SeededUsers> {
   console.log('👥 Seeding users...');
 
   const admin = await ensureUser({
-    email: 'admin@research.edu',
+    email: 'admin@gmail.com',
     password: 'admin123',
     fullName: 'System Administrator',
     role: 'ADMIN'
   });
 
   const lecturer1 = await ensureUser({
-    email: 'lecturer1@research.edu',
+    email: 'lecturer1@gmail.com',
     password: 'lecturer123',
     fullName: 'Dr. Nguyễn Văn A',
     role: 'LECTURER'
   });
 
   const lecturer2 = await ensureUser({
-    email: 'lecturer2@research.edu',
+    email: 'lecturer2@gmail.com',
     password: 'lecturer123',
     fullName: 'Dr. Trần Thị B',
     role: 'LECTURER'
@@ -120,35 +120,35 @@ async function seedUsers(): Promise<SeededUsers> {
 
   const students = await Promise.all([
     ensureUser({
-      email: 'student1@research.edu',
+      email: 'student1@gmail.com',
       password: 'student123',
       fullName: 'Lê Văn C',
       role: 'STUDENT',
       studentId: 'SV001'
     }),
     ensureUser({
-      email: 'student2@research.edu',
+      email: 'student2@gmail.com',
       password: 'student123',
       fullName: 'Phạm Thị D',
       role: 'STUDENT',
       studentId: 'SV002'
     }),
     ensureUser({
-      email: 'student3@research.edu',
+      email: 'student3@gmail.com',
       password: 'student123',
       fullName: 'Hoàng Văn E',
       role: 'STUDENT',
       studentId: 'SV003'
     }),
     ensureUser({
-      email: 'student4@research.edu',
+      email: 'student4@gmail.com',
       password: 'student123',
       fullName: 'Vũ Thị F',
       role: 'STUDENT',
       studentId: 'SV004'
     }),
     ensureUser({
-      email: 'student5@research.edu',
+      email: 'student5@gmail.com',
       password: 'student123',
       fullName: 'Đặng Văn G',
       role: 'STUDENT',
@@ -201,7 +201,7 @@ async function seedProjects(users: SeededUsers): Promise<SeededProjects> {
       'System project for public documents, reference materials, templates, and guidelines',
     lecturer: { connect: { id: users.admin.id } },
     status: 'COMPLETED',
-    startDate: new Date(),
+    startDate: new Date('2025-01-01'),
     endDate: null,
     progress: 100,
     isSystemProject: true
@@ -212,8 +212,8 @@ async function seedProjects(users: SeededUsers): Promise<SeededProjects> {
     description:
       'Đề tài nghiên cứu về việc áp dụng trí tuệ nhân tạo vào quản lý và hỗ trợ giảng dạy trong các trường đại học.',
     lecturer: { connect: { id: lecturer1.id } },
-    startDate: new Date('2024-09-01'),
-    endDate: new Date('2025-06-30'),
+    startDate: new Date('2025-01-15'),
+    endDate: new Date('2025-12-31'),
     status: 'IN_PROGRESS',
     progress: 45
   });
@@ -223,8 +223,8 @@ async function seedProjects(users: SeededUsers): Promise<SeededProjects> {
     description:
       'Xây dựng hệ thống quản lý và điều khiển thiết bị thông minh trong gia đình sử dụng công nghệ IoT.',
     lecturer: { connect: { id: lecturer1.id } },
-    startDate: new Date('2024-10-01'),
-    endDate: new Date('2025-07-31'),
+    startDate: new Date('2025-02-01'),
+    endDate: new Date('2025-11-30'),
     status: 'IN_PROGRESS',
     progress: 30
   });
@@ -234,8 +234,8 @@ async function seedProjects(users: SeededUsers): Promise<SeededProjects> {
     description:
       'Nghiên cứu và ứng dụng các thuật toán machine learning để phân tích và dự đoán xu hướng từ dữ liệu lớn.',
     lecturer: { connect: { id: lecturer2.id } },
-    startDate: new Date('2024-08-15'),
-    endDate: new Date('2025-05-30'),
+    startDate: new Date('2025-01-10'),
+    endDate: new Date('2025-10-31'),
     status: 'IN_PROGRESS',
     progress: 60
   });
@@ -330,7 +330,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student1.id,
       status: TaskStatus.COMPLETED,
       priority: Priority.HIGH,
-      completedAt: new Date('2024-10-15')
+      completedAt: new Date('2025-02-15')
     }),
     ensureTask({
       projectId: projects.project1.id,
@@ -339,7 +339,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student1.id,
       status: TaskStatus.COMPLETED,
       priority: Priority.HIGH,
-      completedAt: new Date('2024-11-20')
+      completedAt: new Date('2025-03-20')
     }),
     ensureTask({
       projectId: projects.project1.id,
@@ -348,7 +348,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student1.id,
       status: TaskStatus.IN_PROGRESS,
       priority: Priority.MEDIUM,
-      dueDate: new Date('2025-02-28')
+      dueDate: new Date('2025-06-30')
     }),
     ensureTask({
       projectId: projects.project1.id,
@@ -357,7 +357,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student1.id,
       status: TaskStatus.TODO,
       priority: Priority.MEDIUM,
-      dueDate: new Date('2025-04-30')
+      dueDate: new Date('2025-09-30')
     }),
     ensureTask({
       projectId: projects.project1.id,
@@ -366,7 +366,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student1.id,
       status: TaskStatus.TODO,
       priority: Priority.HIGH,
-      dueDate: new Date('2025-06-15')
+      dueDate: new Date('2025-12-15')
     }),
     ensureTask({
       projectId: projects.project2.id,
@@ -375,7 +375,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student2.id,
       status: TaskStatus.COMPLETED,
       priority: Priority.HIGH,
-      completedAt: new Date('2024-11-10')
+      completedAt: new Date('2025-03-10')
     }),
     ensureTask({
       projectId: projects.project2.id,
@@ -384,7 +384,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student2.id,
       status: TaskStatus.IN_PROGRESS,
       priority: Priority.HIGH,
-      dueDate: new Date('2025-01-31')
+      dueDate: new Date('2025-05-31')
     }),
     ensureTask({
       projectId: projects.project2.id,
@@ -393,7 +393,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student5.id,
       status: TaskStatus.TODO,
       priority: Priority.MEDIUM,
-      dueDate: new Date('2025-04-30')
+      dueDate: new Date('2025-08-30')
     }),
     ensureTask({
       projectId: projects.project2.id,
@@ -402,7 +402,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student5.id,
       status: TaskStatus.TODO,
       priority: Priority.HIGH,
-      dueDate: new Date('2025-05-15')
+      dueDate: new Date('2025-10-15')
     }),
     ensureTask({
       projectId: projects.project3.id,
@@ -411,7 +411,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student3.id,
       status: TaskStatus.COMPLETED,
       priority: Priority.HIGH,
-      completedAt: new Date('2024-09-30')
+      completedAt: new Date('2025-02-28')
     }),
     ensureTask({
       projectId: projects.project3.id,
@@ -420,7 +420,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student3.id,
       status: TaskStatus.IN_PROGRESS,
       priority: Priority.HIGH,
-      dueDate: new Date('2025-01-15')
+      dueDate: new Date('2025-05-15')
     }),
     ensureTask({
       projectId: projects.project3.id,
@@ -429,7 +429,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student3.id,
       status: TaskStatus.TODO,
       priority: Priority.HIGH,
-      dueDate: new Date('2025-03-30')
+      dueDate: new Date('2025-07-30')
     }),
     ensureTask({
       projectId: projects.project3.id,
@@ -438,7 +438,7 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
       assigneeId: student3.id,
       status: TaskStatus.TODO,
       priority: Priority.MEDIUM,
-      dueDate: new Date('2025-05-15')
+      dueDate: new Date('2025-09-15')
     })
   ]);
 
@@ -723,7 +723,7 @@ async function seedNotifications(projects: SeededProjects, users: SeededUsers) {
       projectId: projects.project1.id,
       type: 'DEADLINE_APPROACHING',
       title: 'Deadline sắp đến',
-      message: 'Task "Xây dựng prototype" sẽ đến hạn vào ngày 28/02/2025',
+      message: 'Task "Xây dựng prototype" sẽ đến hạn vào ngày 30/06/2025',
       isRead: false
     },
     {
@@ -747,7 +747,7 @@ async function seedNotifications(projects: SeededProjects, users: SeededUsers) {
       projectId: projects.project2.id,
       type: 'DEADLINE_APPROACHING',
       title: 'Deadline sắp đến',
-      message: 'Task "Thiết kế phần cứng" sẽ đến hạn vào ngày 31/01/2025',
+      message: 'Task "Thiết kế phần cứng" sẽ đến hạn vào ngày 31/05/2025',
       isRead: false
     },
     {
@@ -797,14 +797,14 @@ async function main() {
 
   console.log('\n🎉 Seed completed successfully!');
   console.log('\n📋 Demo accounts:');
-  console.log('Admin:     admin@research.edu / admin123');
-  console.log('Lecturer:  lecturer1@research.edu / lecturer123');
-  console.log('Lecturer:  lecturer2@research.edu / lecturer123');
-  console.log('Student:   student1@research.edu / student123 (Lead of Project 1)');
-  console.log('Student:   student2@research.edu / student123 (Member of Project 1, Lead of Project 2)');
-  console.log('Student:   student3@research.edu / student123 (Lead of Project 3)');
-  console.log('Student:   student4@research.edu / student123 (Member of Project 1)');
-  console.log('Student:   student5@research.edu / student123 (Member of Project 2)');
+  console.log('Admin:     admin@gmail.com / admin123');
+  console.log('Lecturer:  lecturer1@gmail.com / lecturer123');
+  console.log('Lecturer:  lecturer2@gmail.com / lecturer123');
+  console.log('Student:   student1@gmail.com / student123 (Lead of Project 1)');
+  console.log('Student:   student2@gmail.com / student123 (Member of Project 1, Lead of Project 2)');
+  console.log('Student:   student3@gmail.com / student123 (Lead of Project 3)');
+  console.log('Student:   student4@gmail.com / student123 (Member of Project 1)');
+  console.log('Student:   student5@gmail.com / student123 (Member of Project 2)');
 }
 
 main()

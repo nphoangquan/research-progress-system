@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import ProjectFilterSelector from '../../components/ui/ProjectFilterSelector';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
@@ -69,14 +68,7 @@ export default function DocumentList() {
   const user = getCurrentUser();
   const queryClient = useQueryClient();
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
+  // Must call hooks before any conditional returns
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
@@ -129,6 +121,14 @@ export default function DocumentList() {
 
   const documents = documentsData?.documents || [];
   const pagination = documentsData?.pagination;
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   // Fetch project info
   const { data: project } = useQuery({
@@ -297,10 +297,7 @@ export default function DocumentList() {
   }, [filters]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
-      
-      <div className="w-full px-6 py-8">
+    <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -410,7 +407,7 @@ export default function DocumentList() {
                 {/* Status Filter */}
                 <SelectDropdown
                   label=""
-                  options={statusOptions}
+                  options={[...statusOptions]}
                   value={filters.status}
                   onChange={(status) => handleFilterChange('status', status)}
                   placeholder="Tất cả trạng thái"
@@ -419,7 +416,7 @@ export default function DocumentList() {
                 {/* Upload Date Filter */}
                 <SelectDropdown
                   label=""
-                  options={uploadDateOptions}
+                  options={[...uploadDateOptions]}
                   value={filters.uploadDate}
                   onChange={(uploadDate) => handleFilterChange('uploadDate', uploadDate)}
                   placeholder="Tất cả thời gian"
@@ -428,7 +425,7 @@ export default function DocumentList() {
                 {/* File Type Filter */}
                 <SelectDropdown
                   label=""
-                  options={fileTypeOptions}
+                  options={[...fileTypeOptions]}
                   value={filters.fileType}
                   onChange={(fileType) => handleFilterChange('fileType', fileType)}
                   placeholder="Tất cả loại tệp"
@@ -437,7 +434,7 @@ export default function DocumentList() {
                 {/* Category Filter */}
                 <SelectDropdown
                   label=""
-                  options={categoryOptions}
+                  options={[...categoryOptions]}
                   value={filters.category}
                   onChange={(category) => handleFilterChange('category', category)}
                   placeholder="Tất cả danh mục"
@@ -608,6 +605,6 @@ export default function DocumentList() {
           />
         )}
       </div>
-    </div>
+
   );
 }

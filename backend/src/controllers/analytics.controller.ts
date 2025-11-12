@@ -224,29 +224,43 @@ export const getAnalytics = async (req: Request, res: Response) => {
       doc.createdAt >= startDate
     ).length;
     
-    // Time-based trends (mock data for now - in real implementation, you'd calculate from actual data)
+    // Calculate time-based trends from actual data
+    const calculateTrends = (items: any[], dateField: string, countField?: string) => {
+      const trendMap = new Map<string, number>();
+      
+      items.forEach(item => {
+        const date = new Date(item[dateField]);
+        if (isNaN(date.getTime())) return;
+        
+        // Format date as YYYY-MM-DD
+        const dateKey = date.toISOString().split('T')[0];
+        trendMap.set(dateKey, (trendMap.get(dateKey) || 0) + (countField ? item[countField] : 1));
+      });
+      
+      // Convert to array and sort by date
+      const trends = Array.from(trendMap.entries())
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+      
+      return trends;
+    };
+
+    // Calculate trends for projects created
+    const projectsCreated = calculateTrends(projects, 'createdAt');
+    
+    // Calculate trends for tasks completed (only include tasks with completedAt date)
+    const completedTasksForTrends = tasks.filter(task => 
+      task.status === 'COMPLETED' && task.completedAt !== null
+    );
+    const tasksCompleted = calculateTrends(completedTasksForTrends, 'completedAt');
+    
+    // Calculate trends for documents uploaded
+    const documentsUploaded = calculateTrends(documents, 'createdAt');
+    
     const trends = {
-      projectsCreated: [
-        { date: '2024-01-01', count: 2 },
-        { date: '2024-01-02', count: 1 },
-        { date: '2024-01-03', count: 3 },
-        { date: '2024-01-04', count: 1 },
-        { date: '2024-01-05', count: 2 }
-      ],
-      tasksCompleted: [
-        { date: '2024-01-01', count: 5 },
-        { date: '2024-01-02', count: 3 },
-        { date: '2024-01-03', count: 7 },
-        { date: '2024-01-04', count: 4 },
-        { date: '2024-01-05', count: 6 }
-      ],
-      documentsUploaded: [
-        { date: '2024-01-01', count: 3 },
-        { date: '2024-01-02', count: 2 },
-        { date: '2024-01-03', count: 5 },
-        { date: '2024-01-04', count: 1 },
-        { date: '2024-01-05', count: 4 }
-      ]
+      projectsCreated: projectsCreated.length > 0 ? projectsCreated : [],
+      tasksCompleted: tasksCompleted.length > 0 ? tasksCompleted : [],
+      documentsUploaded: documentsUploaded.length > 0 ? documentsUploaded : []
     };
 
     // Performance indicators

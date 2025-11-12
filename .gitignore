@@ -53,6 +53,5 @@ htmlcov/
 .cache/
 
 # Documentation files (except README.md)
-*.md
-!README.md
+docs/
 *.txt

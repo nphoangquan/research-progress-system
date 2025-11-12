@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import Navbar from '../../components/layout/Navbar';
 import api from '../../lib/axios';
 import { Edit, Settings, TrendingUp } from 'lucide-react';
+import { sanitizeHTML } from '../../utils/sanitize';
 // import { Project } from '../types/project';
 
 export default function ProjectDetail() {
@@ -21,28 +21,33 @@ export default function ProjectDetail() {
     enabled: !!id,
   });
 
+  // Must call hooks before any conditional returns
+  const sanitizedDescription = useMemo(() => {
+    if (!project?.description) return null;
+    return sanitizeHTML(project.description);
+  }, [project?.description]);
+
   if (!user) {
     return <div>Đang tải...</div>;
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
+      <div>
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             <p className="mt-2 text-gray-600">Đang tải dự án...</p>
           </div>
         </div>
-      </div>
+
+        </div>
     );
-  }
+}
 
   if (error || !project) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
+      <div>
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="text-center py-8">
             <p className="text-red-600">Không tìm thấy dự án hoặc không có quyền truy cập.</p>
@@ -54,13 +59,13 @@ export default function ProjectDetail() {
             </Link>
           </div>
         </div>
-      </div>
+
+        </div>
     );
-  }
+}
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
+    <div>
       
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
@@ -76,8 +81,8 @@ export default function ProjectDetail() {
                 </Link>
                 <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>
                 <div className="mt-2 text-gray-600 prose prose-sm max-w-none">
-                  {project.description ? (
-                    <div dangerouslySetInnerHTML={{ __html: project.description }} />
+                  {sanitizedDescription ? (
+                    <div dangerouslySetInnerHTML={{ __html: sanitizedDescription }} />
                   ) : (
                     <p>Chưa có mô tả.</p>
                   )}
@@ -319,6 +324,7 @@ export default function ProjectDetail() {
           </div>
         </div>
       </div>
-    </div>
-  );
+
+      </div>
+    );
 }

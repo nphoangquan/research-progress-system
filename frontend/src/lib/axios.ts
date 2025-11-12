@@ -24,17 +24,26 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Don't show toast if error message is already handled by the component
+    // Only show toast for unhandled errors
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
-      toast.error('Session expired. Please login again.');
+      toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
     } else if (error.response?.status === 403) {
-      toast.error('Access denied');
+      // Don't show toast here - let components handle it with more context
+      // toast.error('Truy cập bị từ chối');
     } else if (error.response?.status === 500) {
-      toast.error('Server error. Please try again later.');
+      // Only show if no specific error message from backend
+      if (!error.response?.data?.error) {
+        toast.error('Lỗi máy chủ. Vui lòng thử lại sau.');
+      }
     } else if (error.code === 'ECONNABORTED') {
-      toast.error('Request timeout. Please try again.');
+      toast.error('Yêu cầu quá thời gian. Vui lòng thử lại.');
+    } else if (!error.response) {
+      // Network error
+      toast.error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
     }
     return Promise.reject(error);
   }

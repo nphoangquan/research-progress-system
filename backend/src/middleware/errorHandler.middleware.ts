@@ -53,7 +53,7 @@ export const errorHandler = (
       return res.status(409).json({
         error: {
           code: ErrorCode.ALREADY_EXISTS,
-          message: 'A record with this value already exists',
+          message: 'Giá trị này đã tồn tại trong hệ thống',
           details: {
             field: prismaError.meta?.target,
           },
@@ -66,7 +66,7 @@ export const errorHandler = (
       return res.status(404).json({
         error: {
           code: ErrorCode.NOT_FOUND,
-          message: 'Record not found',
+          message: 'Không tìm thấy dữ liệu',
         },
       });
     }
@@ -78,8 +78,8 @@ export const errorHandler = (
       error: {
         code: err.name === 'TokenExpiredError' ? ErrorCode.TOKEN_EXPIRED : ErrorCode.TOKEN_INVALID,
         message: err.name === 'TokenExpiredError' 
-          ? 'Token expired. Please login again.' 
-          : 'Invalid token.',
+          ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' 
+          : 'Token không hợp lệ.',
       },
     });
   }
@@ -97,7 +97,7 @@ export const errorHandler = (
       code: ErrorCode.INTERNAL_ERROR,
       message: process.env.NODE_ENV === 'development' 
         ? err.message 
-        : 'Internal server error',
+        : 'Lỗi máy chủ. Vui lòng thử lại sau.',
       ...(process.env.NODE_ENV === 'development' && {
         stack: err.stack,
       }),

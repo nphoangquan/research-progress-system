@@ -1,37 +1,36 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../../hooks/useAuth';
-import { useWebSocketEvents } from '../../hooks/useWebSocketEvents';
-import Navbar from '../../components/layout/Navbar';
-import SelectDropdown from '../../components/ui/SelectDropdown';
-import UserFilterSelector from '../../components/ui/UserFilterSelector';
-import DueDateFilter from '../../components/ui/DueDateFilter';
-import LabelFilter from '../../components/ui/LabelFilter';
-import LabelChip from '../../components/ui/LabelChip';
-import Pagination from '../../components/ui/Pagination';
-import api from '../../lib/axios';
-import type { Label } from '../../types/label';
-import toast from 'react-hot-toast';
-import { 
-  Plus, 
-  Search, 
-  Calendar, 
-  User, 
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../../hooks/useAuth";
+import { useWebSocketEvents } from "../../hooks/useWebSocketEvents";
+import SelectDropdown from "../../components/ui/SelectDropdown";
+import UserFilterSelector from "../../components/ui/UserFilterSelector";
+import DueDateFilter from "../../components/ui/DueDateFilter";
+import LabelFilter from "../../components/ui/LabelFilter";
+import LabelChip from "../../components/ui/LabelChip";
+import Pagination from "../../components/ui/Pagination";
+import api from "../../lib/axios";
+import type { Label } from "../../types/label";
+import toast from "react-hot-toast";
+import {
+  Plus,
+  Search,
+  Calendar,
+  User,
   Clock,
   CheckCircle,
   AlertCircle,
   Edit,
   Trash2,
-  ArrowLeft
-} from 'lucide-react';
+  ArrowLeft,
+} from "lucide-react";
 
 interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  status: "TODO" | "IN_PROGRESS" | "REVIEW" | "COMPLETED";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   dueDate: string | null;
   completedAt: string | null;
   assignee: {
@@ -59,16 +58,16 @@ export default function ProjectTaskList() {
   useWebSocketEvents({
     projectId: projectId,
     enableTaskEvents: true,
-    enableCommentEvents: false
+    enableCommentEvents: false,
   });
 
   const [filters, setFilters] = useState({
-    status: '',
-    priority: '',
+    status: "",
+    priority: "",
     assignees: [] as string[], // Changed to array for multi-select
-    dueDate: '',
-    search: '',
-    labelIds: [] as string[]
+    dueDate: "",
+    search: "",
+    labelIds: [] as string[],
   });
 
   // Pagination state
@@ -77,25 +76,27 @@ export default function ProjectTaskList() {
 
   // Fetch tasks for this specific project
   const { data: tasksData, isLoading } = useQuery({
-    queryKey: ['tasks', projectId, filters, currentPage, pageSize],
+    queryKey: ["tasks", projectId, filters, currentPage, pageSize],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (projectId) params.append('projectId', projectId);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.priority) params.append('priority', filters.priority);
+      if (projectId) params.append("projectId", projectId);
+      if (filters.status) params.append("status", filters.status);
+      if (filters.priority) params.append("priority", filters.priority);
       // Add assignee IDs as multiple parameters
-      filters.assignees.forEach(assigneeId => {
-        params.append('assignee', assigneeId);
+      filters.assignees.forEach((assigneeId) => {
+        params.append("assignee", assigneeId);
       });
-      if (filters.dueDate) params.append('dueDate', filters.dueDate);
-      if (filters.search) params.append('search', filters.search);
+      if (filters.dueDate) params.append("dueDate", filters.dueDate);
+      if (filters.search) params.append("search", filters.search);
       if (filters.labelIds.length > 0) {
-        filters.labelIds.forEach(labelId => params.append('labelIds', labelId));
+        filters.labelIds.forEach((labelId) =>
+          params.append("labelIds", labelId)
+        );
       }
 
       // Pagination parameters
-      params.append('page', currentPage.toString());
-      params.append('limit', pageSize.toString());
+      params.append("page", currentPage.toString());
+      params.append("limit", pageSize.toString());
 
       const response = await api.get(`/tasks?${params.toString()}`);
       return response.data;
@@ -108,7 +109,14 @@ export default function ProjectTaskList() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.status, filters.priority, filters.assignees.length, filters.dueDate, filters.search, filters.labelIds.length]);
+  }, [
+    filters.status,
+    filters.priority,
+    filters.assignees.length,
+    filters.dueDate,
+    filters.search,
+    filters.labelIds.length,
+  ]);
 
   // Note: UserFilterSelector will fetch project members internally via projectId prop
 
@@ -119,30 +127,34 @@ export default function ProjectTaskList() {
       return response.data;
     },
     onSuccess: () => {
-      toast.success('Xóa nhiệm vụ thành công!');
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success("Xóa nhiệm vụ thành công!");
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Xóa nhiệm vụ thất bại');
+      toast.error(error.response?.data?.error || "Xóa nhiệm vụ thất bại");
     },
   });
 
   const handleDeleteTask = (taskId: string, taskTitle: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa "${taskTitle}"? Hành động này không thể hoàn tác.`)) {
+    if (
+      window.confirm(
+        `Bạn có chắc chắn muốn xóa "${taskTitle}"? Hành động này không thể hoàn tác.`
+      )
+    ) {
       deleteTaskMutation.mutate(taskId);
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'TODO':
+      case "TODO":
         return <AlertCircle className="w-4 h-4 text-gray-500" />;
-      case 'IN_PROGRESS':
+      case "IN_PROGRESS":
         return <Clock className="w-4 h-4 text-blue-500" />;
-      case 'REVIEW':
+      case "REVIEW":
         return <AlertCircle className="w-4 h-4 text-yellow-500" />;
-      case 'COMPLETED':
+      case "COMPLETED":
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       default:
         return <AlertCircle className="w-4 h-4 text-gray-500" />;
@@ -151,328 +163,377 @@ export default function ProjectTaskList() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'TODO':
-        return 'bg-gray-100 text-gray-800';
-      case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
-      case 'REVIEW':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
+      case "TODO":
+        return "bg-gray-100 text-gray-800";
+      case "IN_PROGRESS":
+        return "bg-blue-100 text-blue-800";
+      case "REVIEW":
+        return "bg-yellow-100 text-yellow-800";
+      case "COMPLETED":
+        return "bg-green-100 text-green-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'LOW':
-        return 'text-gray-600';
-      case 'MEDIUM':
-        return 'text-yellow-600';
-      case 'HIGH':
-        return 'text-orange-600';
-      case 'URGENT':
-        return 'text-red-600';
+      case "LOW":
+        return "text-gray-600";
+      case "MEDIUM":
+        return "text-yellow-600";
+      case "HIGH":
+        return "text-orange-600";
+      case "URGENT":
+        return "text-red-600";
       default:
-        return 'text-gray-600';
+        return "text-gray-600";
     }
   };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    return new Date(dateString).toLocaleDateString("vi-VN", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
   const isOverdue = (dueDate: string | null, status: string) => {
-    if (!dueDate || status === 'COMPLETED') return false;
+    if (!dueDate || status === "COMPLETED") return false;
     return new Date(dueDate) < new Date();
   };
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
-      
-      <div className="w-full px-6 py-8">
-        {/* Header */}
-        <div className="page-header">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(`/projects/${projectId}`)}
-                className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
-                title="Quay lại Dự án"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="page-title">Nhiệm vụ dự án</h1>
-                <p className="page-subtitle">
-                  Quản lý và theo dõi nhiệm vụ cho dự án này
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => navigate(`/projects/${projectId}/tasks/kanban`)}
-                className="btn-secondary"
-              >
-                Xem Kanban
-              </button>
-              <button
-                onClick={() => navigate(`/projects/${projectId}/tasks/new`)}
-                className="btn-primary"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Tạo nhiệm vụ
-              </button>
+    <div className="w-full px-6 py-8">
+      {/* Header */}
+      <div className="page-header">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(`/projects/${projectId}`)}
+              className="btn-ghost p-2 hover:bg-gray-100 rounded-lg"
+              title="Quay lại Dự án"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="page-title">Nhiệm vụ dự án</h1>
+              <p className="page-subtitle">
+                Quản lý và theo dõi nhiệm vụ cho dự án này
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Filters */}
-        <div className="card mb-6">
-          <div className="card-body">
-            <div className="space-y-4">
-              {/* Search Row */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      placeholder="Tìm kiếm nhiệm vụ..."
-                      className="input pl-10 w-full"
-                      value={filters.search}
-                      onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                    />
-                  </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => navigate(`/projects/${projectId}/tasks/kanban`)}
+              className="btn-secondary"
+            >
+              Xem Kanban
+            </button>
+            <button
+              onClick={() => navigate(`/projects/${projectId}/tasks/new`)}
+              className="btn-primary"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Tạo nhiệm vụ
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card mb-6">
+        <div className="card-body">
+          <div className="space-y-4">
+            {/* Search Row */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm nhiệm vụ..."
+                    className="input pl-10 w-full"
+                    value={filters.search}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        search: e.target.value,
+                      }))
+                    }
+                  />
                 </div>
-                <button
-                  onClick={() => {
-                    setFilters({ status: '', priority: '', assignees: [], dueDate: '', search: '', labelIds: [] });
-                    setCurrentPage(1);
-                  }}
-                  className="btn-ghost whitespace-nowrap"
-                >
-                  Xóa bộ lọc
-                </button>
               </div>
+              <button
+                onClick={() => {
+                  setFilters({
+                    status: "",
+                    priority: "",
+                    assignees: [],
+                    dueDate: "",
+                    search: "",
+                    labelIds: [],
+                  });
+                  setCurrentPage(1);
+                }}
+                className="btn-ghost whitespace-nowrap"
+              >
+                Xóa bộ lọc
+              </button>
+            </div>
 
-              {/* Filter Row 1: Status and Priority */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Status Filter */}
-                <SelectDropdown
-                  label=""
-                  options={[
-                    { id: '', fullName: 'Tất cả trạng thái' },
-                    { id: 'TODO', fullName: 'Cần làm' },
-                    { id: 'IN_PROGRESS', fullName: 'Đang thực hiện' },
-                    { id: 'REVIEW', fullName: 'Đang xem xét' },
-                    { id: 'COMPLETED', fullName: 'Hoàn thành' }
-                  ]}
-                  value={filters.status}
-                  onChange={(status) => setFilters(prev => ({ ...prev, status }))}
-                  placeholder="Tất cả trạng thái"
-                />
+            {/* Filter Row 1: Status and Priority */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Status Filter */}
+              <SelectDropdown
+                label=""
+                options={[
+                  { id: "", fullName: "Tất cả trạng thái" },
+                  { id: "TODO", fullName: "Cần làm" },
+                  { id: "IN_PROGRESS", fullName: "Đang thực hiện" },
+                  { id: "REVIEW", fullName: "Đang xem xét" },
+                  { id: "COMPLETED", fullName: "Hoàn thành" },
+                ]}
+                value={filters.status}
+                onChange={(status) =>
+                  setFilters((prev) => ({ ...prev, status }))
+                }
+                placeholder="Tất cả trạng thái"
+              />
 
-                {/* Priority Filter */}
-                <SelectDropdown
-                  label=""
-                  options={[
-                    { id: '', fullName: 'Tất cả mức độ ưu tiên' },
-                    { id: 'LOW', fullName: 'Thấp' },
-                    { id: 'MEDIUM', fullName: 'Trung bình' },
-                    { id: 'HIGH', fullName: 'Cao' },
-                    { id: 'URGENT', fullName: 'Khẩn cấp' }
-                  ]}
-                  value={filters.priority}
-                  onChange={(priority) => setFilters(prev => ({ ...prev, priority }))}
-                  placeholder="Tất cả mức độ ưu tiên"
-                />
-              </div>
+              {/* Priority Filter */}
+              <SelectDropdown
+                label=""
+                options={[
+                  { id: "", fullName: "Tất cả mức độ ưu tiên" },
+                  { id: "LOW", fullName: "Thấp" },
+                  { id: "MEDIUM", fullName: "Trung bình" },
+                  { id: "HIGH", fullName: "Cao" },
+                  { id: "URGENT", fullName: "Khẩn cấp" },
+                ]}
+                value={filters.priority}
+                onChange={(priority) =>
+                  setFilters((prev) => ({ ...prev, priority }))
+                }
+                placeholder="Tất cả mức độ ưu tiên"
+              />
+            </div>
 
-              {/* Filter Row 2: Assignee and Due Date */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Assignee Filter - Multi-select with search */}
-                <UserFilterSelector
-                  projectId={projectId}
-                  selectedUsers={filters.assignees}
-                  onSelectionChange={(userIds) => setFilters(prev => ({ ...prev, assignees: userIds }))}
-                  multiple={true}
-                  placeholder="Tất cả người được gán"
-                />
+            {/* Filter Row 2: Assignee and Due Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Assignee Filter - Multi-select with search */}
+              <UserFilterSelector
+                projectId={projectId}
+                selectedUsers={filters.assignees}
+                onSelectionChange={(userIds) =>
+                  setFilters((prev) => ({ ...prev, assignees: userIds }))
+                }
+                multiple={true}
+                placeholder="Tất cả người được gán"
+              />
 
-                {/* Due Date Filter - Enhanced with preset options and custom date range */}
-                <DueDateFilter
-                  value={filters.dueDate}
-                  onChange={(dueDate) => setFilters(prev => ({ ...prev, dueDate }))}
-                  placeholder="Tất cả hạn chót"
-                />
-              </div>
+              {/* Due Date Filter - Enhanced with preset options and custom date range */}
+              <DueDateFilter
+                value={filters.dueDate}
+                onChange={(dueDate) =>
+                  setFilters((prev) => ({ ...prev, dueDate }))
+                }
+                placeholder="Tất cả hạn chót"
+              />
+            </div>
 
-              {/* Label Filter Row */}
-              <div className="grid grid-cols-1 gap-4">
-                <LabelFilter
-                  projectId={projectId}
-                  selectedLabelIds={filters.labelIds}
-                  onSelectionChange={(labelIds) => setFilters(prev => ({ ...prev, labelIds }))}
-                />
-              </div>
+            {/* Label Filter Row */}
+            <div className="grid grid-cols-1 gap-4">
+              <LabelFilter
+                projectId={projectId}
+                selectedLabelIds={filters.labelIds}
+                onSelectionChange={(labelIds) =>
+                  setFilters((prev) => ({ ...prev, labelIds }))
+                }
+              />
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Tasks List */}
-        <div className="card">
-          <div className="card-body">
-            {isLoading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
-              </div>
-            ) : tasks && tasks.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {tasks.map((task: Task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => navigate(`/projects/${projectId}/tasks/${task.id}`)}
-                    className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-sm transition-all cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-3 mb-2">
-                          {getStatusIcon(task.status)}
-                          <h3 className="text-lg font-semibold text-gray-900 truncate">
-                            {task.title}
-                          </h3>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${getStatusColor(task.status)}`}>
-                            {task.status.replace('_', ' ')}
-                          </span>
-                          <span className={`text-sm font-medium ${getPriorityColor(task.priority)}`}>
-                            {task.priority}
-                          </span>
-                        </div>
-                        
-                        {task.description && (
-                          <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none">
-                            <div dangerouslySetInnerHTML={{ __html: task.description }} />
-                          </div>
-                        )}
-                        
-                        {/* Labels */}
-                        {task.labels && task.labels.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {task.labels.map(label => (
-                              <LabelChip key={label.id} label={label} size="sm" />
-                            ))}
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <div className="flex items-center space-x-1">
-                            <User className="w-4 h-4" />
-                            <span>{task.assignee.fullName}</span>
-                          </div>
-                          
-                          {task.dueDate && (
-                            <div className={`flex items-center space-x-1 ${isOverdue(task.dueDate, task.status) ? 'text-red-600' : ''}`}>
-                              <Calendar className="w-4 h-4" />
-                              <span>{formatDate(task.dueDate)}</span>
-                              {isOverdue(task.dueDate, task.status) && (
-                                <span className="text-red-600 font-medium">(Quá hạn)</span>
-                              )}
-                            </div>
-                          )}
-                          
-                          <div className="flex items-center space-x-1">
-                            <Clock className="w-4 h-4" />
-                            <span>Tạo {formatDate(task.createdAt)}</span>
-                          </div>
-                        </div>
+      {/* Tasks List */}
+      <div className="card">
+        <div className="card-body">
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
+            </div>
+          ) : tasks && tasks.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {tasks.map((task: Task) => (
+                <div
+                  key={task.id}
+                  onClick={() =>
+                    navigate(`/projects/${projectId}/tasks/${task.id}`)
+                  }
+                  className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-sm transition-all cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3 mb-2">
+                        {getStatusIcon(task.status)}
+                        <h3 className="text-lg font-semibold text-gray-900 truncate">
+                          {task.title}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${getStatusColor(
+                            task.status
+                          )}`}
+                        >
+                          {task.status.replace("_", " ")}
+                        </span>
+                        <span
+                          className={`text-sm font-medium ${getPriorityColor(
+                            task.priority
+                          )}`}
+                        >
+                          {task.priority}
+                        </span>
                       </div>
-                      
-                      <div className="flex items-center space-x-2 ml-4">
-                        {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/projects/${projectId}/tasks/${task.id}/edit`);
-                              }}
-                              className="p-2 text-gray-400 hover:text-gray-600 rounded"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteTask(task.id, task.title);
-                              }}
-                              className="p-2 text-gray-400 hover:text-red-600 rounded"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
+
+                      {task.description && (
+                        <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none">
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: task.description,
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Labels */}
+                      {task.labels && task.labels.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {task.labels.map((label) => (
+                            <LabelChip key={label.id} label={label} size="sm" />
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <div className="flex items-center space-x-1">
+                          <User className="w-4 h-4" />
+                          <span>{task.assignee.fullName}</span>
+                        </div>
+
+                        {task.dueDate && (
+                          <div
+                            className={`flex items-center space-x-1 ${
+                              isOverdue(task.dueDate, task.status)
+                                ? "text-red-600"
+                                : ""
+                            }`}
+                          >
+                            <Calendar className="w-4 h-4" />
+                            <span>{formatDate(task.dueDate)}</span>
+                            {isOverdue(task.dueDate, task.status) && (
+                              <span className="text-red-600 font-medium">
+                                (Quá hạn)
+                              </span>
+                            )}
+                          </div>
                         )}
+
+                        <div className="flex items-center space-x-1">
+                          <Clock className="w-4 h-4" />
+                          <span>Tạo {formatDate(task.createdAt)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy nhiệm vụ</h3>
-                <p className="text-gray-600 mb-4">
-                  {filters.search || filters.status || filters.priority || filters.assignees.length > 0 || filters.dueDate || filters.labelIds.length > 0
-                    ? 'Thử điều chỉnh bộ lọc để xem thêm nhiệm vụ.'
-                    : 'Bắt đầu bằng cách tạo nhiệm vụ đầu tiên.'}
-                </p>
-                {(user?.role === 'ADMIN' || user?.role === 'LECTURER') && (
-                  <button
-                    onClick={() => navigate(`/projects/${projectId}/tasks/new`)}
-                    className="btn-primary"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Tạo nhiệm vụ đầu tiên
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Pagination */}
-        {pagination && (
-          <div className="mt-6">
-            <Pagination
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              totalCount={pagination.totalCount}
-              limit={pagination.limit}
-              onPageChange={(page) => {
-                setCurrentPage(page);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            />
-          </div>
-        )}
+                    <div className="flex items-center space-x-2 ml-4">
+                      {(user?.role === "ADMIN" ||
+                        user?.role === "LECTURER") && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(
+                                `/projects/${projectId}/tasks/${task.id}/edit`
+                              );
+                            }}
+                            className="p-2 text-gray-400 hover:text-gray-600 rounded"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTask(task.id, task.title);
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-600 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Không tìm thấy nhiệm vụ
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {filters.search ||
+                filters.status ||
+                filters.priority ||
+                filters.assignees.length > 0 ||
+                filters.dueDate ||
+                filters.labelIds.length > 0
+                  ? "Thử điều chỉnh bộ lọc để xem thêm nhiệm vụ."
+                  : "Bắt đầu bằng cách tạo nhiệm vụ đầu tiên."}
+              </p>
+              {(user?.role === "ADMIN" || user?.role === "LECTURER") && (
+                <button
+                  onClick={() => navigate(`/projects/${projectId}/tasks/new`)}
+                  className="btn-primary"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Tạo nhiệm vụ đầu tiên
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Pagination */}
+      {pagination && (
+        <div className="mt-6">
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalCount={pagination.totalCount}
+            limit={pagination.limit}
+            onPageChange={(page: number) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

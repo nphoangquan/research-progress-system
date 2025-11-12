@@ -10,6 +10,7 @@ import {
 } from '../controllers/document.controller';
 import { verifyToken } from '../middleware/auth.middleware';
 import { upload, handleUploadError } from '../middleware/upload.middleware';
+import { validate, documentSchemas } from '../middleware/validation.middleware';
 
 const router = Router();
 
@@ -20,7 +21,7 @@ router.post('/upload', upload.single('file'), handleUploadError, uploadDocument)
 router.get('/', getDocuments);
 router.get('/stats', getDocumentStats);
 router.get('/:id', getDocumentById);
-router.put('/:id', updateDocument);
+router.put('/:id', validate(documentSchemas.update), updateDocument);
 router.delete('/:id', deleteDocument);
 router.put('/:id/index-status', updateIndexStatus);
 

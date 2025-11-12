@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { useWebSocketEvents } from '../../hooks/useWebSocketEvents';
-import Navbar from '../../components/layout/Navbar';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import AdvancedFilter from '../../components/ui/AdvancedFilter';
 import UserFilterSelector from '../../components/ui/UserFilterSelector';
@@ -220,17 +219,14 @@ export default function TaskList() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar user={user} />
-      
-      <div className="w-full px-6 py-8">
+    <div className="w-full px-6 py-8">
         {/* Header */}
         <div className="page-header">
           <div className="flex items-center justify-between">
@@ -524,6 +520,6 @@ export default function TaskList() {
           </div>
         )}
       </div>
-    </div>
+
   );
 }
