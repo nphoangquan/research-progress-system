@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from "../../utils/errorUtils";
 import {
   ArrowLeft,
   Save,
@@ -91,9 +92,7 @@ export default function DocumentEdit() {
       );
     },
     onError: (err: any) => {
-      const errorMessage =
-        err.response?.data?.error || "Cập nhật tài liệu thất bại";
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(err, "Cập nhật tài liệu thất bại"));
     },
   });
 

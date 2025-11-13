@@ -10,6 +10,7 @@ import LabelSelector from '../../components/ui/LabelSelector';
 import { addLabelToTask, removeLabelFromTask, createLabel } from '../../lib/labelApi';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { 
   ArrowLeft, 
   Save, 
@@ -160,7 +161,7 @@ export default function TaskForm() {
                   try {
                     await addLabelToTask(task.id, labelId);
                   } catch (error: any) {
-                    labelErrors.push(`Không thể thêm label cho nhiệm vụ "${task.title}": ${error.response?.data?.error || 'Lỗi không xác định'}`);
+                    labelErrors.push(`Không thể thêm label cho nhiệm vụ "${task.title}": ${getErrorMessage(error, 'Lỗi không xác định')}`);
                   }
                 })
               );
@@ -192,7 +193,7 @@ export default function TaskForm() {
               try {
                 await addLabelToTask(createdTask.id, labelId);
               } catch (error: any) {
-                labelErrors.push(error.response?.data?.error || 'Lỗi không xác định');
+                labelErrors.push(getErrorMessage(error, 'Lỗi không xác định'));
               }
             })
           );
@@ -215,7 +216,7 @@ export default function TaskForm() {
       navigate(projectId ? `/projects/${projectId}/tasks` : '/tasks');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Tạo nhiệm vụ thất bại');
+      toast.error(getErrorMessage(error, 'Tạo nhiệm vụ thất bại'));
     },
   });
 
@@ -248,7 +249,7 @@ export default function TaskForm() {
       navigate(projectId ? `/projects/${projectId}/tasks` : '/tasks');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Cập nhật nhiệm vụ thất bại');
+      toast.error(getErrorMessage(error, 'Cập nhật nhiệm vụ thất bại'));
     },
   });
 

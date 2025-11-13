@@ -8,6 +8,7 @@ import ProjectUserFilterSelector from "../../components/ProjectUserFilterSelecto
 import Pagination from "../../components/ui/Pagination";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
+import { getErrorMessage } from '../../utils/errorUtils';
 import {
   Plus,
   Search,
@@ -172,7 +173,7 @@ export default function ProjectDocumentList() {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Xóa tài liệu thất bại");
+      toast.error(getErrorMessage(error, 'Xóa tài liệu thất bại'));
     },
   });
 
@@ -342,7 +343,7 @@ export default function ProjectDocumentList() {
       {statsError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
-            <div className="text-red-600 mr-2">⚠️</div>
+            <div className="text-red-600 mr-2">WARNING</div>
             <span className="text-sm text-red-700">
               Tải thống kê thất bại. Vui lòng thử lại.
             </span>

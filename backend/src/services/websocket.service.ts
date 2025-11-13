@@ -61,7 +61,7 @@ export class WebSocketService {
 
   private setupEventHandlers() {
     this.io.on('connection', (socket: AuthenticatedSocket) => {
-      console.log(`🔌 User ${socket.userId} connected (${socket.id})`);
+      console.log(`User ${socket.userId} connected (${socket.id})`);
       
       // Track connected user
       if (socket.userId) {
@@ -76,7 +76,7 @@ export class WebSocketService {
 
       // Handle disconnection
       socket.on('disconnect', () => {
-        console.log(`🔌 User ${socket.userId} disconnected (${socket.id})`);
+        console.log(`User ${socket.userId} disconnected (${socket.id})`);
         if (socket.userId) {
           this.connectedUsers.delete(socket.userId);
         }
@@ -85,13 +85,13 @@ export class WebSocketService {
       // Handle joining specific project room
       socket.on('join-project', (projectId: string) => {
         socket.join(`project:${projectId}`);
-        console.log(`📁 User ${socket.userId} joined project room: ${projectId}`);
+        console.log(`User ${socket.userId} joined project room: ${projectId}`);
       });
 
       // Handle leaving specific project room
       socket.on('leave-project', (projectId: string) => {
         socket.leave(`project:${projectId}`);
-        console.log(`📁 User ${socket.userId} left project room: ${projectId}`);
+        console.log(`User ${socket.userId} left project room: ${projectId}`);
       });
     });
   }
@@ -138,7 +138,7 @@ export class WebSocketService {
       task,
       timestamp: new Date().toISOString()
     });
-    console.log(`📝 Task created event sent to project ${projectId}`);
+    console.log(`Task created event sent to project ${projectId}`);
   }
 
   public emitTaskUpdated(task: any, projectId: string, changes: any) {
@@ -147,7 +147,7 @@ export class WebSocketService {
       changes,
       timestamp: new Date().toISOString()
     });
-    console.log(`📝 Task updated event sent to project ${projectId}`);
+    console.log(`Task updated event sent to project ${projectId}`);
   }
 
   public emitTaskDeleted(taskId: string, projectId: string) {
@@ -155,7 +155,7 @@ export class WebSocketService {
       taskId,
       timestamp: new Date().toISOString()
     });
-    console.log(`📝 Task deleted event sent to project ${projectId}`);
+    console.log(`Task deleted event sent to project ${projectId}`);
   }
 
   public emitTaskStatusChanged(task: any, projectId: string, oldStatus: string, newStatus: string) {
@@ -165,7 +165,7 @@ export class WebSocketService {
       newStatus,
       timestamp: new Date().toISOString()
     });
-    console.log(`📝 Task status changed event sent to project ${projectId}: ${oldStatus} → ${newStatus}`);
+    console.log(`Task status changed event sent to project ${projectId}: ${oldStatus} → ${newStatus}`);
   }
 
   // Comment Events
@@ -175,7 +175,7 @@ export class WebSocketService {
       taskId,
       timestamp: new Date().toISOString()
     });
-    console.log(`💬 Comment added event sent to project ${projectId}`);
+    console.log(`Comment added event sent to project ${projectId}`);
   }
 
   public emitCommentUpdated(comment: any, taskId: string, projectId: string) {
@@ -184,7 +184,7 @@ export class WebSocketService {
       taskId,
       timestamp: new Date().toISOString()
     });
-    console.log(`💬 Comment updated event sent to project ${projectId}`);
+    console.log(`Comment updated event sent to project ${projectId}`);
   }
 
   public emitCommentDeleted(commentId: string, taskId: string, projectId: string) {
@@ -193,7 +193,7 @@ export class WebSocketService {
       taskId,
       timestamp: new Date().toISOString()
     });
-    console.log(`💬 Comment deleted event sent to project ${projectId}`);
+    console.log(`Comment deleted event sent to project ${projectId}`);
   }
 
   // User Presence

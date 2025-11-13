@@ -5,6 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { sanitizeHTML } from "../../utils/sanitize";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
+import { getErrorMessage } from '../../utils/errorUtils';
 import {
   ArrowLeft,
   Download,
@@ -82,7 +83,7 @@ export default function DocumentDetail() {
       );
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Xóa tài liệu thất bại");
+      toast.error(getErrorMessage(error, 'Xóa tài liệu thất bại'));
     },
   });
 

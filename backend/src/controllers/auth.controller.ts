@@ -17,9 +17,6 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, fullName, role = 'STUDENT', studentId } = req.body;
 
-    // Note: Validation is now handled by validation middleware
-    // This check is kept as a fallback
-
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ 
       where: { email: email.toLowerCase() } 
@@ -123,8 +120,6 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-
-    // Note: Validation is now handled by validation middleware
 
     // Find user
     const user = await prisma.user.findUnique({ 
@@ -238,8 +233,6 @@ export const updateProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { fullName, avatarUrl } = req.body;
-
-    // Note: Validation is now handled by validation middleware
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -394,8 +387,6 @@ export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
 
-    // Note: Validation is now handled by validation middleware
-
     // Find user
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
@@ -468,8 +459,6 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (!token) {
       throw createError.badRequest('Reset token is required');
     }
-    
-    // Note: Password validation is handled by validation middleware
 
     // Find reset token
     const resetToken = await prisma.passwordResetToken.findUnique({

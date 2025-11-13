@@ -12,23 +12,32 @@ export const createProject = async (req: Request, res: Response) => {
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
-    // Input length validation
+    // Fallback validation check
     if (title && title.length > 200) {
       return res.status(400).json({ 
-        error: 'Project title must be 200 characters or less' 
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Project title must be 200 characters or less'
+        }
       });
     }
 
-    if (description && description.length > 2000) {
+    if (description && description.length > 5000) {
       return res.status(400).json({ 
-        error: 'Project description must be 2000 characters or less' 
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Project description must be 5000 characters or less'
+        }
       });
     }
 
-    // Validation
+    // Fallback validation check
     if (!title || !description || !studentIds || !Array.isArray(studentIds) || studentIds.length === 0 || !lecturerId) {
       return res.status(400).json({ 
-        error: 'Title, description, studentIds (array), and lecturerId are required' 
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Title, description, studentIds (array), and lecturerId are required'
+        }
       });
     }
 

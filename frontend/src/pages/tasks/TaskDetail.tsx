@@ -18,6 +18,7 @@ import { sanitizeHTML } from "../../utils/sanitize";
 import api from "../../lib/axios";
 import type { Label } from "../../types/label";
 import toast from "react-hot-toast";
+import { getErrorMessage } from '../../utils/errorUtils';
 import {
   ArrowLeft,
   Edit,
@@ -167,7 +168,7 @@ export default function TaskDetail() {
       toast.success("Cập nhật nhiệm vụ thành công!");
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Cập nhật nhiệm vụ thất bại");
+      toast.error(getErrorMessage(error, 'Cập nhật nhiệm vụ thất bại'));
     },
   });
 
@@ -184,7 +185,7 @@ export default function TaskDetail() {
       );
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Xóa nhiệm vụ thất bại");
+      toast.error(getErrorMessage(error, 'Xóa nhiệm vụ thất bại'));
     },
   });
 
@@ -220,7 +221,7 @@ export default function TaskDetail() {
       toast.success("Xóa tệp đính kèm thành công!");
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error || "Xóa tệp đính kèm thất bại");
+      toast.error(getErrorMessage(err, "Xóa tệp đính kèm thất bại"));
     },
   });
 

@@ -18,6 +18,7 @@ import SelectDropdown from '../../components/ui/SelectDropdown';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import DeleteUserModal from './DeleteUserModal';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 interface User {
   id: string;
@@ -101,7 +102,7 @@ export default function UserManagement() {
       );
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Không thể cập nhật trạng thái người dùng');
+      toast.error(getErrorMessage(error, 'Không thể cập nhật trạng thái người dùng'));
     },
   });
 

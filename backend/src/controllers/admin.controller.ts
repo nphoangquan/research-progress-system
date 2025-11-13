@@ -224,9 +224,11 @@ export const createUser = async (req: Request, res: Response) => {
       });
     }
 
-    // Send welcome email if requested
-    // Note: If requireEmailVerification is true, we should send email with token
-    // even if sendWelcomeEmail is false, to ensure user can verify their email
+    /**
+     * Send welcome email if requested
+     * If requireEmailVerification is true, send email with token
+     * even if sendWelcomeEmail is false, to ensure user can verify their email
+     */
     if (sendWelcomeEmail || (requireEmailVerification && verificationToken)) {
       try {
         await emailService.sendWelcomeEmail(

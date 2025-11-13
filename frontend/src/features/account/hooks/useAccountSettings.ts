@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import api from '../../../lib/axios';
 import { useAuth } from '../../../hooks/useAuth';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 export type AccountSettingsTab = 'profile' | 'security' | 'preferences';
 
@@ -133,7 +134,7 @@ export const useAccountSettings = () => {
       setProfileErrors({});
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Cập nhật hồ sơ thất bại');
+      toast.error(getErrorMessage(error, 'Cập nhật hồ sơ thất bại'));
       if (error.response?.data?.errors) {
         setProfileErrors(error.response.data.errors);
       }
@@ -151,7 +152,7 @@ export const useAccountSettings = () => {
       setPasswordErrors({});
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Đổi mật khẩu thất bại');
+      toast.error(getErrorMessage(error, 'Đổi mật khẩu thất bại'));
       if (error.response?.data?.errors) {
         setPasswordErrors(error.response.data.errors);
       }
@@ -175,7 +176,7 @@ export const useAccountSettings = () => {
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Tải lên ảnh đại diện thất bại');
+      toast.error(getErrorMessage(error, 'Tải lên ảnh đại diện thất bại'));
     }
   });
 
@@ -287,7 +288,7 @@ export const useAccountSettings = () => {
       queryClient.invalidateQueries({ queryKey: ['userPreferences', user?.id] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Cập nhật tùy chọn thất bại');
+      toast.error(getErrorMessage(error, 'Cập nhật tùy chọn thất bại'));
     }
   });
 

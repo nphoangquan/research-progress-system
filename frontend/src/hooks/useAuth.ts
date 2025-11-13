@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../lib/axios';
 import type { LoginRequest, RegisterRequest, AuthResponse, User } from '../types/auth';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorUtils';
 
 // Use sessionStorage instead of localStorage for temporary flag
 // sessionStorage automatically clears when tab closes, preventing stale flags
@@ -23,10 +24,10 @@ export const useAuth = () => {
       
       localStorage.setItem('token', result.token);
       localStorage.setItem('user', JSON.stringify(result.user));
-      toast.success('Login successful!');
+      toast.success('Đăng nhập thành công!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Login failed');
+      toast.error(getErrorMessage(error, 'Đăng nhập thất bại'));
     } finally {
       setIsLoading(false);
     }
@@ -43,10 +44,10 @@ export const useAuth = () => {
       
       localStorage.setItem('token', result.token);
       localStorage.setItem('user', JSON.stringify(result.user));
-      toast.success('Registration successful!');
+      toast.success('Đăng ký thành công!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Registration failed');
+      toast.error(getErrorMessage(error, 'Đăng ký thất bại'));
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +65,7 @@ export const useAuth = () => {
     
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    toast.success('Logged out successfully');
+    toast.success('Đăng xuất thành công');
     navigate('/login');
     
     // Clear flag after navigation completes

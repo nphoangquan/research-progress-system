@@ -8,6 +8,7 @@ import SelectDropdown from "../../components/ui/SelectDropdown";
 import DatePicker from "../../components/ui/DatePicker";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
+import { getErrorMessage } from '../../utils/errorUtils';
 import {
   ArrowLeft,
   Save,
@@ -67,7 +68,41 @@ export default function CreateProject() {
       navigate(`/projects/${data.project.id}`);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Tạo dự án thất bại");
+      const errorMessage = getErrorMessage(error, 'Tạo dự án thất bại');
+      
+      // Log full error for debugging
+      console.error('Create project error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      // Show error message
+      toast.error(errorMessage);
+      
+      // If validation errors exist, set field errors
+      if (error.response?.data?.error?.details && Array.isArray(error.response.data.error.details)) {
+        const validationErrors: Partial<Record<keyof CreateProjectForm, string>> = {};
+        error.response.data.error.details.forEach((detail: any) => {
+          if (detail.field && detail.message) {
+            // Map backend field names to frontend field names
+            const fieldMap: Record<string, keyof CreateProjectForm> = {
+              'title': 'title',
+              'description': 'description',
+              'studentIds': 'studentIds',
+              'lecturerId': 'lecturerId',
+              'startDate': 'startDate',
+              'endDate': 'endDate',
+            };
+            
+            const frontendField = fieldMap[detail.field];
+            if (frontendField) {
+              validationErrors[frontendField] = detail.message;
+            }
+          }
+        });
+        
+        if (Object.keys(validationErrors).length > 0) {
+          setErrors(validationErrors);
+        }
+      }
     },
   });
 

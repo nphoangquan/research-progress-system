@@ -5,6 +5,7 @@ import { getLabels } from '../../lib/labelApi';
 import LabelChip from './LabelChip';
 import type { Label } from '../../types/label';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 interface LabelSelectorProps {
   projectId?: string;
@@ -145,7 +146,7 @@ export default function LabelSelector({
       setLabelNameError('');
     } catch (error: any) {
       console.error('Failed to create label:', error);
-      toast.error(error.response?.data?.error || 'Không thể tạo nhãn');
+      toast.error(getErrorMessage(error, 'Không thể tạo nhãn'));
     } finally {
       setIsCreating(false);
     }

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Paperclip, X, Edit } from 'lucide-react';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { formatFileSize } from '../../utils/taskUtils';
 import type { DragEvent, ChangeEvent } from 'react';
 
@@ -94,8 +95,7 @@ export default function TaskAttachmentUploadModal({
       onSuccess?.();
     },
     onError: (err: any) => {
-      const errorMessage = err.response?.data?.error || 'Tải lên tệp đính kèm thất bại';
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(err, 'Tải lên tệp đính kèm thất bại'));
       setUploadProgress(0);
     },
   });
@@ -138,8 +138,7 @@ export default function TaskAttachmentUploadModal({
       onSuccess?.();
     },
     onError: (err: any) => {
-      const errorMessage = err.response?.data?.error || 'Tải lên tệp đính kèm thất bại';
-      toast.error(errorMessage);
+      toast.error(getErrorMessage(err, 'Tải lên tệp đính kèm thất bại'));
       setUploadProgress(0);
     },
   });

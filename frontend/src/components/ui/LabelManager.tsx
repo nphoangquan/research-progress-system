@@ -5,6 +5,7 @@ import { getLabels, createLabel, updateLabel, deleteLabel } from '../../lib/labe
 import LabelChip from './LabelChip';
 import type { Label, CreateLabelRequest, UpdateLabelRequest } from '../../types/label';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 interface LabelManagerProps {
   projectId?: string; // undefined = global labels (admin only)
@@ -41,7 +42,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       toast.success('Đã tạo nhãn thành công');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Không thể tạo nhãn');
+      toast.error(getErrorMessage(error, 'Không thể tạo nhãn'));
     },
   });
 
@@ -60,7 +61,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       toast.success('Đã cập nhật nhãn thành công');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Không thể cập nhật nhãn');
+      toast.error(getErrorMessage(error, 'Không thể cập nhật nhãn'));
     },
   });
 
@@ -76,7 +77,7 @@ export default function LabelManager({ projectId, className = '' }: LabelManager
       toast.success('Đã xóa nhãn thành công');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Không thể xóa nhãn');
+      toast.error(getErrorMessage(error, 'Không thể xóa nhãn'));
     },
   });
 

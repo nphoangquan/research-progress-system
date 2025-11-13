@@ -8,6 +8,7 @@ import SelectDropdown from "../../components/ui/SelectDropdown";
 import DatePicker from "../../components/ui/DatePicker";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
+import { getErrorMessage } from '../../utils/errorUtils';
 import {
   ArrowLeft,
   Save,
@@ -99,7 +100,7 @@ export default function EditProject() {
       navigate(`/projects/${id}`);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Cập nhật dự án thất bại");
+      toast.error(getErrorMessage(error, 'Cập nhật dự án thất bại'));
     },
   });
 
@@ -114,7 +115,7 @@ export default function EditProject() {
       navigate("/projects");
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Xóa dự án thất bại");
+      toast.error(getErrorMessage(error, 'Xóa dự án thất bại'));
     },
   });
 

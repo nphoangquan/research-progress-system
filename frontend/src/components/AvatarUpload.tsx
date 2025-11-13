@@ -114,7 +114,7 @@ export default function AvatarUpload({
           </div>
         </div>
 
-        {/* Remove Button (only when there's a preview) */}
+        {/* Remove Button*/}
         {previewUrl && (
           <button
             type="button"

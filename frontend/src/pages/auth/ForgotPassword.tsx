@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../lib/axios';
 import { GraduationCap, Mail, AlertCircle, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -30,8 +31,8 @@ export default function ForgotPassword() {
       setIsSubmitted(true);
       toast.success('Nếu tài khoản với email đó tồn tại, một liên kết đặt lại mật khẩu đã được gửi.');
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Gửi email đặt lại mật khẩu thất bại');
-      toast.error(error.response?.data?.error || 'Gửi email đặt lại mật khẩu thất bại');
+      setError(getErrorMessage(error, 'Gửi email đặt lại mật khẩu thất bại'));
+      toast.error(getErrorMessage(error, 'Gửi email đặt lại mật khẩu thất bại'));
     } finally {
       setIsLoading(false);
     }

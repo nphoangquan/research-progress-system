@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { X } from 'lucide-react';
 
 interface User {
@@ -76,7 +77,7 @@ export default function EditUserModal({ isOpen, user, onClose }: EditUserModalPr
       onClose();
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.error || 'Không thể cập nhật người dùng';
+      const errorMessage = getErrorMessage(error, 'Không thể cập nhật người dùng');
       toast.error(errorMessage);
       
       // Set field-specific errors if available
@@ -192,7 +193,7 @@ export default function EditUserModal({ isOpen, user, onClose }: EditUserModalPr
             )}
             {formData.role !== user.role && (
               <p className="mt-1 text-sm text-warning-600">
-                ⚠️ Thay đổi vai trò có thể ảnh hưởng đến quyền truy cập của người dùng
+                WARNING: Thay đổi vai trò có thể ảnh hưởng đến quyền truy cập của người dùng
               </p>
             )}
           </div>

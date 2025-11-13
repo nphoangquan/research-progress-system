@@ -36,7 +36,7 @@ export const useWebSocketEvents = ({
 
     // Task created
     socket.on('task-created', (data) => {
-      console.log('📝 Task created:', data);
+      console.log('Task created:', data);
       
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -46,13 +46,12 @@ export const useWebSocketEvents = ({
       // Show notification
       toast.success('New task created!', {
         duration: 3000,
-        icon: '📝'
       });
     });
 
     // Task updated
     socket.on('task-updated', (data) => {
-      console.log('📝 Task updated:', data);
+      console.log('Task updated:', data);
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -63,14 +62,13 @@ export const useWebSocketEvents = ({
       if (data.changes.title || data.changes.assigneeId) {
         toast.success('Task updated!', {
           duration: 3000,
-          icon: '📝'
         });
       }
     });
 
     // Task status changed
     socket.on('task-status-changed', (data) => {
-      console.log('📝 Task status changed:', data);
+      console.log('Task status changed:', data);
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -80,13 +78,12 @@ export const useWebSocketEvents = ({
       // Show notification
       toast.success(`Task status changed to ${data.newStatus}`, {
         duration: 3000,
-        icon: '🔄'
       });
     });
 
     // Task deleted
     socket.on('task-deleted', (data) => {
-      console.log('📝 Task deleted:', data);
+      console.log('Task deleted:', data);
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -96,7 +93,6 @@ export const useWebSocketEvents = ({
       // Show notification
       toast.success('Task deleted!', {
         duration: 3000,
-        icon: '🗑️'
       });
     });
 
@@ -115,7 +111,7 @@ export const useWebSocketEvents = ({
 
     // Comment added
     socket.on('comment-added', (data) => {
-      console.log('💬 Comment added:', data);
+      console.log('Comment added:', data);
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['comments'] });
@@ -123,13 +119,12 @@ export const useWebSocketEvents = ({
       // Show notification
       toast.success('New comment added!', {
         duration: 3000,
-        icon: '💬'
       });
     });
 
     // Comment updated
     socket.on('comment-updated', (data) => {
-      console.log('💬 Comment updated:', data);
+      console.log('Comment updated:', data);
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['comments'] });
@@ -137,7 +132,7 @@ export const useWebSocketEvents = ({
 
     // Comment deleted
     socket.on('comment-deleted', (data) => {
-      console.log('💬 Comment deleted:', data);
+      console.log('Comment deleted:', data);
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['comments'] });
@@ -145,7 +140,6 @@ export const useWebSocketEvents = ({
       // Show notification
       toast.success('Comment deleted!', {
         duration: 3000,
-        icon: '🗑️'
       });
     });
 

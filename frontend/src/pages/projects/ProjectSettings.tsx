@@ -9,6 +9,7 @@ import DatePicker from "../../components/ui/DatePicker";
 import LabelManager from "../../components/ui/LabelManager";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
+import { getErrorMessage } from '../../utils/errorUtils';
 import {
   ArrowLeft,
   Save,
@@ -104,7 +105,7 @@ export default function ProjectSettings() {
     },
     onError: (error: any) => {
       toast.error(
-        error.response?.data?.error || "Cập nhật cài đặt dự án thất bại"
+        getErrorMessage(error, 'Cập nhật cài đặt dự án thất bại')
       );
     },
   });
@@ -120,7 +121,7 @@ export default function ProjectSettings() {
       navigate("/projects");
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Lưu trữ dự án thất bại");
+      toast.error(getErrorMessage(error, 'Lưu trữ dự án thất bại'));
     },
   });
 
@@ -137,7 +138,7 @@ export default function ProjectSettings() {
       navigate(`/projects/${id}`);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Khôi phục dự án thất bại");
+      toast.error(getErrorMessage(error, 'Khôi phục dự án thất bại'));
     },
   });
 
@@ -152,7 +153,7 @@ export default function ProjectSettings() {
       navigate("/projects");
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Xóa dự án thất bại");
+      toast.error(getErrorMessage(error, 'Xóa dự án thất bại'));
     },
   });
 

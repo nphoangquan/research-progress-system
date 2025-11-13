@@ -41,6 +41,7 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
   auditLogs               AuditLog[]
+  systemSettingsUpdated   SystemSetting[]         @relation("SystemSettingUpdates")
 
   @@map("users")
 }
@@ -526,4 +527,25 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ============================================================================
+// SYSTEM SETTINGS (Admin Configuration)
+// ============================================================================
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  category  String   // 'general', 'email', 'storage', 'security', 'maintenance'
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  updatedByUser User? @relation("SystemSettingUpdates", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@index([key])
+  @@map("system_settings")
 }

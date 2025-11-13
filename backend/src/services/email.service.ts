@@ -161,7 +161,7 @@ class EmailService {
               <p>Hoặc sao chép và dán liên kết này vào trình duyệt của bạn:</p>
               <p style="word-break: break-all; color: #DC2626;">${resetUrl}</p>
               <div class="warning">
-                <p><strong>⚠️ Thông báo Bảo mật:</strong></p>
+                <p><strong>WARNING: Thông báo Bảo mật:</strong></p>
                 <p>Liên kết này sẽ hết hạn sau 1 giờ. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này và mật khẩu của bạn sẽ không thay đổi.</p>
               </div>
             </div>
@@ -257,7 +257,7 @@ class EmailService {
               <p>Xin chào ${user.fullName},</p>
               <p>Mật khẩu của bạn đã được thay đổi thành công.</p>
               <div class="warning">
-                <p><strong>⚠️ Thông báo Bảo mật:</strong></p>
+                <p><strong>WARNING: Thông báo Bảo mật:</strong></p>
                 <p>Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ với chúng tôi ngay lập tức và cân nhắc đổi mật khẩu lại.</p>
               </div>
             </div>
@@ -310,7 +310,7 @@ class EmailService {
               </div>
               <p>Vui lòng đăng nhập và thay đổi mật khẩu này ngay sau khi đăng nhập để bảo mật tài khoản của bạn.</p>
               <div class="warning">
-                <p><strong>⚠️ Thông báo Bảo mật:</strong></p>
+                <p><strong>WARNING: Thông báo Bảo mật:</strong></p>
                 <p>Vui lòng không chia sẻ mật khẩu này với bất kỳ ai. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng liên hệ với quản trị viên ngay lập tức.</p>
               </div>
             </div>
@@ -325,6 +325,17 @@ class EmailService {
     await this.sendEmail({
       to: user.email,
       subject: 'Mật khẩu đã được Đặt lại bởi Quản trị viên',
+      html,
+    });
+  }
+
+  /**
+   * Send test email (for admin testing SMTP configuration)
+   */
+  async sendTestEmail(to: string, html: string): Promise<void> {
+    await this.sendEmail({
+      to,
+      subject: 'Email Test - Research Progress Management System',
       html,
     });
   }

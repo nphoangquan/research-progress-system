@@ -6,6 +6,7 @@ import ProjectSelector from "../../components/ui/ProjectSelector";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
 import { ArrowLeft, Upload, FileText, AlertCircle, Trash2 } from "lucide-react";
+import { getErrorMessage } from '../../utils/errorUtils';
 
 interface UploadDocumentRequest {
   projectId?: string;
@@ -89,7 +90,7 @@ export default function DocumentUpload() {
       );
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Tải lên thất bại");
+      toast.error(getErrorMessage(error, 'Tải lên thất bại'));
     },
   });
 

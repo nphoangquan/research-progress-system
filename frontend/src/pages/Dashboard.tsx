@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import api from '../lib/axios';
 import type { Project } from '../types/project';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorUtils';
 import { 
   FolderOpen, 
   CheckCircle, 
@@ -50,7 +51,7 @@ export default function Dashboard() {
       toast.success('Đã gửi email xác minh! Vui lòng kiểm tra hộp thư của bạn.');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Không thể gửi email xác minh');
+      toast.error(getErrorMessage(error, 'Không thể gửi email xác minh'));
     },
   });
 

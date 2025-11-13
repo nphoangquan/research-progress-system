@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { X, AlertTriangle, User } from 'lucide-react';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 
@@ -93,7 +94,7 @@ export default function DeleteUserModal({ isOpen, user, onClose }: DeleteUserMod
     },
     onError: (error: any) => {
       const errorData = error.response?.data;
-      const errorMessage = errorData?.error || 'Không thể xóa người dùng';
+      const errorMessage = getErrorMessage(error, 'Không thể xóa người dùng');
       
       // Check if transfer is required
       if (errorData?.requiresTransfer) {

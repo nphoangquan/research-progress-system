@@ -5,6 +5,7 @@ import RichTextEditor from '../features/RichTextEditor';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { sanitizeHTML } from '../../utils/sanitize';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { 
   Upload, 
   FileText, 
@@ -91,7 +92,7 @@ export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSub
       onSubmissionSuccess?.();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Không thể nộp nhiệm vụ');
+      toast.error(getErrorMessage(error, 'Không thể nộp nhiệm vụ'));
     },
   });
 

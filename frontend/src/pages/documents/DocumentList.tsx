@@ -9,6 +9,7 @@ import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { sanitizeHTML } from '../../utils/sanitize';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { 
   Search, 
   FileText,
@@ -151,7 +152,7 @@ export default function DocumentList() {
       toast.success('Xóa tài liệu thành công!');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Xóa tài liệu thất bại');
+      toast.error(getErrorMessage(error, 'Xóa tài liệu thất bại'));
     },
   });
 
@@ -344,7 +345,7 @@ export default function DocumentList() {
         {statsError && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
-              <div className="text-red-600 mr-2">⚠️</div>
+              <div className="text-red-600 mr-2">WARNING</div>
               <span className="text-sm text-red-700">Không thể tải thống kê. Vui lòng thử lại.</span>
             </div>
           </div>

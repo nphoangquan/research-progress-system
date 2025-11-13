@@ -5,6 +5,7 @@ import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { formatDateTime } from '../../utils/taskUtils';
 import type { KeyboardEvent, ChangeEvent } from 'react';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 interface Comment {
   id: string;
@@ -44,7 +45,7 @@ export default function TaskComments({ taskId, comments, currentUserId }: TaskCo
       toast.success('Thêm bình luận thành công!');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Thêm bình luận thất bại');
+      toast.error(getErrorMessage(error, 'Thêm bình luận thất bại'));
     },
   });
 
@@ -59,7 +60,7 @@ export default function TaskComments({ taskId, comments, currentUserId }: TaskCo
       toast.success('Xóa bình luận thành công!');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Xóa bình luận thất bại');
+      toast.error(getErrorMessage(error, 'Xóa bình luận thất bại'));
     },
   });
 

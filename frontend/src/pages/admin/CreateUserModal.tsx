@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import api from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 import { X, Eye, EyeOff } from 'lucide-react';
 
 interface CreateUserModalProps {
@@ -75,7 +76,7 @@ export default function CreateUserModal({ isOpen, onClose }: CreateUserModalProp
       onClose();
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.error || 'Không thể tạo người dùng';
+      const errorMessage = getErrorMessage(error, 'Không thể tạo người dùng');
       toast.error(errorMessage);
       
       // Set field-specific errors if available

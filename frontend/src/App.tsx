@@ -37,6 +37,7 @@ import ProjectProgress from './pages/projects/ProjectProgress';
 import AccountSettingsPage from './pages/account/AccountSettingsPage';
 import ArchivedProjects from './pages/projects/ArchivedProjects';
 import UserManagement from './pages/admin/UserManagement';
+import SystemSettings from './pages/admin/SystemSettings';
 
 // Components
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -157,6 +158,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/admin/settings" 
+            element={
+              <ProtectedRoute>
+                <SystemSettings />
               </ProtectedRoute>
             }
           />

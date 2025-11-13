@@ -5,6 +5,7 @@ import api from '../lib/axios';
 import type { UploadDocumentRequest } from '../types/document';
 import toast from 'react-hot-toast';
 import RichTextEditor from './features/RichTextEditor';
+import { getErrorMessage } from '../utils/errorUtils';
 
 const ALLOWED_TYPES = [
   // Documents
@@ -65,7 +66,7 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
       onSuccess?.();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Tải lên thất bại');
+      toast.error(getErrorMessage(error, 'Tải lên thất bại'));
     },
   });
 

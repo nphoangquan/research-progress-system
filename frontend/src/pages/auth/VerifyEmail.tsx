@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../lib/axios';
 import { GraduationCap, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 export default function VerifyEmail() {
   const { token: pathToken } = useParams<{ token: string }>();
@@ -31,7 +32,7 @@ export default function VerifyEmail() {
         }, 3000);
       } catch (error: any) {
         setStatus('error');
-        setMessage(error.response?.data?.error || 'Xác minh email thất bại. Liên kết có thể đã hết hạn.');
+        setMessage(getErrorMessage(error, 'Xác minh email thất bại. Liên kết có thể đã hết hạn.'));
       }
     };
 

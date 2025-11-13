@@ -13,6 +13,7 @@ import Pagination from '../../components/ui/Pagination';
 import api from '../../lib/axios';
 import type { Label } from '../../types/label';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 import {
   Plus,
   Search,
@@ -122,7 +123,6 @@ export default function TaskList() {
     setCurrentPage(1);
   }, [filters.status, filters.priority, filters.assignees.length, filters.dueDate, filters.labelIds.length, advancedFilters]);
 
-  // Note: UserFilterSelector will fetch users/project members internally
 
   // Delete task mutation
   const deleteTaskMutation = useMutation({
@@ -136,7 +136,7 @@ export default function TaskList() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Xóa nhiệm vụ thất bại');
+      toast.error(getErrorMessage(error, 'Xóa nhiệm vụ thất bại'));
     },
   });
 

@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import api from '../../lib/axios';
 import { GraduationCap, Lock, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 export default function ResetPassword() {
   const { token: pathToken } = useParams<{ token: string }>();
@@ -70,7 +71,7 @@ export default function ResetPassword() {
         navigate('/login');
       }, 3000);
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Đặt lại mật khẩu thất bại');
+      toast.error(getErrorMessage(error, 'Đặt lại mật khẩu thất bại'));
       if (error.response?.status === 400) {
         // Token expired or invalid
         setTimeout(() => {

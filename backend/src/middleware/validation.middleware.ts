@@ -63,11 +63,11 @@ export const authSchemas = {
 export const projectSchemas = {
   create: z.object({
     title: z.string().min(1, 'Tiêu đề dự án là bắt buộc').max(200, 'Tiêu đề dự án không được vượt quá 200 ký tự'),
-    description: z.string().max(5000, 'Mô tả dự án không được vượt quá 5000 ký tự').optional(),
-    studentId: z.string().uuid('ID sinh viên không hợp lệ').optional(),
-    lecturerId: z.string().uuid('ID giảng viên không hợp lệ').optional(),
-    startDate: z.string().datetime('Ngày bắt đầu không hợp lệ').optional().or(z.literal('')),
-    endDate: z.string().datetime('Ngày kết thúc không hợp lệ').optional().or(z.literal('')),
+    description: z.string().min(1, 'Mô tả dự án là bắt buộc').max(5000, 'Mô tả dự án không được vượt quá 5000 ký tự'),
+    studentIds: z.array(z.string().uuid('ID sinh viên không hợp lệ')).min(1, 'Vui lòng chọn ít nhất một sinh viên'),
+    lecturerId: z.string().uuid('ID giảng viên không hợp lệ'),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày bắt đầu phải có định dạng YYYY-MM-DD'),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày kết thúc phải có định dạng YYYY-MM-DD').optional().or(z.literal('')),
   }),
 
   update: z.object({
@@ -75,7 +75,7 @@ export const projectSchemas = {
     description: z.string().max(5000, 'Mô tả dự án không được vượt quá 5000 ký tự').optional(),
     status: z.enum(['IN_PROGRESS', 'COMPLETED', 'ARCHIVED']).optional(),
     progress: z.number().min(0, 'Tiến độ phải từ 0 đến 100').max(100, 'Tiến độ phải từ 0 đến 100').optional(),
-    endDate: z.string().datetime('Ngày kết thúc không hợp lệ').optional().or(z.literal('')),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày kết thúc phải có định dạng YYYY-MM-DD').optional().or(z.literal('')),
   }),
 };
 
@@ -87,9 +87,9 @@ export const taskSchemas = {
     projectId: z.string().uuid('ID dự án không hợp lệ'),
     title: z.string().min(1, 'Tiêu đề nhiệm vụ là bắt buộc').max(200, 'Tiêu đề nhiệm vụ không được vượt quá 200 ký tự'),
     description: z.string().max(2000, 'Mô tả nhiệm vụ không được vượt quá 2000 ký tự').optional(),
-    assigneeId: z.string().uuid('ID người được giao không hợp lệ').optional(),
+    assigneeId: z.string().uuid('ID người được giao không hợp lệ').optional().nullable(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
-    dueDate: z.string().datetime('Ngày hết hạn không hợp lệ').optional().or(z.literal('')),
+    dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày hết hạn phải có định dạng YYYY-MM-DD').optional().or(z.literal('')),
   }),
 
   update: z.object({
@@ -97,8 +97,8 @@ export const taskSchemas = {
     description: z.string().max(2000, 'Mô tả nhiệm vụ không được vượt quá 2000 ký tự').optional().nullable(),
     status: z.enum(['TODO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
-    dueDate: z.string().datetime('Ngày hết hạn không hợp lệ').optional().nullable().or(z.literal('')),
-    assigneeId: z.string().uuid('ID người được giao không hợp lệ').optional(),
+    dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày hết hạn phải có định dạng YYYY-MM-DD').optional().nullable().or(z.literal('')),
+    assigneeId: z.string().uuid('ID người được giao không hợp lệ').optional().nullable(),
   }),
 
   submit: z.object({
@@ -194,5 +194,76 @@ export const adminSchemas = {
       message: 'Phải cung cấp newPassword hoặc set generatePassword = true',
     }
   ),
+};
+
+/**
+ * Validation schemas for system settings
+ */
+export const systemSettingsSchemas = {
+  general: z.object({
+    systemName: z.string().min(1, 'Tên hệ thống là bắt buộc').max(200, 'Tên hệ thống quá dài').optional(),
+    systemDescription: z.string().max(1000, 'Mô tả hệ thống quá dài').optional(),
+    logoUrl: z.string().url('URL logo không hợp lệ').optional().or(z.literal('')),
+    faviconUrl: z.string().url('URL favicon không hợp lệ').optional().or(z.literal('')),
+    timezone: z.string().min(1, 'Timezone là bắt buộc').optional(),
+    defaultLanguage: z.string().min(2, 'Ngôn ngữ mặc định là bắt buộc').max(10).optional(),
+    dateFormat: z.string().min(1, 'Định dạng ngày là bắt buộc').optional(),
+  }),
+
+  email: z.object({
+    smtpHost: z.string().optional().or(z.literal('')),
+    smtpPort: z.number().int().min(1).max(65535, 'Port phải từ 1 đến 65535').optional(),
+    smtpSecure: z.boolean().optional(),
+    smtpUsername: z.string().optional().or(z.literal('')),
+    smtpPassword: z.string().optional().or(z.literal('')),
+    fromEmail: z.string().email('Địa chỉ email không hợp lệ').optional().or(z.literal('')),
+    fromName: z.string().max(200, 'Tên người gửi quá dài').optional(),
+    welcomeEmailTemplate: z.string().optional().nullable(),
+    passwordResetEmailTemplate: z.string().optional().nullable(),
+    verificationEmailTemplate: z.string().optional().nullable(),
+  }),
+
+  storage: z.object({
+    maxFileSize: z.number().int().min(1024, 'Kích thước file tối thiểu là 1KB').optional(),
+    allowedFileTypes: z.array(z.string()).optional(),
+    maxDocumentsPerProject: z.number().int().min(1, 'Số lượng tài liệu tối thiểu là 1').max(1000, 'Số lượng tài liệu tối đa là 1000').optional(),
+    autoIndexing: z.boolean().optional(),
+    maxAvatarSize: z.number().int().min(1024, 'Kích thước avatar tối thiểu là 1KB').optional(),
+    allowedAvatarTypes: z.array(z.string()).optional(),
+  }),
+
+  security: z.object({
+    passwordMinLength: z.number().int().min(6, 'Độ dài mật khẩu tối thiểu là 6').max(128, 'Độ dài mật khẩu tối đa là 128').optional(),
+    passwordRequireUppercase: z.boolean().optional(),
+    passwordRequireLowercase: z.boolean().optional(),
+    passwordRequireNumbers: z.boolean().optional(),
+    passwordRequireSpecialChars: z.boolean().optional(),
+    sessionTimeout: z.number().int().min(1, 'Thời gian session tối thiểu là 1 phút').optional(),
+    maxConcurrentSessions: z.number().int().min(1, 'Số session đồng thời tối thiểu là 1').max(10, 'Số session đồng thời tối đa là 10').optional(),
+    maxLoginAttempts: z.number().int().min(1, 'Số lần đăng nhập tối thiểu là 1').max(20, 'Số lần đăng nhập tối đa là 20').optional(),
+    lockoutDuration: z.number().int().min(1, 'Thời gian khóa tài khoản tối thiểu là 1 phút').optional(),
+    requireEmailVerification: z.boolean().optional(),
+  }),
+
+  maintenance: z.object({
+    enabled: z.boolean().optional(),
+    message: z.string().max(2000, 'Thông báo bảo trì quá dài').optional(),
+    allowedIPs: z
+      .array(
+        z
+          .string()
+          .regex(
+            /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/,
+            'Địa chỉ IP không hợp lệ'
+          )
+      )
+      .optional(),
+    scheduledStart: z.string().datetime('Thời gian bắt đầu không hợp lệ').optional().nullable(),
+    scheduledEnd: z.string().datetime('Thời gian kết thúc không hợp lệ').optional().nullable(),
+  }),
+
+  testEmail: z.object({
+    testEmail: z.string().email('Địa chỉ email test không hợp lệ'),
+  }),
 };
 

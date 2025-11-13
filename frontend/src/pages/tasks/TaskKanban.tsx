@@ -9,6 +9,7 @@ import LabelChip from '../../components/ui/LabelChip';
 import api from '../../lib/axios';
 import type { Label } from '../../types/label';
 import toast from "react-hot-toast";
+import { getErrorMessage } from '../../utils/errorUtils';
 import {
   Plus,
   Search,
@@ -145,7 +146,7 @@ export default function TaskKanban() {
     },
     onError: (error: any) => {
       toast.error(
-        error.response?.data?.error || "Cập nhật trạng thái nhiệm vụ thất bại"
+        getErrorMessage(error, 'Cập nhật trạng thái nhiệm vụ thất bại')
       );
     },
   });

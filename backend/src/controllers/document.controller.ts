@@ -169,8 +169,10 @@ export const uploadDocument = async (req: Request, res: Response) => {
       // Clean up local file
       cleanupLocalFile(req.file.path);
 
-      // TODO: Send to Python AI service for indexing
-      // For now, we'll just mark it as PENDING
+      /**
+       * TODO: Integrate with Python AI service for document indexing
+       * Currently documents are marked as PENDING until indexing is implemented
+       */
 
       // Log activity
       await ActivityService.logActivity({

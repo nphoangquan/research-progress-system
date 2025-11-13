@@ -15,6 +15,7 @@ import {
   Search
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/errorUtils';
 
 interface FilterPreset {
   id: string;
@@ -74,7 +75,7 @@ export default function FilterPresetManager({
       setPresetDescription('');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Không thể lưu bộ lọc');
+      toast.error(getErrorMessage(error, 'Không thể lưu bộ lọc'));
     }
   });
 
@@ -92,7 +93,7 @@ export default function FilterPresetManager({
       setPresetDescription('');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Không thể cập nhật bộ lọc');
+      toast.error(getErrorMessage(error, 'Không thể cập nhật bộ lọc'));
     }
   });
 
@@ -106,7 +107,7 @@ export default function FilterPresetManager({
       toast.success('Đã xóa bộ lọc thành công');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Không thể xóa bộ lọc');
+      toast.error(getErrorMessage(error, 'Không thể xóa bộ lọc'));
     }
   });
 
