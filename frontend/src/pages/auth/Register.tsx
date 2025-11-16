@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useGeneralSettings } from '../../hooks/useGeneralSettings';
+import { useMaintenanceStatus } from '../../hooks/useMaintenanceStatus';
 import { GraduationCap, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Register() {
   const { register, isLoading } = useAuth();
   const { data: generalSettings } = useGeneralSettings();
+  const { data: maintenanceStatus } = useMaintenanceStatus();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -22,8 +25,34 @@ export default function Register() {
     studentId?: string;
   }>({});
   
-  const systemName = generalSettings?.systemName || 'Hệ thống Quản lý Tiến độ Nghiên cứu';
-  const logoUrl = generalSettings?.logoUrl;
+  const systemName = (generalSettings as any)?.systemName || 'Hệ thống Quản lý Tiến độ Nghiên cứu';
+  const logoUrl = (generalSettings as any)?.logoUrl;
+  const isMaintenanceMode = (maintenanceStatus as any)?.isActive || false;
+  const maintenanceMessage = (maintenanceStatus as any)?.message || 'Hệ thống đang bảo trì. Đăng ký tài khoản tạm thời bị tạm dừng.';
+  const scheduledStart = (maintenanceStatus as any)?.scheduledStart;
+  const scheduledEnd = (maintenanceStatus as any)?.scheduledEnd;
+  const duration = (maintenanceStatus as any)?.duration;
+
+  // Format maintenance time info for display
+  const getMaintenanceTimeInfo = () => {
+    if (!isMaintenanceMode) return '';
+    
+    const parts: string[] = [];
+    
+    if (scheduledStart) {
+      const startDate = new Date(scheduledStart);
+      parts.push(`từ ${startDate.toLocaleString('vi-VN')}`);
+    }
+    
+    if (duration && duration > 0) {
+      parts.push(`trong ${duration} phút`);
+    } else if (scheduledEnd) {
+      const endDate = new Date(scheduledEnd);
+      parts.push(`đến ${endDate.toLocaleString('vi-VN')}`);
+    }
+    
+    return parts.length > 0 ? ` (${parts.join(', ')})` : '';
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -63,12 +92,25 @@ export default function Register() {
       return;
     }
 
-    await register({
-      email: formData.email,
-      password: formData.password,
-      fullName: formData.fullName,
-      studentId: formData.studentId || undefined,
-    });
+    // Prevent submission if maintenance mode is active
+    if (isMaintenanceMode) {
+      toast.error(maintenanceMessage);
+      return;
+    }
+
+    try {
+      await register({
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+        studentId: formData.studentId || undefined,
+      });
+    } catch (error: any) {
+      // Check if maintenance mode error (fallback in case status wasn't updated)
+      if (error?.response?.status === 503 && error?.response?.data?.maintenance) {
+        toast.error(error.response.data.message || maintenanceMessage);
+      }
+    }
   };
 
   return (
@@ -99,9 +141,33 @@ export default function Register() {
           </p>
         </div>
 
+        {/* Maintenance Mode Warning */}
+        {isMaintenanceMode && (
+          <div className="mt-4 p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">
+                  Hệ thống đang bảo trì
+                </p>
+                <p className="text-sm text-red-700 mt-1">
+                  {maintenanceMessage}{getMaintenanceTimeInfo()}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Register Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
+          {isMaintenanceMode && (
+            <div className="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg">
+              <p className="text-sm text-gray-600 text-center">
+                Tất cả các trường đã bị vô hiệu hóa do hệ thống đang bảo trì
+              </p>
+            </div>
+          )}
+          <div className={`space-y-4 ${isMaintenanceMode ? 'opacity-50 pointer-events-none' : ''}`}>
             {/* Full Name */}
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -240,11 +306,16 @@ export default function Register() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full btn btn-primary"
+              disabled={isLoading || isMaintenanceMode}
+              className="w-full btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
             </button>
+            {isMaintenanceMode && (
+              <p className="mt-2 text-sm text-center text-gray-600">
+                Không thể đăng ký khi hệ thống đang bảo trì
+              </p>
+            )}
           </div>
 
           {/* Login Link */}

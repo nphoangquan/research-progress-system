@@ -213,6 +213,30 @@ export const upload = {
   },
 };
 
+/**
+ * Multer instance for CSV file uploads (for bulk import)
+ * CSV files are text/csv or application/vnd.ms-excel
+ */
+export const uploadCSV = multer({
+  storage: multer.memoryStorage(), // Store in memory for CSV parsing
+  fileFilter: (req: any, file: Express.Multer.File, cb: any) => {
+    // Accept CSV files
+    if (
+      file.mimetype === 'text/csv' ||
+      file.mimetype === 'application/vnd.ms-excel' ||
+      file.mimetype === 'text/plain' ||
+      file.originalname.toLowerCase().endsWith('.csv')
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error('Chỉ chấp nhận file CSV'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max for CSV
+  },
+});
+
 export const uploadMultiple = {
   single: (fieldName: string) => {
     return async (req: any, res: any, next: any) => {

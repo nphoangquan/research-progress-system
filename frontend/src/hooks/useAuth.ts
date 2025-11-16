@@ -32,10 +32,18 @@ export const useAuth = () => {
       console.error('Login error:', error);
       console.error('Error response:', error?.response?.data);
       
-      // Check if account is deactivated
-      const errorCode = error?.response?.data?.error?.code;
-      const errorMessage = error?.response?.data?.error?.message;
+      const responseData = error?.response?.data;
+      const errorCode = responseData?.error?.code;
+      const errorMessage = responseData?.error?.message;
       
+      // Check if this is a maintenance mode error
+      if (responseData?.maintenance === true || error?.response?.status === 503) {
+        const maintenanceMessage = responseData?.message || responseData?.error || 'Hệ thống đang bảo trì. Vui lòng quay lại sau.';
+        toast.error(maintenanceMessage, { duration: 6000 });
+        return { success: false, error };
+      }
+      
+      // Check if account is deactivated
       if (errorCode === 'ACCOUNT_DEACTIVATED' || errorMessage?.includes('vô hiệu hóa')) {
         const message = errorMessage || 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.';
         toast.error(message, { duration: 6000 });
@@ -66,7 +74,15 @@ export const useAuth = () => {
       toast.success('Đăng ký thành công!');
       navigate('/dashboard');
     } catch (error: any) {
+      // Check if this is a maintenance mode error
+      const responseData = error?.response?.data;
+      if (responseData?.maintenance === true || error?.response?.status === 503) {
+        const maintenanceMessage = responseData?.message || responseData?.error || 'Hệ thống đang bảo trì. Đăng ký tài khoản tạm thời bị tạm dừng.';
+        toast.error(maintenanceMessage, { duration: 6000 });
+        throw error; // Re-throw so Register component can handle it
+      }
       toast.error(getErrorMessage(error, 'Đăng ký thất bại'));
+      throw error; // Re-throw so Register component can handle it
     } finally {
       setIsLoading(false);
     }

@@ -9,7 +9,7 @@ import { createError } from '../utils/errors';
 import logger from '../utils/logger';
 import { validatePassword } from '../utils/passwordValidator';
 import { createSession, deleteSession, deleteUserSessions } from '../services/session.service';
-import { getSecuritySettings } from '../utils/systemSettings';
+import { getSecuritySettings, getMaintenanceSettings } from '../utils/systemSettings';
 import { isAccountLocked, recordFailedAttempt, recordSuccessfulAttempt } from '../services/loginAttempt.service';
 
 const prisma = new PrismaClient();
@@ -19,6 +19,15 @@ const prisma = new PrismaClient();
  */
 export const register = async (req: Request, res: Response) => {
   try {
+    const maintenance = await getMaintenanceSettings();
+    if (maintenance.enabled) {
+      return res.status(503).json({
+        error: 'Hệ thống đang bảo trì',
+        message: maintenance.message || 'Hệ thống đang bảo trì. Đăng ký tài khoản tạm thời bị tạm dừng. Vui lòng quay lại sau.',
+        maintenance: true,
+      });
+    }
+
     const { email, password, fullName, role = 'STUDENT', studentId } = req.body;
 
     // Check if user already exists
@@ -135,6 +144,22 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.get('user-agent');
+
+    const maintenance = await getMaintenanceSettings();
+    if (maintenance.enabled) {
+      const userCheck = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+        select: { role: true }
+      });
+
+      if (!userCheck || userCheck.role !== 'ADMIN') {
+        return res.status(503).json({
+          error: 'Hệ thống đang bảo trì',
+          message: maintenance.message || 'Hệ thống đang bảo trì. Vui lòng quay lại sau.',
+          maintenance: true,
+        });
+      }
+    }
 
     // Check if account is locked out
     const lockoutCheck = await isAccountLocked(email);

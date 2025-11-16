@@ -940,3 +940,387 @@ export const getUserStats = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Export users to CSV (Admin only)
+ * @route GET /api/admin/users/export
+ */
+export const exportUsers = async (req: Request, res: Response) => {
+  try {
+    const {
+      search = '',
+      role,
+      isActive,
+      emailVerified,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = req.query;
+
+    // Build where clause (same as getUsers)
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search as string, mode: 'insensitive' } },
+        { email: { contains: search as string, mode: 'insensitive' } },
+        { studentId: { contains: search as string, mode: 'insensitive' } },
+      ];
+    }
+
+    if (role && (role === 'ADMIN' || role === 'LECTURER' || role === 'STUDENT')) {
+      where.role = role;
+    }
+
+    if (isActive !== undefined) {
+      where.isActive = isActive === 'true';
+    }
+
+    if (emailVerified !== undefined) {
+      where.emailVerified = emailVerified === 'true';
+    }
+
+    // Build orderBy
+    const orderBy: any = {};
+    const validSortFields = ['fullName', 'email', 'role', 'createdAt', 'updatedAt'];
+    if (validSortFields.includes(sortBy as string)) {
+      orderBy[sortBy as string] = sortOrder === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
+
+    // Get all users matching filters (no pagination for export)
+    const users = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        studentId: true,
+        isActive: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy,
+      take: 10000, // Limit export to 10k records
+    });
+
+    // Generate CSV
+    let csvData = 'Họ tên,Email,Vai trò,Mã sinh viên,Trạng thái,Xác thực email,Ngày tạo,Ngày cập nhật\n';
+    users.forEach((user) => {
+      const roleLabel = user.role === 'ADMIN' ? 'Quản trị viên' : user.role === 'LECTURER' ? 'Giảng viên' : 'Sinh viên';
+      const statusLabel = user.isActive ? 'Hoạt động' : 'Vô hiệu hóa';
+      const verifiedLabel = user.emailVerified ? 'Đã xác thực' : 'Chưa xác thực';
+      
+      csvData += `"${user.fullName.replace(/"/g, '""')}","${user.email.replace(/"/g, '""')}","${roleLabel}","${user.studentId || ''}","${statusLabel}","${verifiedLabel}","${user.createdAt.toISOString()}","${user.updatedAt.toISOString()}"\n`;
+    });
+
+    const filename = `users-export-${new Date().toISOString().split('T')[0]}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\ufeff' + csvData); // BOM for Excel UTF-8 support
+  } catch (error) {
+    logger.error('Export users error:', error);
+    res.status(500).json({
+      error: 'Không thể xuất danh sách người dùng',
+    });
+  }
+};
+
+/**
+ * Bulk import users from CSV (Admin only)
+ * @route POST /api/admin/users/import
+ */
+export const bulkImportUsers = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'Vui lòng tải lên file CSV',
+      });
+    }
+
+    const adminUserId = req.user!.userId;
+    const { requireEmailVerification = false } = req.body;
+
+    // Read and parse CSV file
+    const csvContent = req.file.buffer.toString('utf-8');
+    const lines = csvContent.split('\n').filter((line) => line.trim());
+    
+    if (lines.length < 2) {
+      return res.status(400).json({
+        error: 'File CSV không hợp lệ. File phải có header và ít nhất một dòng dữ liệu.',
+      });
+    }
+
+    // Parse header (skip BOM if present)
+    const headerLine = lines[0].replace(/^\ufeff/, '').trim();
+    const headers = headerLine.split(',').map((h) => h.trim().replace(/^"|"$/g, '').toLowerCase());
+    
+    // Expected headers (flexible - can be in any order)
+    const expectedHeaders = ['họ tên', 'email', 'vai trò', 'mã sinh viên', 'mật khẩu'];
+    const headerMap: { [key: string]: number } = {};
+    
+    expectedHeaders.forEach((expected) => {
+      const index = headers.findIndex((h) => h.includes(expected));
+      if (index === -1 && expected !== 'mã sinh viên' && expected !== 'mật khẩu') {
+        // studentId and password are optional
+        throw new Error(`Thiếu cột bắt buộc: ${expected}`);
+      }
+      if (index !== -1) {
+        headerMap[expected] = index;
+      }
+    });
+
+    // Get security settings for password validation
+    const { getSecuritySettings } = require('../utils/systemSettings');
+    const securitySettings = await getSecuritySettings();
+
+    // Parse data rows
+    const results = {
+      success: [] as any[],
+      failed: [] as any[],
+    };
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      try {
+        // Parse CSV line (handle quoted fields)
+        const fields: string[] = [];
+        let currentField = '';
+        let inQuotes = false;
+        
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            if (inQuotes && line[j + 1] === '"') {
+              // Escaped quote
+              currentField += '"';
+              j++;
+            } else {
+              // Toggle quote state
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            fields.push(currentField.trim());
+            currentField = '';
+          } else {
+            currentField += char;
+          }
+        }
+        fields.push(currentField.trim()); // Add last field
+
+        // Extract data
+        const fullName = fields[headerMap['họ tên']]?.trim() || '';
+        const email = fields[headerMap['email']]?.trim().toLowerCase() || '';
+        const roleStr = fields[headerMap['vai trò']]?.trim().toUpperCase() || '';
+        const studentId = fields[headerMap['mã sinh viên']]?.trim() || null;
+        const password = fields[headerMap['mật khẩu']]?.trim() || '';
+
+        // Validate required fields
+        if (!fullName || !email || !roleStr) {
+          results.failed.push({
+            row: i + 1,
+            email: email || 'N/A',
+            error: 'Thiếu thông tin bắt buộc (Họ tên, Email, Vai trò)',
+          });
+          continue;
+        }
+
+        // Validate role
+        if (!['ADMIN', 'LECTURER', 'STUDENT'].includes(roleStr)) {
+          results.failed.push({
+            row: i + 1,
+            email,
+            error: `Vai trò không hợp lệ: ${roleStr}. Phải là ADMIN, LECTURER hoặc STUDENT`,
+          });
+          continue;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          results.failed.push({
+            row: i + 1,
+            email,
+            error: 'Định dạng email không hợp lệ',
+          });
+          continue;
+        }
+
+        // Check if email already exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (existingUser) {
+          results.failed.push({
+            row: i + 1,
+            email,
+            error: 'Email đã tồn tại trong hệ thống',
+          });
+          continue;
+        }
+
+        // Check if studentId already exists (if provided)
+        if (studentId) {
+          const existingStudent = await prisma.user.findUnique({
+            where: { studentId },
+          });
+
+          if (existingStudent) {
+            results.failed.push({
+              row: i + 1,
+              email,
+              error: 'Mã sinh viên đã tồn tại',
+            });
+            continue;
+          }
+        }
+
+        // Generate or validate password
+        let finalPassword: string;
+        if (password) {
+          // Validate provided password
+          const passwordValidation = await validatePassword(password);
+          if (!passwordValidation.isValid) {
+            results.failed.push({
+              row: i + 1,
+              email,
+              error: passwordValidation.errors.join('. '),
+            });
+            continue;
+          }
+          finalPassword = password;
+        } else {
+          // Generate random password that meets security requirements
+          const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+          const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+          const numbers = '0123456789';
+          const special = '!@#$%^&*';
+          const allChars = uppercase + lowercase + numbers + special;
+          
+          const minLength = Math.max(securitySettings.passwordMinLength, 12);
+          
+          let generated = '';
+          if (securitySettings.passwordRequireUppercase) {
+            generated += uppercase[Math.floor(Math.random() * uppercase.length)];
+          }
+          if (securitySettings.passwordRequireLowercase) {
+            generated += lowercase[Math.floor(Math.random() * lowercase.length)];
+          }
+          if (securitySettings.passwordRequireNumbers) {
+            generated += numbers[Math.floor(Math.random() * numbers.length)];
+          }
+          if (securitySettings.passwordRequireSpecialChars) {
+            generated += special[Math.floor(Math.random() * special.length)];
+          }
+          
+          for (let j = generated.length; j < minLength; j++) {
+            generated += allChars[Math.floor(Math.random() * allChars.length)];
+          }
+          
+          finalPassword = generated.split('').sort(() => Math.random() - 0.5).join('');
+        }
+
+        // Hash password
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(finalPassword, saltRounds);
+
+        // Create user
+        const user = await prisma.user.create({
+          data: {
+            email,
+            passwordHash,
+            fullName,
+            role: roleStr as 'ADMIN' | 'LECTURER' | 'STUDENT',
+            studentId: studentId || null,
+            emailVerified: !requireEmailVerification,
+            isActive: true,
+          },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+            studentId: true,
+            isActive: true,
+            emailVerified: true,
+            createdAt: true,
+          },
+        });
+
+        // Generate email verification token if required
+        let verificationToken: string | null = null;
+        if (requireEmailVerification) {
+          verificationToken = crypto.randomBytes(32).toString('hex');
+          const expiresAt = new Date();
+          expiresAt.setHours(expiresAt.getHours() + 24);
+
+          await prisma.emailVerificationToken.create({
+            data: {
+              userId: user.id,
+              token: verificationToken,
+              expiresAt,
+            },
+          });
+
+          // Send verification email
+          try {
+            await emailService.sendVerificationEmail(
+              { email: user.email, fullName: user.fullName },
+              verificationToken
+            );
+          } catch (emailError) {
+            logger.warn('Failed to send verification email during bulk import:', { error: emailError, userId: user.id });
+          }
+        }
+
+        // Log admin action
+        await logAdminAction(
+          adminUserId,
+          'CREATE',
+          'User',
+          user.id,
+          { created: { fullName, email, role: roleStr, studentId }, bulkImport: true },
+          req
+        );
+
+        results.success.push({
+          row: i + 1,
+          email: user.email,
+          fullName: user.fullName,
+        });
+      } catch (rowError: any) {
+        logger.error(`Error processing row ${i + 1}:`, rowError);
+        results.failed.push({
+          row: i + 1,
+          email: 'N/A',
+          error: rowError.message || 'Lỗi không xác định',
+        });
+      }
+    }
+
+    // Clean up uploaded file
+    // File is in memory (buffer), no cleanup needed
+
+    res.json({
+      message: `Đã xử lý ${lines.length - 1} dòng. Thành công: ${results.success.length}, Thất bại: ${results.failed.length}`,
+      success: results.success,
+      failed: results.failed,
+      summary: {
+        total: lines.length - 1,
+        success: results.success.length,
+        failed: results.failed.length,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Bulk import users error:', error);
+    res.status(500).json({
+      error: error.message || 'Không thể nhập danh sách người dùng',
+    });
+  }
+};
+

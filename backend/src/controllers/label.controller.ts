@@ -275,19 +275,42 @@ export const createLabel = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Check permissions (ADMIN or LECTURER of project can create labels)
+    // Check permissions: Student and Lecturer can create labels for projects they're part of
+    // Admin can create labels for any project
     if (currentUserRole !== 'ADMIN') {
       if (currentUserRole === 'STUDENT') {
-        return res.status(403).json({
-          error: 'Students cannot create labels'
-        });
+        // Check if student is a member of the project
+        const isStudentInProject = project.students.some(
+          (ps: any) => ps.studentId === currentUserId
+        );
+        if (!isStudentInProject) {
+          return res.status(403).json({
+            error: 'Access denied. You are not a member of this project'
+          });
+        }
+      } else if (currentUserRole === 'LECTURER') {
+        // Check if lecturer is the project lecturer
+        if (project.lecturerId !== currentUserId) {
+          return res.status(403).json({
+            error: 'Access denied. Only project lecturer can create labels for this project'
+          });
+        }
       }
+    }
 
-      if (currentUserRole === 'LECTURER' && project.lecturerId !== currentUserId) {
-        return res.status(403).json({
-          error: 'Access denied. Only project lecturer can create labels for this project'
-        });
+    // Check label limit: All users (including Admin) can create max 5 labels per project
+    const userLabelCount = await prisma.label.count({
+      where: {
+        projectId: projectId,
+        createdBy: currentUserId
       }
+    });
+
+    const MAX_LABELS_PER_PROJECT = 5;
+    if (userLabelCount >= MAX_LABELS_PER_PROJECT) {
+      return res.status(403).json({
+        error: `Bạn đã tạo tối đa ${MAX_LABELS_PER_PROJECT} nhãn cho dự án này. Vui lòng xóa một số nhãn trước khi tạo nhãn mới.`
+      });
     }
 
     // Check if project label with same name already exists

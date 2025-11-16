@@ -26,8 +26,8 @@ export async function runCleanupTasks(): Promise<void> {
  * Call this in your server startup
  */
 export function setupPeriodicCleanup(): NodeJS.Timeout {
-  // Run cleanup every hour
-  const interval = setInterval(async () => {
+  // Run cleanup every hour (sessions, login attempts)
+  const cleanupInterval = setInterval(async () => {
     await runCleanupTasks();
   }, 60 * 60 * 1000); // 1 hour
 
@@ -36,6 +36,6 @@ export function setupPeriodicCleanup(): NodeJS.Timeout {
     logger.error('Error running initial cleanup:', err);
   });
 
-  return interval;
+  return cleanupInterval;
 }
 

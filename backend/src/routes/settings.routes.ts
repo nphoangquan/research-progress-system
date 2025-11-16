@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getStorageSettings, getGeneralSettings } from '../controllers/systemSettings.controller';
+import { getStorageSettings, getGeneralSettings, getMaintenanceStatus } from '../controllers/systemSettings.controller';
 
 const router = Router();
 
@@ -16,6 +16,13 @@ router.get('/storage', getStorageSettings);
  * @access  Public
  */
 router.get('/general', getGeneralSettings);
+
+/**
+ * @route   GET /api/settings/maintenance-status
+ * @desc    Get maintenance mode status (public, for frontend to check before rendering)
+ * @access  Public
+ */
+router.get('/maintenance-status', getMaintenanceStatus);
 
 export default router;
 

@@ -63,11 +63,6 @@ Chi tiết cấu hình môi trường xem tại `docs/environment-variables.md`.
 
 ## Tài liệu
 
-Xem thêm trong thư mục `docs/`:
-- `design-system.md` - Hướng dẫn thiết kế UI/UX
-- `coding-standards.md` - Quy tắc viết code
-- `deployment-guide.md` - Hướng dẫn triển khai
-- `environment-variables.md` - Biến môi trường
 - Tạm thời chưa commit docs
 
 ## License

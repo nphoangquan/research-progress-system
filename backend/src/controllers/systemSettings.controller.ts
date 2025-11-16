@@ -84,6 +84,34 @@ const updateSetting = async (
 // ============================================================================
 
 /**
+ * Get maintenance status (public endpoint for frontend)
+ * @route GET /api/settings/maintenance-status
+ */
+export const getMaintenanceStatus = async (req: Request, res: Response) => {
+  try {
+    const { getMaintenanceSettings } = await import('../utils/systemSettings');
+    const maintenance = await getMaintenanceSettings();
+    
+    res.json({
+      isActive: maintenance.enabled,
+      message: maintenance.message || 'Hệ thống đang bảo trì. Vui lòng quay lại sau.',
+      scheduledStart: maintenance.scheduledStart,
+      scheduledEnd: maintenance.scheduledEnd,
+      duration: maintenance.duration,
+    });
+  } catch (error) {
+    logger.error('Error fetching maintenance status:', error);
+    res.json({
+      isActive: false,
+      message: '',
+      scheduledStart: null,
+      scheduledEnd: null,
+      duration: null,
+    });
+  }
+};
+
+/**
  * Get general settings
  * @route GET /api/admin/settings/general
  */
@@ -660,13 +688,19 @@ export const getMaintenanceSettings = async (req: Request, res: Response) => {
 
     settings.forEach((setting) => {
       const key = setting.key.replace('maintenance.', '');
-      // Ensure arrays are properly handled
       if (key === 'allowedIPs') {
         result[key] = Array.isArray(setting.value) ? setting.value : defaults[key];
       } else {
         result[key] = setting.value;
       }
     });
+
+    // Clear scheduled times in response when maintenance is disabled
+    if (!result.enabled) {
+      result.scheduledStart = null;
+      result.scheduledEnd = null;
+      result.duration = null;
+    }
 
     res.json({ settings: result });
   } catch (error) {

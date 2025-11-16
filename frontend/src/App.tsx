@@ -38,6 +38,7 @@ import ArchivedProjects from './pages/projects/ArchivedProjects';
 import UserManagement from './pages/admin/UserManagement';
 import SystemSettings from './pages/admin/SystemSettings';
 import ReportsAndLogs from './pages/admin/ReportsAndLogs';
+import LabelManagement from './pages/admin/LabelManagement';
 
 // Components
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -179,7 +180,15 @@ function AppContent() {
               <ProtectedRoute>
                 <ReportsAndLogs />
               </ProtectedRoute>
-            }
+            } 
+          />
+          <Route 
+            path="/admin/labels" 
+            element={
+              <ProtectedRoute>
+                <LabelManagement />
+              </ProtectedRoute>
+            } 
           />
           <Route 
             path="/projects/:id/progress" 

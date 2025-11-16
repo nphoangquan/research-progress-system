@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../lib/axios';
 import toast from 'react-hot-toast';
@@ -26,17 +26,53 @@ export default function MaintenanceSettings() {
   });
   const [newIP, setNewIP] = useState('');
 
+  const formatDateTimeLocal = (isoString: string | null): string => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch {
+      return '';
+    }
+  };
+
   // Fetch settings
-  const { isLoading, isError, error, refetch } = useQuery({
+  const { data: settingsData, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin-settings-maintenance'],
     queryFn: async () => {
       const response = await api.get('/admin/settings/maintenance');
-      return response.data.settings as MaintenanceSettingsData;
-    },
-    onSuccess: (data) => {
-      setFormData(data);
+      const data = response.data.settings as MaintenanceSettingsData;
+      
+      return {
+        enabled: data.enabled ?? false,
+        message: data.message ?? 'Hệ thống đang bảo trì. Vui lòng quay lại sau.',
+        allowedIPs: Array.isArray(data.allowedIPs) ? data.allowedIPs : [],
+        scheduledStart: data.scheduledStart ?? null,
+        scheduledEnd: data.scheduledEnd ?? null,
+        duration: data.duration ?? null,
+      };
     },
   });
+
+  useEffect(() => {
+    if (settingsData != null) {
+      if (!settingsData.enabled) {
+        setFormData({
+          ...settingsData,
+          scheduledStart: null,
+          scheduledEnd: null,
+          duration: null,
+        });
+      } else {
+        setFormData(settingsData);
+      }
+    }
+  }, [settingsData]);
 
   // Update mutation
   const updateMutation = useMutation({
@@ -108,7 +144,16 @@ export default function MaintenanceSettings() {
             <input
               type="checkbox"
               checked={formData.enabled}
-              onChange={(e) => setFormData((prev) => ({ ...prev, enabled: e.target.checked }))}
+              onChange={(e) => {
+                const isEnabled = e.target.checked;
+                setFormData((prev) => ({
+                  ...prev,
+                  enabled: isEnabled,
+                  scheduledStart: isEnabled ? prev.scheduledStart : null,
+                  scheduledEnd: isEnabled ? prev.scheduledEnd : null,
+                  duration: isEnabled ? prev.duration : null,
+                }));
+              }}
               className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
             />
             <span className="ml-2 text-sm font-medium text-gray-900">
@@ -186,8 +231,14 @@ export default function MaintenanceSettings() {
             </label>
             <input
               type="datetime-local"
-              value={formData.scheduledStart || ''}
-              onChange={(e) => setFormData((prev) => ({ ...prev, scheduledStart: e.target.value || null }))}
+              value={formatDateTimeLocal(formData.scheduledStart)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  scheduledStart: value ? new Date(value).toISOString() : null,
+                }));
+              }}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
@@ -197,8 +248,14 @@ export default function MaintenanceSettings() {
             </label>
             <input
               type="datetime-local"
-              value={formData.scheduledEnd || ''}
-              onChange={(e) => setFormData((prev) => ({ ...prev, scheduledEnd: e.target.value || null }))}
+              value={formatDateTimeLocal(formData.scheduledEnd)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  scheduledEnd: value ? new Date(value).toISOString() : null,
+                }));
+              }}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
@@ -212,11 +269,11 @@ export default function MaintenanceSettings() {
             value={formData.duration || ''}
             onChange={(e) => setFormData((prev) => ({ ...prev, duration: e.target.value ? parseInt(e.target.value) : null }))}
             min={1}
-            placeholder="Nhập số phút (ví dụ: 60)"
+            placeholder="Nhập số phút (ví dụ: 60) hoặc để trống cho bảo trì vô thời hạn"
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
           <p className="mt-1 text-xs text-gray-500">
-            Nếu đã nhập thời gian bắt đầu và thời gian bảo trì, hệ thống sẽ tự động tính thời gian kết thúc
+            Nếu đã nhập thời gian bắt đầu và thời gian bảo trì, hệ thống sẽ tự động tính thời gian kết thúc. Để trống để bảo trì vô thời hạn (chỉ tắt khi admin tắt thủ công).
           </p>
         </div>
       </div>

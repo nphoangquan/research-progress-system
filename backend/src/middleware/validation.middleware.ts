@@ -252,7 +252,11 @@ export const systemSettingsSchemas = {
       .optional(),
     scheduledStart: z.string().datetime('Thời gian bắt đầu không hợp lệ').optional().nullable(),
     scheduledEnd: z.string().datetime('Thời gian kết thúc không hợp lệ').optional().nullable(),
-    duration: z.number().int().min(1, 'Thời gian bảo trì tối thiểu là 1 phút').optional().nullable(),
+    // Allow null or empty for indefinite maintenance, or min 1 minute if provided
+    duration: z.union([
+      z.number().int().min(1, 'Thời gian bảo trì tối thiểu là 1 phút'),
+      z.null(),
+    ]).optional().nullable(),
   }),
 
   testEmail: z.object({

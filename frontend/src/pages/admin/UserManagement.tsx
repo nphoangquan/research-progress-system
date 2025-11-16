@@ -11,13 +11,16 @@ import {
   UserCheck, 
   UserX, 
   MoreVertical,
-  RefreshCw
+  RefreshCw,
+  Download,
+  Upload
 } from 'lucide-react';
 import Pagination from '../../components/ui/Pagination';
 import SelectDropdown from '../../components/ui/SelectDropdown';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import DeleteUserModal from './DeleteUserModal';
+import BulkImportUsersModal from './BulkImportUsersModal';
 import { getErrorMessage } from '../../utils/errorUtils';
 
 interface User {
@@ -64,6 +67,7 @@ export default function UserManagement() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // Fetch users
   const { data: usersData, isLoading, isError, refetch } = useQuery({
@@ -172,6 +176,38 @@ export default function UserManagement() {
     });
   }, []);
 
+  // Export users to CSV
+  const handleExport = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.search) params.append('search', filters.search);
+      if (filters.role) params.append('role', filters.role);
+      if (filters.isActive) params.append('isActive', filters.isActive);
+      if (filters.emailVerified) params.append('emailVerified', filters.emailVerified);
+      params.append('sortBy', filters.sortBy);
+      params.append('sortOrder', filters.sortOrder);
+
+      const response = await api.get(`/admin/users/export?${params.toString()}`, {
+        responseType: 'blob',
+      });
+
+      // Create blob and download
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `users-export-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success('Đã xuất danh sách người dùng thành công');
+    } catch (error: any) {
+      toast.error(getErrorMessage(error, 'Không thể xuất danh sách người dùng'));
+    }
+  }, [filters]);
+
   if (!user || user.role !== 'ADMIN') {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -194,10 +230,20 @@ export default function UserManagement() {
               Quản lý tất cả người dùng trong hệ thống, tạo, chỉnh sửa và xóa tài khoản.
             </p>
           </div>
-          <button onClick={handleCreate} className="btn-primary">
-            <Plus className="w-4 h-4 mr-2" />
-            Tạo người dùng
-          </button>
+          <div className="flex gap-2">
+            <button onClick={handleExport} className="btn-secondary">
+              <Download className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Xuất CSV</span>
+            </button>
+            <button onClick={() => setImportModalOpen(true)} className="btn-secondary">
+              <Upload className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Nhập CSV</span>
+            </button>
+            <button onClick={handleCreate} className="btn-primary">
+              <Plus className="w-4 h-4 mr-2" />
+              Tạo người dùng
+            </button>
+          </div>
         </div>
       </div>
 
@@ -500,6 +546,16 @@ export default function UserManagement() {
           onClose={() => {
             setDeleteModalOpen(false);
             setSelectedUser(null);
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+          }}
+        />
+      )}
+
+      {importModalOpen && (
+        <BulkImportUsersModal
+          isOpen={importModalOpen}
+          onClose={() => {
+            setImportModalOpen(false);
             queryClient.invalidateQueries({ queryKey: ['admin-users'] });
           }}
         />

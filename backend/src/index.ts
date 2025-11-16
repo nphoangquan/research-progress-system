@@ -139,7 +139,7 @@ server.listen(PORT, () => {
   
   // Setup periodic cleanup tasks (sessions, login attempts)
   setupPeriodicCleanup();
-  logger.info('Periodic cleanup tasks initialized');
+  logger.info('Periodic cleanup tasks initialized (cleanup: every hour)');
 });
 
 // Export WebSocket service for use in controllers

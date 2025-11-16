@@ -11,7 +11,8 @@ import {
   Settings,
   LogOut,
   Users,
-  HelpCircle
+  HelpCircle,
+  Tag
 } from 'lucide-react';
 
 export type Role = 'ADMIN' | 'LECTURER' | 'STUDENT';
@@ -183,6 +184,13 @@ export const menuConfig: MenuSection[] = [
         label: 'Báo cáo & Nhật ký',
         icon: <FileText className="w-5 h-5" />,
         path: '/admin/reports',
+        roles: ['ADMIN']
+      },
+      {
+        id: 'labels',
+        label: 'Quản lý Nhãn',
+        icon: <Tag className="w-5 h-5" />,
+        path: '/admin/labels',
         roles: ['ADMIN']
       }
     ]

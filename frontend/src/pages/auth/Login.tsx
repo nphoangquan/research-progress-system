@@ -2,19 +2,47 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useGeneralSettings } from '../../hooks/useGeneralSettings';
+import { useMaintenanceStatus } from '../../hooks/useMaintenanceStatus';
 import { GraduationCap, Mail, Lock, AlertCircle } from 'lucide-react';
 
 export default function Login() {
   const { login, isLoading } = useAuth();
   const { data: generalSettings } = useGeneralSettings();
+  const { data: maintenanceStatus } = useMaintenanceStatus();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const systemName = generalSettings?.systemName || 'Hệ thống Quản lý Tiến độ Nghiên cứu';
-  const logoUrl = generalSettings?.logoUrl;
+  const systemName = (generalSettings as any)?.systemName || 'Hệ thống Quản lý Tiến độ Nghiên cứu';
+  const logoUrl = (generalSettings as any)?.logoUrl;
+  const isMaintenanceMode = (maintenanceStatus as any)?.isActive || false;
+  const maintenanceMessage = (maintenanceStatus as any)?.message || 'Hệ thống đang bảo trì. Vui lòng quay lại sau.';
+  const scheduledStart = (maintenanceStatus as any)?.scheduledStart;
+  const scheduledEnd = (maintenanceStatus as any)?.scheduledEnd;
+  const duration = (maintenanceStatus as any)?.duration;
+
+  // Format maintenance time info for display
+  const getMaintenanceTimeInfo = () => {
+    if (!isMaintenanceMode) return '';
+    
+    const parts: string[] = [];
+    
+    if (scheduledStart) {
+      const startDate = new Date(scheduledStart);
+      parts.push(`từ ${startDate.toLocaleString('vi-VN')}`);
+    }
+    
+    if (duration && duration > 0) {
+      parts.push(`trong ${duration} phút`);
+    } else if (scheduledEnd) {
+      const endDate = new Date(scheduledEnd);
+      parts.push(`đến ${endDate.toLocaleString('vi-VN')}`);
+    }
+    
+    return parts.length > 0 ? ` (${parts.join(', ')})` : '';
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -47,11 +75,28 @@ export default function Login() {
       return;
     }
 
+    // Prevent submission if maintenance mode is active (for non-admin users)
+    // Admin can still login during maintenance, so we allow the request to go through
+    // Backend will handle the admin check
+    if (isMaintenanceMode) {
+      // Show toast but don't block - let backend decide if user is admin
+      // The backend will return 503 if user is not admin
+    }
+
     const result = await login(formData);
     
     if (!result.success && result.error) {
+      // Check if this is a maintenance mode error
+      const responseData = result.error?.response?.data;
+      if (responseData?.maintenance === true) {
+        // Maintenance mode - don't show field errors, toast is already shown by useAuth
+        // Just clear any existing errors
+        setErrors({});
+        return;
+      }
+
       // Handle API errors
-      const errorCode = result.error?.response?.data?.error?.code;
+      const errorCode = responseData?.error?.code;
       
       if (errorCode === 'INVALID_EMAIL') {
         setErrors({ email: 'Email không tồn tại trong hệ thống' });
@@ -61,6 +106,14 @@ export default function Login() {
         // Account deactivated is handled by useAuth hook with toast
         // No need to set field errors here
       } else {
+        // Check status code - if it's 503 (Service Unavailable), it might be maintenance
+        const status = result.error?.response?.status;
+        if (status === 503) {
+          // Service unavailable - likely maintenance mode, don't show field errors
+          setErrors({});
+          return;
+        }
+
         // Generic error - could be either email or password
         // Try to determine which field is wrong based on email format
         if (/\S+@\S+\.\S+/.test(formData.email)) {
@@ -101,6 +154,26 @@ export default function Login() {
             Đăng nhập vào tài khoản {systemName}
           </p>
         </div>
+
+        {/* Maintenance Mode Warning */}
+        {isMaintenanceMode && (
+          <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-yellow-800">
+                  Hệ thống đang bảo trì
+                </p>
+                <p className="text-sm text-yellow-700 mt-1">
+                  {maintenanceMessage}{getMaintenanceTimeInfo()}
+                </p>
+                <p className="text-xs text-yellow-600 mt-2">
+                  Chỉ quản trị viên mới có thể đăng nhập trong thời gian này
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Login Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

@@ -8,6 +8,8 @@ import {
   activateUser,
   resetUserPassword,
   getUserStats,
+  exportUsers,
+  bulkImportUsers,
 } from '../controllers/admin.controller';
 import {
   getGeneralSettings,
@@ -33,6 +35,7 @@ import {
 } from '../controllers/logs.controller';
 import { verifyToken, requireAdmin } from '../middleware/auth.middleware';
 import { validate, adminSchemas, systemSettingsSchemas } from '../middleware/validation.middleware';
+import { uploadCSV } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -63,6 +66,23 @@ router.post('/users', validate(adminSchemas.createUser), createUser);
  * @query   timeRange (days, default: 30)
  */
 router.get('/users/stats', getUserStats);
+
+/**
+ * @route   GET /api/admin/users/export
+ * @desc    Export users to CSV
+ * @access  Private (Admin only)
+ * @query   search, role, isActive, emailVerified, sortBy, sortOrder
+ */
+router.get('/users/export', exportUsers);
+
+/**
+ * @route   POST /api/admin/users/import
+ * @desc    Bulk import users from CSV
+ * @access  Private (Admin only)
+ * @body    { requireEmailVerification?: boolean }
+ * @file    CSV file with columns: Họ tên, Email, Vai trò, Mã sinh viên (optional), Mật khẩu (optional)
+ */
+router.post('/users/import', uploadCSV.single('file'), bulkImportUsers);
 
 /**
  * @route   GET /api/admin/users/:id
