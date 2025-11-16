@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useGeneralSettings } from '../../hooks/useGeneralSettings';
 import { GraduationCap, Mail, Lock, AlertCircle } from 'lucide-react';
 
 export default function Login() {
   const { login, isLoading } = useAuth();
+  const { data: generalSettings } = useGeneralSettings();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  
+  const systemName = generalSettings?.systemName || 'Hệ thống Quản lý Tiến độ Nghiên cứu';
+  const logoUrl = generalSettings?.logoUrl;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -23,7 +28,10 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
+    // Clear previous errors
+    setErrors({});
+    
+    // Client-side validation
     const newErrors: { email?: string; password?: string } = {};
     if (!formData.email) {
       newErrors.email = 'Email là bắt buộc';
@@ -39,7 +47,31 @@ export default function Login() {
       return;
     }
 
-    await login(formData);
+    const result = await login(formData);
+    
+    if (!result.success && result.error) {
+      // Handle API errors
+      const errorCode = result.error?.response?.data?.error?.code;
+      
+      if (errorCode === 'INVALID_EMAIL') {
+        setErrors({ email: 'Email không tồn tại trong hệ thống' });
+      } else if (errorCode === 'INVALID_PASSWORD') {
+        setErrors({ password: 'Mật khẩu không đúng' });
+      } else if (errorCode === 'ACCOUNT_DEACTIVATED') {
+        // Account deactivated is handled by useAuth hook with toast
+        // No need to set field errors here
+      } else {
+        // Generic error - could be either email or password
+        // Try to determine which field is wrong based on email format
+        if (/\S+@\S+\.\S+/.test(formData.email)) {
+          // Email format is valid, likely password is wrong
+          setErrors({ password: 'Mật khẩu không đúng' });
+        } else {
+          // Email format is invalid or email doesn't exist
+          setErrors({ email: 'Email không tồn tại trong hệ thống' });
+        }
+      }
+    }
   };
 
   return (
@@ -48,13 +80,25 @@ export default function Login() {
         {/* Header */}
         <div className="text-center">
           <div className="flex items-center justify-center mx-auto mb-6">
-            <GraduationCap className="w-12 h-12 text-gray-900" />
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt={systemName}
+                className="w-12 h-12 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const icon = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (icon) icon.style.display = 'block';
+                }}
+              />
+            ) : null}
+            <GraduationCap className={`w-12 h-12 text-gray-900 ${logoUrl ? 'hidden' : ''}`} />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
             Chào mừng trở lại
           </h2>
           <p className="mt-2 text-gray-600">
-            Đăng nhập vào tài khoản Hệ thống Quản lý Tiến độ Nghiên cứu
+            Đăng nhập vào tài khoản {systemName}
           </p>
         </div>
 

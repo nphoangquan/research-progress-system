@@ -18,7 +18,6 @@ export default function CreateUserModal({ isOpen, onClose }: CreateUserModalProp
     password: '',
     role: 'STUDENT' as 'ADMIN' | 'LECTURER' | 'STUDENT',
     studentId: '',
-    sendWelcomeEmail: false,
     requireEmailVerification: true,
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -58,7 +57,6 @@ export default function CreateUserModal({ isOpen, onClose }: CreateUserModalProp
         password: '',
         role: 'STUDENT',
         studentId: '',
-        sendWelcomeEmail: false,
         requireEmailVerification: true,
       });
       setErrors({});
@@ -249,18 +247,7 @@ export default function CreateUserModal({ isOpen, onClose }: CreateUserModalProp
                 onChange={(e) => handleChange('requireEmailVerification', e.target.checked)}
               />
               <span className="ml-2 text-sm text-gray-700">
-                Yêu cầu xác thực email
-              </span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                checked={formData.sendWelcomeEmail}
-                onChange={(e) => handleChange('sendWelcomeEmail', e.target.checked)}
-              />
-              <span className="ml-2 text-sm text-gray-700">
-                Gửi email chào mừng
+                Yêu cầu xác thực email (Email chào mừng sẽ được gửi tự động sau khi xác thực)
               </span>
             </label>
           </div>

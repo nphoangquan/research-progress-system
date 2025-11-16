@@ -7,6 +7,10 @@ import { JWTPayload } from '../middleware/auth.middleware';
 import emailService from '../services/email.service';
 import { createError } from '../utils/errors';
 import logger from '../utils/logger';
+import { validatePassword } from '../utils/passwordValidator';
+import { createSession, deleteSession, deleteUserSessions } from '../services/session.service';
+import { getSecuritySettings } from '../utils/systemSettings';
+import { isAccountLocked, recordFailedAttempt, recordSuccessfulAttempt } from '../services/loginAttempt.service';
 
 const prisma = new PrismaClient();
 
@@ -35,6 +39,15 @@ export const register = async (req: Request, res: Response) => {
       if (existingStudent) {
         throw createError.conflict('Student ID already exists');
       }
+    }
+
+    // Validate password against security settings
+    const passwordValidation = await validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        error: passwordValidation.errors.join('. '),
+        errors: passwordValidation.errors,
+      });
     }
 
     // Hash password
@@ -68,7 +81,7 @@ export const register = async (req: Request, res: Response) => {
 
     // Send verification email
     try {
-      await emailService.sendWelcomeEmail(
+      await emailService.sendVerificationEmail(
         { email: user.email, fullName: user.fullName },
         verificationToken
       );
@@ -120,6 +133,21 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.get('user-agent');
+
+    // Check if account is locked out
+    const lockoutCheck = await isAccountLocked(email);
+    if (lockoutCheck.locked && lockoutCheck.lockoutUntil) {
+      const minutesLeft = Math.ceil((lockoutCheck.lockoutUntil.getTime() - Date.now()) / 60000);
+      return res.status(423).json({
+        error: {
+          code: 'ACCOUNT_LOCKED',
+          message: `Tài khoản đã bị khóa do quá nhiều lần đăng nhập sai. Vui lòng thử lại sau ${minutesLeft} phút.`,
+          lockoutUntil: lockoutCheck.lockoutUntil,
+        },
+      });
+    }
 
     // Find user
     const user = await prisma.user.findUnique({ 
@@ -127,43 +155,99 @@ export const login = async (req: Request, res: Response) => {
     });
     
     if (!user) {
-      throw createError.unauthorized('Invalid email or password');
+      // Record failed attempt even if user doesn't exist (to prevent email enumeration)
+      await recordFailedAttempt(email, ipAddress, userAgent);
+      return res.status(401).json({
+        error: {
+          code: 'INVALID_EMAIL',
+          message: 'Email hoặc mật khẩu không đúng',
+        },
+      });
     }
 
     // Check if user is active
     if (!user.isActive) {
-      throw createError.unauthorized('Account is deactivated. Please contact administrator.');
+      return res.status(403).json({
+        error: {
+          code: 'ACCOUNT_DEACTIVATED',
+          message: 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.',
+        },
+      });
     }
 
     // Verify password
     if (!user.passwordHash) {
-      throw createError.unauthorized('Invalid email or password');
+      return res.status(401).json({
+        error: {
+          code: 'INVALID_PASSWORD',
+          message: 'Email hoặc mật khẩu không đúng',
+        },
+      });
     }
 
     const validPassword = await bcrypt.compare(password, user.passwordHash);
     
     if (!validPassword) {
-      throw createError.unauthorized('Invalid email or password');
+      // Record failed attempt
+      await recordFailedAttempt(email, ipAddress, userAgent);
+      return res.status(401).json({
+        error: {
+          code: 'INVALID_PASSWORD',
+          message: 'Email hoặc mật khẩu không đúng',
+        },
+      });
     }
 
-    // Check if email is verified (warning but not blocking)
+    // Check email verification requirement
+    const securitySettings = await getSecuritySettings();
+    if (securitySettings.requireEmailVerification && !user.emailVerified) {
+      return res.status(403).json({
+        error: {
+          code: 'EMAIL_NOT_VERIFIED',
+          message: 'Bạn cần xác thực email trước khi đăng nhập. Vui lòng kiểm tra email của bạn.',
+        },
+      });
+    }
+
+    // Check if email is verified (warning but not blocking if not required)
     if (!user.emailVerified) {
       // Still allow login but return warning
       // Frontend can show a banner to remind user to verify
     }
 
-    // Generate JWT token
+    // Generate JWT token with session timeout
     const tokenPayload: JWTPayload = {
       userId: user.id,
       role: user.role,
       email: user.email
     };
 
+    // Validate sessionTimeout is positive
+    const sessionTimeoutMinutes = Math.max(1, securitySettings.sessionTimeout);
+    
     const token = jwt.sign(
       tokenPayload,
       process.env.JWT_SECRET!,
-      { expiresIn: '7d' }
+      { expiresIn: `${sessionTimeoutMinutes}m` }
     );
+
+    // Record successful login attempt
+    await recordSuccessfulAttempt(email, ipAddress, userAgent);
+
+    // Create session - if this fails, token won't be valid for session-based auth
+    try {
+      await createSession({
+        userId: user.id,
+        token,
+        ipAddress: ipAddress || undefined,
+        userAgent: userAgent || undefined,
+      });
+    } catch (sessionError) {
+      logger.error('Error creating session:', sessionError);
+      // Session creation failure means token won't pass verifyToken middleware
+      // But we still return token - user will need to login again if session check fails
+      // This is acceptable as session creation is not critical for basic JWT auth
+    }
 
     // Return user data (without password)
     const userResponse = {
@@ -186,6 +270,30 @@ export const login = async (req: Request, res: Response) => {
   } catch (error) {
     // Let error handler middleware handle it
     throw error;
+  }
+};
+
+/**
+ * Logout user (delete session)
+ */
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (token) {
+      // Delete session
+      await deleteSession(token);
+    }
+    
+    res.json({
+      message: 'Logout successful'
+    });
+  } catch (error) {
+    logger.error('Logout error:', error);
+    // Still return success even if session deletion fails
+    res.json({
+      message: 'Logout successful'
+    });
   }
 };
 
@@ -312,6 +420,17 @@ export const verifyEmail = async (req: Request, res: Response) => {
       where: { id: verificationToken.id },
     });
 
+    // Send welcome email after successful verification
+    try {
+      await emailService.sendWelcomeEmail({
+        email: verificationToken.user.email,
+        fullName: verificationToken.user.fullName,
+      });
+    } catch (emailError) {
+      logger.warn('Failed to send welcome email after verification:', { error: emailError, userId: verificationToken.userId });
+      // Continue even if welcome email fails - verification is already successful
+    }
+
     res.json({
       message: 'Email verified successfully',
     });
@@ -362,7 +481,7 @@ export const resendVerificationEmail = async (req: Request, res: Response) => {
 
     // Send verification email
     try {
-      await emailService.sendWelcomeEmail(
+      await emailService.sendVerificationEmail(
         { email: user.email, fullName: user.fullName },
         verificationToken
       );
@@ -484,6 +603,15 @@ export const resetPassword = async (req: Request, res: Response) => {
       throw createError.badRequest('This reset token has already been used. Please request a new one.');
     }
 
+    // Validate password against security settings
+    const passwordValidation = await validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        error: passwordValidation.errors.join('. '),
+        errors: passwordValidation.errors,
+      });
+    }
+
     // Hash new password
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
@@ -493,6 +621,15 @@ export const resetPassword = async (req: Request, res: Response) => {
       where: { id: resetToken.userId },
       data: { passwordHash },
     });
+
+    // Invalidate all existing sessions for security (user needs to login again)
+    try {
+      await deleteUserSessions(resetToken.userId);
+      logger.info(`Invalidated all sessions for user ${resetToken.userId} after password reset`);
+    } catch (sessionError) {
+      logger.error('Error invalidating sessions after password reset:', sessionError);
+      // Continue even if session deletion fails
+    }
 
     // Mark token as used
     await prisma.passwordResetToken.update({

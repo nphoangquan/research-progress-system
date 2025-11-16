@@ -87,7 +87,7 @@ export default function ProjectDetail() {
               )}
             </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <span
               className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${
                 project.status === "COMPLETED"
@@ -115,7 +115,7 @@ export default function ProjectDetail() {
             </span>
 
             {/* Action Buttons */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <Link
                 to={`/projects/${id}/progress`}
                 className="btn-secondary flex items-center"
@@ -185,7 +185,7 @@ export default function ProjectDetail() {
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">Nhiệm vụ</h2>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-500">
                   {project.tasks?.length || 0} nhiệm vụ
                 </span>
@@ -206,18 +206,18 @@ export default function ProjectDetail() {
                 {project.tasks?.slice(0, 5).map((task: any) => (
                   <div
                     key={task.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-3"
                   >
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-gray-900">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-medium text-gray-900 truncate" title={task.title}>
                         {task.title}
                       </h3>
-                      <p className="text-xs text-gray-500">
-                        Được gán cho {task.assignee.fullName}
+                      <p className="text-xs text-gray-500 truncate" title={task.assignee?.fullName || ''}>
+                        Được gán cho {task.assignee?.fullName || 'N/A'}
                       </p>
                     </div>
                     <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${
                         task.status === "DONE" || task.status === "COMPLETED"
                           ? "bg-green-100 text-green-800"
                           : task.status === "IN_PROGRESS"
@@ -247,7 +247,7 @@ export default function ProjectDetail() {
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">Tài liệu</h2>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-500">
                   {project.documents?.length || 0} tài liệu
                 </span>
@@ -268,19 +268,19 @@ export default function ProjectDetail() {
                 {project.documents?.slice(0, 5).map((doc: any) => (
                   <div
                     key={doc.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-3"
                   >
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-gray-900">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-medium text-gray-900 truncate" title={doc.fileName}>
                         {doc.fileName}
                       </h3>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 whitespace-nowrap">
                         {(doc.fileSize / 1024 / 1024).toFixed(2)} MB •
                         {new Date(doc.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${
                         doc.indexStatus === "INDEXED"
                           ? "bg-green-100 text-green-800"
                           : doc.indexStatus === "PROCESSING"

@@ -19,12 +19,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
-  const isInitialized = useRef(false);
+  const socketRef = useRef<Socket | null>(null);
+  const isInitializing = useRef(false);
 
   // Initialize socket only once
   useEffect(() => {
     // Guard against multiple initialization
-    if (isInitialized.current) {
+    if (isInitializing.current || socketRef.current) {
       console.log('WebSocket already initialized, skipping...');
       return;
     }
@@ -36,7 +37,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     }
 
     console.log('Initializing WebSocket connection...');
-    isInitialized.current = true;
+    isInitializing.current = true;
     
     const newSocket = io(import.meta.env.VITE_WS_URL || 'http://localhost:3000', {
       auth: {
@@ -48,14 +49,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       reconnectionDelay: 1000
     });
 
+    socketRef.current = newSocket;
+
     // Connection events
     newSocket.on('connect', () => {
       console.log('WebSocket connected:', newSocket.id);
       setIsConnected(true);
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
+    newSocket.on('disconnect', (reason) => {
+      console.log('WebSocket disconnected:', reason);
       setIsConnected(false);
     });
 
@@ -85,8 +88,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     // Cleanup on unmount
     return () => {
       console.log('Cleaning up WebSocket connection...');
-      isInitialized.current = false;
-      newSocket.close();
+      isInitializing.current = false;
+      if (socketRef.current) {
+        socketRef.current.removeAllListeners();
+        socketRef.current.close();
+        socketRef.current = null;
+      }
       setSocket(null);
       setIsConnected(false);
       setConnectedUsers([]);

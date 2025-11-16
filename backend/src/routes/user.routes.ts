@@ -5,12 +5,12 @@ import {
   getUserById,
   updateUser,
   changePassword,
-  uploadAvatar,
+  uploadAvatar as uploadAvatarController,
   getUserPreferences,
   updateUserPreferences
 } from '../controllers/user.controller';
 import { verifyToken, requireUser } from '../middleware/auth.middleware';
-import { upload } from '../middleware/upload.middleware';
+import { uploadAvatar, handleUploadError } from '../middleware/upload.middleware';
 import { validate, userSchemas } from '../middleware/validation.middleware';
 
 const router = Router();
@@ -63,6 +63,6 @@ router.put('/:id/preferences', requireUser, validate(userSchemas.updatePreferenc
  * @access  Private (User can upload own avatar, Admin can upload any)
  * @body    FormData with image file
  */
-router.post('/:id/avatar', requireUser, upload.single('avatar'), uploadAvatar);
+router.post('/:id/avatar', requireUser, uploadAvatar.single('avatar'), handleUploadError, uploadAvatarController);
 
 export default router;

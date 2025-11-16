@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { uploadFile, deleteFile } from '../utils/cloudinary';
 import { cleanupLocalFile } from '../middleware/upload.middleware';
+import { getStorageSettings } from '../utils/systemSettings';
+import { validatePassword } from '../utils/passwordValidator';
+import { deleteUserSessions } from '../services/session.service';
+import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -285,10 +289,12 @@ export const changePassword = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate new password
-    if (!newPassword || newPassword.length < 6) {
+    // Validate new password against security settings
+    const passwordValidation = await validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
       return res.status(400).json({ 
-        error: 'New password must be at least 6 characters long' 
+        error: passwordValidation.errors.join('. '),
+        errors: passwordValidation.errors,
       });
     }
 
@@ -302,8 +308,17 @@ export const changePassword = async (req: Request, res: Response) => {
       data: { passwordHash: newPasswordHash }
     });
 
+    // Invalidate all existing sessions for security (user needs to login again)
+    try {
+      await deleteUserSessions(id);
+      logger.info(`Invalidated all sessions for user ${id} after password change`);
+    } catch (sessionError) {
+      logger.error('Error invalidating sessions after password change:', sessionError);
+      // Continue even if session deletion fails
+    }
+
     res.json({
-      message: 'Password changed successfully'
+      message: 'Password changed successfully. Please login again with your new password.'
     });
 
   } catch (error) {
@@ -428,27 +443,7 @@ export const uploadAvatar = async (req: Request, res: Response) => {
       });
     }
 
-    // File validation
-    const allowedMimeTypes = [
-      'image/jpeg',
-      'image/png', 
-      'image/gif',
-      'image/webp'
-    ];
-
-    if (!allowedMimeTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({ 
-        error: 'File type not allowed. Only JPEG, PNG, GIF, and WEBP images are allowed.' 
-      });
-    }
-
-    // File size validation (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-    if (req.file.size > maxSize) {
-      return res.status(400).json({ 
-        error: 'File size exceeds 5MB limit.' 
-      });
-    }
+    // File validation and size check are handled by uploadAvatar middleware
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({

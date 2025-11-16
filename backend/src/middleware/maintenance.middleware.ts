@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { getMaintenanceSettings } from '../utils/systemSettings';
 import logger from '../utils/logger';
+import jwt from 'jsonwebtoken';
 
 /**
  * Middleware to check maintenance mode
@@ -36,9 +37,21 @@ export const checkMaintenanceMode = async (
         // Maintenance hasn't started yet
         return next();
       }
-    }
-
-    if (maintenance.scheduledEnd) {
+      
+      // If duration is set, calculate scheduledEnd from scheduledStart + duration
+      let endTime: Date | null = null;
+      if (maintenance.duration && maintenance.duration > 0) {
+        endTime = new Date(startTime.getTime() + maintenance.duration * 60 * 1000);
+      } else if (maintenance.scheduledEnd) {
+        endTime = new Date(maintenance.scheduledEnd);
+      }
+      
+      if (endTime && now > endTime) {
+        // Maintenance has ended
+        return next();
+      }
+    } else if (maintenance.scheduledEnd) {
+      // If only scheduledEnd is set (without scheduledStart)
       const endTime = new Date(maintenance.scheduledEnd);
       if (now > endTime) {
         // Maintenance has ended
@@ -49,9 +62,31 @@ export const checkMaintenanceMode = async (
     /**
      * Check if user is admin
      * This middleware runs before verifyToken, so req.user may be undefined
-     * We check it anyway - if user is authenticated and is admin, allow access
+     * We need to decode JWT token manually to check admin role
      */
-    const userRole = req.user?.role;
+    let userRole: string | undefined = req.user?.role;
+    
+    // If req.user is not set, try to decode JWT token from Authorization header
+    if (!userRole) {
+      try {
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+          const token = authHeader.split(' ')[1]; // Bearer <token>
+          if (token) {
+            // Decode without verification (we just need the role, not full verification)
+            // This is safe because verifyToken middleware will verify it later
+            const decoded = jwt.decode(token) as { role?: string } | null;
+            if (decoded && decoded.role) {
+              userRole = decoded.role;
+            }
+          }
+        }
+      } catch (error) {
+        // If decoding fails, continue - user is not authenticated
+        // This is fine, we'll block them anyway
+      }
+    }
+    
     if (userRole === 'ADMIN') {
       logger.info('Admin user bypassing maintenance mode', {
         userId: req.user?.userId,

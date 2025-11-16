@@ -6,6 +6,7 @@ import api from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { sanitizeHTML } from '../../utils/sanitize';
 import { getErrorMessage } from '../../utils/errorUtils';
+import { useStorageSettings } from '../../hooks/useStorageSettings';
 import { 
   Upload, 
   FileText, 
@@ -26,44 +27,14 @@ interface TaskSubmissionProps {
   taskDueDate?: string | null;
 }
 
-// File validation constants - moved outside component
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB per file
 const MAX_FILES = 20; // Maximum number of files
-const ALLOWED_FILE_TYPES = [
-    // Documents
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    // Images
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/svg+xml',
-    // Code files
-    'text/plain',
-    'text/javascript',
-    'text/css',
-    'text/html',
-    'application/json',
-    'application/xml',
-    // Archives
-    'application/zip',
-    'application/x-rar-compressed',
-    'application/x-7z-compressed',
-    'application/x-tar',
-    'application/gzip',
-  ] as const;
 
 export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSubmission, taskDueDate }: TaskSubmissionProps) {
   const [submissionContent, setSubmissionContent] = useState('');
   const [submissionFiles, setSubmissionFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const queryClient = useQueryClient();
+  const { data: storageSettings, isLoading: isLoadingSettings } = useStorageSettings();
 
   // Submit task mutation
   const submitTaskMutation = useMutation({
@@ -97,13 +68,18 @@ export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSub
   });
 
   const validateFile = useCallback((file: File): string | null => {
+    if (!storageSettings) {
+      return 'Đang tải cài đặt, vui lòng thử lại sau';
+    }
+
     // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-      return `Tệp "${file.name}" quá lớn (tối đa ${MAX_FILE_SIZE / (1024 * 1024)}MB)`;
+    const maxSizeMB = Math.round(storageSettings.maxFileSize / (1024 * 1024));
+    if (file.size > storageSettings.maxFileSize) {
+      return `Tệp "${file.name}" quá lớn (tối đa ${maxSizeMB}MB)`;
     }
     
-    // Check file type (allow if type is empty or in allowed list)
-    if (file.type && !ALLOWED_FILE_TYPES.includes(file.type)) {
+    // Check file type
+    if (file.type && !storageSettings.allowedFileTypes.includes(file.type)) {
       // Allow files without type (some systems don't set MIME type)
       // But warn if it's a known dangerous type
       const extension = file.name.split('.').pop()?.toLowerCase();
@@ -111,10 +87,27 @@ export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSub
       if (extension && dangerousExtensions.includes(extension)) {
         return `Loại tệp "${file.name}" không được phép vì lý do bảo mật`;
       }
+      
+      // Show allowed types in error message
+      const allowedTypesList = storageSettings.allowedFileTypes
+        .map(type => {
+          if (type.startsWith('image/')) return 'ảnh';
+          if (type.includes('pdf')) return 'PDF';
+          if (type.includes('word') || type.includes('msword')) return 'DOC/DOCX';
+          if (type.includes('excel') || type.includes('spreadsheet')) return 'Excel';
+          if (type.includes('powerpoint') || type.includes('presentation')) return 'PPT/PPTX';
+          if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return 'tệp nén';
+          if (type.includes('text/plain')) return 'TXT';
+          return null;
+        })
+        .filter(Boolean)
+        .join(', ');
+      
+      return `Loại tệp "${file.name}" không được phép. Chỉ cho phép: ${allowedTypesList || 'các loại tệp đã cấu hình'}`;
     }
     
     return null;
-  }, []);
+  }, [storageSettings]);
 
   const handleFileUpload = useCallback((files: FileList | null) => {
     if (!files) return;
@@ -336,11 +329,33 @@ export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSub
               Kéo thả tệp vào đây hoặc nhấp để tải lên
             </p>
             <p className="text-sm text-gray-600 mb-4">
-              Hỗ trợ tài liệu, hình ảnh, tệp mã nguồn và nhiều hơn nữa
+              {isLoadingSettings ? (
+                'Đang tải thông tin...'
+              ) : storageSettings ? (
+                <>
+                  Hỗ trợ: {storageSettings.allowedFileTypes
+                    .map(type => {
+                      if (type.startsWith('image/')) return 'ảnh';
+                      if (type.includes('pdf')) return 'PDF';
+                      if (type.includes('word') || type.includes('msword')) return 'DOC/DOCX';
+                      if (type.includes('excel') || type.includes('spreadsheet')) return 'Excel';
+                      if (type.includes('powerpoint') || type.includes('presentation')) return 'PPT/PPTX';
+                      if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return 'tệp nén';
+                      if (type.includes('text/plain')) return 'TXT';
+                      return null;
+                    })
+                    .filter(Boolean)
+                    .join(', ')} (tối đa {Math.round(storageSettings.maxFileSize / (1024 * 1024))}MB mỗi tệp)
+                </>
+              ) : (
+                'Vui lòng thử lại sau'
+              )}
             </p>
             <input
               type="file"
               multiple
+              accept={storageSettings?.allowedFileTypes.join(',') || '*/*'}
+              disabled={isLoadingSettings || !storageSettings}
               onChange={(e) => handleFileUpload(e.target.files)}
               className="hidden"
               id="file-upload"

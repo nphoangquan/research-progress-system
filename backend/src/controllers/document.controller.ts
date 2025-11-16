@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { uploadFile, deleteFile } from '../utils/cloudinary';
 import { cleanupLocalFile } from '../middleware/upload.middleware';
+import { getStorageSettings } from '../utils/systemSettings';
 import ActivityService from '../services/activity.service';
 
 const prisma = new PrismaClient();
@@ -21,38 +22,8 @@ export const uploadDocument = async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const userRole = req.user!.role;
 
-    // File validation
-    const allowedMimeTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/x-7z-compressed'
-    ];
-
-    if (!allowedMimeTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({ 
-        error: 'File type not allowed. Allowed types: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, Images, Archives' 
-      });
-    }
-
-    // File size validation (25MB limit)
-    const maxSize = 25 * 1024 * 1024; // 25MB in bytes
-    if (req.file.size > maxSize) {
-      return res.status(400).json({ 
-        error: 'File size too large. Maximum size is 25MB' 
-      });
-    }
+    // Get storage settings from database for maxDocumentsPerProject check
+    const storageSettings = await getStorageSettings();
 
     // Determine document category and project
     const documentCategory = category || 'PROJECT';
@@ -137,6 +108,19 @@ export const uploadDocument = async (req: Request, res: Response) => {
       }
     }
 
+    // Check maxDocumentsPerProject limit (only for non-system projects)
+    if (!project.isSystemProject && finalProjectId !== 'system-library-project') {
+      const documentCount = await prisma.document.count({
+        where: { projectId: finalProjectId }
+      });
+
+      if (documentCount >= storageSettings.maxDocumentsPerProject) {
+        return res.status(400).json({
+          error: `Dự án đã đạt giới hạn số lượng tài liệu (${storageSettings.maxDocumentsPerProject} tài liệu). Vui lòng xóa một số tài liệu trước khi tải lên thêm.`
+        });
+      }
+    }
+
     // Upload to Cloudinary
     const cloudinaryResult = await uploadFile(req.file);
 
@@ -169,10 +153,17 @@ export const uploadDocument = async (req: Request, res: Response) => {
       // Clean up local file
       cleanupLocalFile(req.file.path);
 
-      /**
-       * TODO: Integrate with Python AI service for document indexing
-       * Currently documents are marked as PENDING until indexing is implemented
-       */
+      // Auto-indexing if enabled
+      if (storageSettings.autoIndexing) {
+        /**
+         * TODO: Integrate with Python AI service for document indexing
+         * When implemented, trigger indexing here:
+         * - Call AI service API to index document
+         * - Update document.indexStatus to 'PROCESSING' then 'INDEXED'
+         * - Handle errors and set status to 'FAILED' if needed
+         */
+        // For now, keep as PENDING until AI service is integrated
+      }
 
       // Log activity
       await ActivityService.logActivity({

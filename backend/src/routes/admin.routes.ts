@@ -23,6 +23,14 @@ import {
   updateMaintenanceSettings,
   getSystemHealth,
 } from '../controllers/systemSettings.controller';
+import {
+  getActivityLogs,
+  getAuditLogs,
+  getLoginAttemptLogs,
+  getSessionLogs,
+  getSystemLogs,
+  exportLogs,
+} from '../controllers/logs.controller';
 import { verifyToken, requireAdmin } from '../middleware/auth.middleware';
 import { validate, adminSchemas, systemSettingsSchemas } from '../middleware/validation.middleware';
 
@@ -44,7 +52,7 @@ router.get('/users', getUsers);
  * @route   POST /api/admin/users
  * @desc    Create a new user
  * @access  Private (Admin only)
- * @body    { fullName, email, password, role, studentId?, sendWelcomeEmail?, requireEmailVerification? }
+ * @body    { fullName, email, password, role, studentId?, requireEmailVerification? }
  */
 router.post('/users', validate(adminSchemas.createUser), createUser);
 
@@ -110,7 +118,7 @@ router.get('/settings/general', getGeneralSettings);
  * @route   PUT /api/admin/settings/general
  * @desc    Update general system settings
  * @access  Private (Admin only)
- * @body    { systemName?, systemDescription?, logoUrl?, faviconUrl?, timezone?, defaultLanguage?, dateFormat? }
+ * @body    { systemName?, systemDescription?, logoUrl?, faviconUrl?, defaultLanguage? }
  */
 router.put('/settings/general', validate(systemSettingsSchemas.general), updateGeneralSettings);
 
@@ -123,9 +131,10 @@ router.get('/settings/email', getEmailSettings);
 
 /**
  * @route   PUT /api/admin/settings/email
- * @desc    Update email settings
+ * @desc    Update email settings (non-sensitive only)
  * @access  Private (Admin only)
- * @body    { smtpHost?, smtpPort?, smtpSecure?, smtpUsername?, smtpPassword?, fromEmail?, fromName?, ... }
+ * @body    { fromEmail?, fromName?, welcomeEmailTemplate?, passwordResetEmailTemplate?, verificationEmailTemplate? }
+ * @note    SMTP credentials (host, port, username, password) are configured via environment variables, not database
  */
 router.put('/settings/email', validate(systemSettingsSchemas.email), updateEmailSettings);
 
@@ -188,6 +197,58 @@ router.put('/settings/maintenance', validate(systemSettingsSchemas.maintenance),
  * @access  Private (Admin only)
  */
 router.get('/settings/health', getSystemHealth);
+
+// ============================================================================
+// LOGS & REPORTS
+// ============================================================================
+
+/**
+ * @route   GET /api/admin/logs/activities
+ * @desc    Get activity logs with filters
+ * @access  Private (Admin only)
+ * @query   page, limit, userId, type, projectId, startDate, endDate, search
+ */
+router.get('/logs/activities', getActivityLogs);
+
+/**
+ * @route   GET /api/admin/logs/audit
+ * @desc    Get audit logs with filters
+ * @access  Private (Admin only)
+ * @query   page, limit, userId, action, entityType, entityId, startDate, endDate
+ */
+router.get('/logs/audit', getAuditLogs);
+
+/**
+ * @route   GET /api/admin/logs/login-attempts
+ * @desc    Get login attempt logs with filters
+ * @access  Private (Admin only)
+ * @query   page, limit, email, success, ipAddress, startDate, endDate
+ */
+router.get('/logs/login-attempts', getLoginAttemptLogs);
+
+/**
+ * @route   GET /api/admin/logs/sessions
+ * @desc    Get session logs with filters
+ * @access  Private (Admin only)
+ * @query   page, limit, userId, ipAddress, startDate, endDate, activeOnly
+ */
+router.get('/logs/sessions', getSessionLogs);
+
+/**
+ * @route   GET /api/admin/logs/system
+ * @desc    Get system logs from Winston log files
+ * @access  Private (Admin only)
+ * @query   level, limit, startDate, endDate
+ */
+router.get('/logs/system', getSystemLogs);
+
+/**
+ * @route   GET /api/admin/logs/export
+ * @desc    Export logs to CSV
+ * @access  Private (Admin only)
+ * @query   type (activities|audit|login-attempts), ...filters
+ */
+router.get('/logs/export', exportLogs);
 
 export default router;
 

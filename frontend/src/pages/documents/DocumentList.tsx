@@ -262,8 +262,8 @@ export default function DocumentList() {
   }, []);
 
   const handleView = useCallback((doc: Document) => {
-    window.open(doc.fileUrl, '_blank');
-  }, []);
+    navigate(`/documents/${doc.id}`);
+  }, [navigate]);
 
   const handleFilterChange = useCallback(<K extends keyof typeof INITIAL_FILTERS>(key: K, value: (typeof INITIAL_FILTERS)[K]) => {
     setFilters(prev => ({
@@ -499,46 +499,48 @@ export default function DocumentList() {
                     key={document.id}
                     className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
                           <div className="flex-shrink-0">
                             <FileText className="w-5 h-5 text-gray-500" />
                           </div>
-                          <h3 className="font-medium text-gray-900 flex-1">{document.fileName}</h3>
-                          <div className="flex items-center space-x-2 flex-shrink-0">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(document.category)}`}>
+                          <h3 className="font-medium text-gray-900 flex-1 min-w-0 truncate" title={document.fileName}>
+                            {document.fileName}
+                          </h3>
+                          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${getCategoryColor(document.category)}`}>
                               {getCategoryLabel(document.category)}
                             </span>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(document.indexStatus)}`}>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${getStatusColor(document.indexStatus)}`}>
                               {statusLabels[document.indexStatus] || document.indexStatus}
                             </span>
                           </div>
                         </div>
                         
                         {document.description && (
-                          <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none">
+                          <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none" title={document.description}>
                             <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(document.description) }} />
                           </div>
                         )}
                         
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <div className="flex items-center">
+                        <div className="flex items-center flex-wrap gap-3 text-sm text-gray-500">
+                          <div className="flex items-center whitespace-nowrap">
                             <Calendar className="w-4 h-4 mr-1 flex-shrink-0" />
                             <span>{formatDate(document.createdAt)}</span>
                           </div>
-                          <div className="flex items-center">
+                          <div className="flex items-center whitespace-nowrap">
                             <span>{formatFileSize(document.fileSize)}</span>
                           </div>
                           {!projectId && (
-                            <div className="text-gray-400 truncate">
+                            <div className="text-gray-400 truncate max-w-xs" title={document.project.title}>
                               {document.project.title}
                             </div>
                           )}
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-1 flex-shrink-0 ml-3">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <button
                           onClick={() => handleView(document)}
                           className="p-2 text-gray-400 hover:text-gray-600 rounded"

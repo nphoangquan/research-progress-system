@@ -31,11 +31,11 @@ export const useWebSocketEvents = ({
   }, [projectId, isConnected, joinProject, leaveProject]);
 
   // Task events handler
-  const handleTaskEvents = useCallback(() => {
-    if (!socket || !enableTaskEvents) return;
+  useEffect(() => {
+    if (!socket || !enableTaskEvents || !isConnected) return;
 
     // Task created
-    socket.on('task-created', (data) => {
+    const handleTaskCreated = (data: any) => {
       console.log('Task created:', data);
       
       // Invalidate queries to refresh data
@@ -47,10 +47,10 @@ export const useWebSocketEvents = ({
       toast.success('New task created!', {
         duration: 3000,
       });
-    });
+    };
 
     // Task updated
-    socket.on('task-updated', (data) => {
+    const handleTaskUpdated = (data: any) => {
       console.log('Task updated:', data);
       
       // Invalidate queries
@@ -59,15 +59,15 @@ export const useWebSocketEvents = ({
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       
       // Show notification for significant changes
-      if (data.changes.title || data.changes.assigneeId) {
+      if (data.changes?.title || data.changes?.assigneeId) {
         toast.success('Task updated!', {
           duration: 3000,
         });
       }
-    });
+    };
 
     // Task status changed
-    socket.on('task-status-changed', (data) => {
+    const handleTaskStatusChanged = (data: any) => {
       console.log('Task status changed:', data);
       
       // Invalidate queries
@@ -79,10 +79,10 @@ export const useWebSocketEvents = ({
       toast.success(`Task status changed to ${data.newStatus}`, {
         duration: 3000,
       });
-    });
+    };
 
     // Task deleted
-    socket.on('task-deleted', (data) => {
+    const handleTaskDeleted = (data: any) => {
       console.log('Task deleted:', data);
       
       // Invalidate queries
@@ -94,23 +94,29 @@ export const useWebSocketEvents = ({
       toast.success('Task deleted!', {
         duration: 3000,
       });
-    });
+    };
+
+    // Register event listeners
+    socket.on('task-created', handleTaskCreated);
+    socket.on('task-updated', handleTaskUpdated);
+    socket.on('task-status-changed', handleTaskStatusChanged);
+    socket.on('task-deleted', handleTaskDeleted);
 
     // Cleanup function
     return () => {
-      socket.off('task-created');
-      socket.off('task-updated');
-      socket.off('task-status-changed');
-      socket.off('task-deleted');
+      socket.off('task-created', handleTaskCreated);
+      socket.off('task-updated', handleTaskUpdated);
+      socket.off('task-status-changed', handleTaskStatusChanged);
+      socket.off('task-deleted', handleTaskDeleted);
     };
-  }, [socket, enableTaskEvents, queryClient, taskId]);
+  }, [socket, enableTaskEvents, isConnected, queryClient, taskId]);
 
   // Comment events handler
-  const handleCommentEvents = useCallback(() => {
-    if (!socket || !enableCommentEvents) return;
+  useEffect(() => {
+    if (!socket || !enableCommentEvents || !isConnected) return;
 
     // Comment added
-    socket.on('comment-added', (data) => {
+    const handleCommentAdded = (data: any) => {
       console.log('Comment added:', data);
       
       // Invalidate queries
@@ -120,18 +126,18 @@ export const useWebSocketEvents = ({
       toast.success('New comment added!', {
         duration: 3000,
       });
-    });
+    };
 
     // Comment updated
-    socket.on('comment-updated', (data) => {
+    const handleCommentUpdated = (data: any) => {
       console.log('Comment updated:', data);
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['comments'] });
-    });
+    };
 
     // Comment deleted
-    socket.on('comment-deleted', (data) => {
+    const handleCommentDeleted = (data: any) => {
       console.log('Comment deleted:', data);
       
       // Invalidate queries
@@ -141,26 +147,20 @@ export const useWebSocketEvents = ({
       toast.success('Comment deleted!', {
         duration: 3000,
       });
-    });
+    };
+
+    // Register event listeners
+    socket.on('comment-added', handleCommentAdded);
+    socket.on('comment-updated', handleCommentUpdated);
+    socket.on('comment-deleted', handleCommentDeleted);
 
     // Cleanup function
     return () => {
-      socket.off('comment-added');
-      socket.off('comment-updated');
-      socket.off('comment-deleted');
+      socket.off('comment-added', handleCommentAdded);
+      socket.off('comment-updated', handleCommentUpdated);
+      socket.off('comment-deleted', handleCommentDeleted);
     };
-  }, [socket, enableCommentEvents, queryClient, taskId]);
-
-  // Setup event listeners
-  useEffect(() => {
-    const cleanupTaskEvents = handleTaskEvents();
-    const cleanupCommentEvents = handleCommentEvents();
-
-    return () => {
-      cleanupTaskEvents?.();
-      cleanupCommentEvents?.();
-    };
-  }, [handleTaskEvents, handleCommentEvents]);
+  }, [socket, enableCommentEvents, isConnected, queryClient, taskId]);
 
   return {
     socket,

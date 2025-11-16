@@ -2,9 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import type { DragEvent, MouseEvent, ChangeEvent } from 'react';
 import { Camera, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const;
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+import { useStorageSettings } from '../hooks/useStorageSettings';
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string;
@@ -22,22 +20,42 @@ export default function AvatarUpload({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: storageSettings, isLoading: isLoadingSettings } = useStorageSettings();
 
   const handleFileSelect = useCallback((file: File) => {
-    if (!ALLOWED_TYPES.includes(file.type as typeof ALLOWED_TYPES[number])) {
-      toast.error('Vui lòng chọn tệp hình ảnh hợp lệ (JPEG, PNG, GIF, WEBP)');
+    if (!storageSettings) {
+      toast.error('Đang tải cài đặt, vui lòng thử lại sau');
       return;
     }
 
-    if (file.size > MAX_SIZE) {
-      toast.error('Kích thước ảnh phải nhỏ hơn 5MB');
+    // Check file type
+    if (!storageSettings.allowedAvatarTypes.includes(file.type)) {
+      const allowedTypesList = storageSettings.allowedAvatarTypes
+        .map(type => {
+          if (type.includes('jpeg')) return 'JPEG';
+          if (type.includes('png')) return 'PNG';
+          if (type.includes('gif')) return 'GIF';
+          if (type.includes('webp')) return 'WEBP';
+          return null;
+        })
+        .filter(Boolean)
+        .join(', ');
+      
+      toast.error(`Loại ảnh không được phép. Chỉ cho phép: ${allowedTypesList || 'các loại ảnh đã cấu hình'}`);
+      return;
+    }
+
+    // Check file size
+    const maxSizeMB = Math.round(storageSettings.maxAvatarSize / (1024 * 1024));
+    if (file.size > storageSettings.maxAvatarSize) {
+      toast.error(`Kích thước ảnh phải nhỏ hơn ${maxSizeMB}MB`);
       return;
     }
 
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     onAvatarChange(file);
-  }, [onAvatarChange]);
+  }, [onAvatarChange, storageSettings]);
 
   const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -149,7 +167,8 @@ export default function AvatarUpload({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/gif,image/webp"
+        accept={storageSettings?.allowedAvatarTypes.join(',') || 'image/*'}
+        disabled={isLoadingSettings || !storageSettings}
         className="hidden"
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
           if (e.target.files && e.target.files[0]) {
@@ -168,7 +187,27 @@ export default function AvatarUpload({
       {/* Upload Guidelines */}
       <div className="mt-2 text-xs text-gray-500">
         <p>Nhấn hoặc kéo thả để tải lên</p>
-        <p>Tối đa 5MB • JPEG, PNG, GIF, WEBP</p>
+        <p>
+          {isLoadingSettings ? (
+            'Đang tải thông tin...'
+          ) : storageSettings ? (
+            <>
+              Tối đa {Math.round(storageSettings.maxAvatarSize / (1024 * 1024))}MB • {' '}
+              {storageSettings.allowedAvatarTypes
+                .map(type => {
+                  if (type.includes('jpeg')) return 'JPEG';
+                  if (type.includes('png')) return 'PNG';
+                  if (type.includes('gif')) return 'GIF';
+                  if (type.includes('webp')) return 'WEBP';
+                  return null;
+                })
+                .filter(Boolean)
+                .join(', ')}
+            </>
+          ) : (
+            'Vui lòng thử lại sau'
+          )}
+        </p>
       </div>
     </div>
   );

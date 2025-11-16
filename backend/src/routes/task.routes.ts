@@ -13,7 +13,7 @@ import {
   removeLabelFromTask
 } from '../controllers/label.controller';
 import { verifyToken } from '../middleware/auth.middleware';
-import { uploadMultiple } from '../middleware/upload.middleware';
+import { uploadMultiple, handleUploadError } from '../middleware/upload.middleware';
 import { validate, taskSchemas } from '../middleware/validation.middleware';
 
 const router = Router();
@@ -43,7 +43,7 @@ router.get('/', getTasks);
  * @access  Private (Student)
  * @body    { taskId, content, files? }
  */
-router.post('/submit', uploadMultiple.array('files', 10), validate(taskSchemas.submit), submitTask);
+router.post('/submit', uploadMultiple.array('files', 10), handleUploadError, validate(taskSchemas.submit), submitTask);
 
 /**
  * @route   GET /api/tasks/:taskId/labels

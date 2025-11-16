@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { uploadFile, deleteFile } from '../utils/cloudinary';
 import { cleanupLocalFile } from '../middleware/upload.middleware';
+import { getStorageSettings } from '../utils/systemSettings';
 
 const prisma = new PrismaClient();
 
@@ -16,41 +17,11 @@ export const uploadMultipleAttachments = async (req: Request, res: Response) => 
       });
     }
 
-    // File validation
-    const allowedMimeTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/x-7z-compressed'
-    ];
+    // Get storage settings for reference (validation already done by middleware)
+    const storageSettings = await getStorageSettings();
 
-    const maxSize = 25 * 1024 * 1024; // 25MB in bytes
-
-    // Validate each file
-    for (const file of req.files) {
-      if (!allowedMimeTypes.includes(file.mimetype)) {
-        return res.status(400).json({ 
-          error: `File "${file.originalname}" type not allowed. Allowed types: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, Images, Archives` 
-        });
-      }
-
-      if (file.size > maxSize) {
-        return res.status(400).json({ 
-          error: `File "${file.originalname}" too large. Maximum size is 25MB` 
-        });
-      }
-    }
+    // File validation and size check are handled by uploadMultiple middleware
+    // No need to validate again here
 
     const { taskId } = req.params;
     const { descriptions } = req.body; // Array of descriptions

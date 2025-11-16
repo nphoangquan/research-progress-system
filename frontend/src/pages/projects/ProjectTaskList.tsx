@@ -390,22 +390,24 @@ export default function ProjectTaskList() {
                   }
                   className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-sm transition-all cursor-pointer"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-3 mb-2">
-                        {getStatusIcon(task.status)}
-                        <h3 className="text-lg font-semibold text-gray-900 truncate">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <div className="flex-shrink-0">
+                          {getStatusIcon(task.status)}
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 truncate flex-1 min-w-0" title={task.title}>
                           {task.title}
                         </h3>
                         <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${getStatusColor(
+                          className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap flex-shrink-0 ${getStatusColor(
                             task.status
                           )}`}
                         >
                           {task.status.replace("_", " ")}
                         </span>
                         <span
-                          className={`text-sm font-medium ${getPriorityColor(
+                          className={`text-sm font-medium whitespace-nowrap flex-shrink-0 ${getPriorityColor(
                             task.priority
                           )}`}
                         >
@@ -414,7 +416,7 @@ export default function ProjectTaskList() {
                       </div>
 
                       {task.description && (
-                        <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none">
+                        <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none" title={task.description || ''}>
                           <div
                             dangerouslySetInnerHTML={{
                               __html: task.description,
@@ -432,38 +434,40 @@ export default function ProjectTaskList() {
                         </div>
                       )}
 
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <div className="flex items-center space-x-1">
-                          <User className="w-4 h-4" />
-                          <span>{task.assignee.fullName}</span>
+                      <div className="flex items-center flex-wrap gap-3 text-sm text-gray-500">
+                        <div className="flex items-center whitespace-nowrap">
+                          <User className="w-4 h-4 mr-1 flex-shrink-0" />
+                          <span className="truncate max-w-xs" title={task.assignee.fullName}>
+                            {task.assignee.fullName}
+                          </span>
                         </div>
 
                         {task.dueDate && (
                           <div
-                            className={`flex items-center space-x-1 ${
+                            className={`flex items-center whitespace-nowrap flex-shrink-0 ${
                               isOverdue(task.dueDate, task.status)
                                 ? "text-red-600"
                                 : ""
                             }`}
                           >
-                            <Calendar className="w-4 h-4" />
+                            <Calendar className="w-4 h-4 mr-1" />
                             <span>{formatDate(task.dueDate)}</span>
                             {isOverdue(task.dueDate, task.status) && (
-                              <span className="text-red-600 font-medium">
+                              <span className="text-red-600 font-medium ml-1">
                                 (Quá hạn)
                               </span>
                             )}
                           </div>
                         )}
 
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4" />
+                        <div className="flex items-center whitespace-nowrap flex-shrink-0">
+                          <Clock className="w-4 h-4 mr-1" />
                           <span>Tạo {formatDate(task.createdAt)}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2 ml-4">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       {(user?.role === "ADMIN" ||
                         user?.role === "LECTURER") && (
                         <>

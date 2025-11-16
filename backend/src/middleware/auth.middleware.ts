@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
+import { verifySession } from '../services/session.service';
+
+const prisma = new PrismaClient();
 
 // Extend Express Request interface to include user
 declare global {
@@ -22,9 +26,9 @@ export interface JWTPayload {
 }
 
 /**
- * Middleware to verify JWT token
+ * Middleware to verify JWT token and check if user is active
  */
-export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     
@@ -43,6 +47,34 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
+    
+    // Verify session (checks timeout, max concurrent sessions, etc.)
+    const sessionCheck = await verifySession(token);
+    if (!sessionCheck.valid) {
+      logger.warn('Invalid or expired session:', { userId: decoded.userId, path: req.path });
+      return res.status(401).json({
+        error: {
+          code: 'SESSION_EXPIRED',
+          message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+        },
+      });
+    }
+    
+    // Check if user is still active
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { isActive: true },
+    });
+
+    if (!user || !user.isActive) {
+      logger.warn('Inactive user attempted to access:', { userId: decoded.userId, path: req.path });
+      return res.status(403).json({
+        error: {
+          code: 'ACCOUNT_DEACTIVATED',
+          message: 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.',
+        },
+      });
+    }
     
     // Attach user info to request
     req.user = {

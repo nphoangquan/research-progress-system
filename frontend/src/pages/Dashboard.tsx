@@ -110,8 +110,8 @@ export default function Dashboard() {
               <div className="flex-shrink-0">
                 <FolderOpen className="w-6 h-6 text-gray-900" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Tổng Dự án</p>
+              <div className="ml-4 min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-600 truncate">Tổng Dự án</p>
                 <p className="text-2xl font-bold text-gray-900">{projectStats.total}</p>
               </div>
             </div>
@@ -124,8 +124,8 @@ export default function Dashboard() {
               <div className="flex-shrink-0">
                 <Clock className="w-6 h-6 text-gray-900" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Dự án Đang thực hiện</p>
+              <div className="ml-4 min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-600 truncate">Dự án Đang thực hiện</p>
                 <p className="text-2xl font-bold text-gray-900">{projectStats.active}</p>
               </div>
             </div>
@@ -138,8 +138,8 @@ export default function Dashboard() {
               <div className="flex-shrink-0">
                 <CheckCircle className="w-6 h-6 text-gray-900" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Đã Hoàn thành</p>
+              <div className="ml-4 min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-600 truncate">Đã Hoàn thành</p>
                 <p className="text-2xl font-bold text-gray-900">{projectStats.completed}</p>
               </div>
             </div>
@@ -149,78 +149,78 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="card hover:shadow-lg transition-shadow duration-200">
-          <div className="card-body">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Dự án</h3>
-                <p className="text-gray-600 mb-4 text-sm">Quản lý các dự án nghiên cứu của bạn</p>
-                <Link to="/projects" className="btn-primary inline-flex items-center">
-                  <FolderOpen className="w-4 h-4 mr-2" />
-                  Xem Dự án
-                </Link>
+        <div className="card hover:shadow-lg transition-shadow duration-200 h-28">
+          <div className="card-body h-full flex flex-col p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1.5">Dự án</h3>
+                <p className="text-gray-600 text-sm line-clamp-2">Quản lý các dự án nghiên cứu của bạn</p>
               </div>
-              <div className="flex-shrink-0 ml-4">
+              <Link 
+                to="/projects" 
+                className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                title="Xem Dự án"
+              >
                 <FolderOpen className="w-8 h-8 text-gray-900" />
-              </div>
+              </Link>
             </div>
           </div>
         </div>
 
         {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
-          <div className="card hover:shadow-lg transition-shadow duration-200">
-            <div className="card-body">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Nhiệm vụ</h3>
-                  <p className="text-gray-600 mb-4 text-sm">Theo dõi và quản lý công việc của bạn</p>
-                  <Link to="/tasks" className="btn-primary inline-flex items-center">
-                    <CheckSquare className="w-4 h-4 mr-2" />
-                    Xem Nhiệm vụ
-                  </Link>
+          <div className="card hover:shadow-lg transition-shadow duration-200 h-28">
+            <div className="card-body h-full flex flex-col p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1.5">Nhiệm vụ</h3>
+                  <p className="text-gray-600 text-sm line-clamp-2">Theo dõi và quản lý công việc của bạn</p>
                 </div>
-                <div className="flex-shrink-0 ml-4">
+                <Link 
+                  to="/tasks" 
+                  className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                  title="Xem Nhiệm vụ"
+                >
                   <CheckSquare className="w-8 h-8 text-gray-900" />
-                </div>
+                </Link>
               </div>
             </div>
           </div>
         )}
 
-        <div className="card hover:shadow-lg transition-shadow duration-200">
-          <div className="card-body">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Tài liệu</h3>
-                <p className="text-gray-600 mb-4 text-sm">
+        <div className="card hover:shadow-lg transition-shadow duration-200 h-28">
+          <div className="card-body h-full flex flex-col p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1.5">Tài liệu</h3>
+                <p className="text-gray-600 text-sm line-clamp-2">
                   {user.role === 'STUDENT' ? 'Xem tài liệu từ các dự án của bạn' : 'Xem và quản lý tài liệu'}
                 </p>
-                <Link to="/documents" className="btn-primary inline-flex items-center">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Xem Tài liệu
-                </Link>
               </div>
-              <div className="flex-shrink-0 ml-4">
+              <Link 
+                to="/documents" 
+                className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                title="Xem Tài liệu"
+              >
                 <FileText className="w-8 h-8 text-gray-900" />
-              </div>
+              </Link>
             </div>
           </div>
         </div>
 
-        <div className="card hover:shadow-lg transition-shadow duration-200">
-          <div className="card-body">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Thư viện</h3>
-                <p className="text-gray-600 mb-4 text-sm">Truy cập tài nguyên công khai</p>
-                <Link to="/library" className="btn-primary inline-flex items-center">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Xem Thư viện
-                </Link>
+        <div className="card hover:shadow-lg transition-shadow duration-200 h-28">
+          <div className="card-body h-full flex flex-col p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1.5">Thư viện</h3>
+                <p className="text-gray-600 text-sm line-clamp-2">Truy cập tài nguyên công khai</p>
               </div>
-              <div className="flex-shrink-0 ml-4">
+              <Link 
+                to="/library" 
+                className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                title="Xem Thư viện"
+              >
                 <FileText className="w-8 h-8 text-gray-900" />
-              </div>
+              </Link>
             </div>
           </div>
         </div>
@@ -233,10 +233,10 @@ export default function Dashboard() {
             <h2 className="text-xl font-semibold text-gray-900">Dự án Gần đây</h2>
             <Link
               to="/projects"
-              className="btn-ghost text-sm"
+              className="btn-ghost text-sm whitespace-nowrap"
             >
-              Xem tất cả
-              <ArrowRight className="w-4 h-4 ml-1" />
+              <span>Xem tất cả</span>
+              <ArrowRight className="w-4 h-4 ml-1 flex-shrink-0" />
             </Link>
           </div>
         </div>
@@ -270,15 +270,15 @@ export default function Dashboard() {
                 <Link
                   key={project.id}
                   to={`/projects/${project.id}`}
-                  className="block p-6 rounded-lg border border-gray-200 hover:border-primary-300 hover:shadow-lg transition-all duration-200 bg-white"
+                  className="p-6 rounded-lg border border-gray-200 hover:border-primary-300 hover:shadow-lg transition-all duration-200 bg-white h-full flex flex-col"
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-3 gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900 truncate">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h3 className="text-lg font-semibold text-gray-900 truncate flex-1 min-w-0" title={project.title}>
                           {project.title}
                         </h3>
-                        <span className={`badge flex-shrink-0 ${
+                        <span className={`badge flex-shrink-0 whitespace-nowrap ${
                           project.status === 'COMPLETED' ? 'badge-success' :
                           project.status === 'IN_PROGRESS' ? 'badge-primary' :
                           project.status === 'UNDER_REVIEW' ? 'badge-warning' :
@@ -290,26 +290,26 @@ export default function Dashboard() {
                     </div>
                   </div>
                   
-                  <p className="text-gray-600 mb-4 line-clamp-2 text-sm">
+                  <p className="text-gray-600 mb-4 line-clamp-2 text-sm flex-shrink-0" title={project.description || ''}>
                     {project.description}
                   </p>
                   
-                  <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                    <div className="flex items-center">
-                      <CheckSquare className="w-4 h-4 mr-1 text-gray-500" />
-                      {project._count?.tasks || 0} nhiệm vụ
+                  <div className="flex items-center flex-wrap gap-4 text-sm text-gray-500 mb-4 flex-shrink-0">
+                    <div className="flex items-center whitespace-nowrap">
+                      <CheckSquare className="w-4 h-4 mr-1 text-gray-500 flex-shrink-0" />
+                      <span>{project._count?.tasks || 0} nhiệm vụ</span>
                     </div>
-                    <div className="flex items-center">
-                      <FileText className="w-4 h-4 mr-1 text-gray-500" />
-                      {project._count?.documents || 0} tài liệu
+                    <div className="flex items-center whitespace-nowrap">
+                      <FileText className="w-4 h-4 mr-1 text-gray-500 flex-shrink-0" />
+                      <span>{project._count?.documents || 0} tài liệu</span>
                     </div>
-                    <div className="flex items-center">
-                      <TrendingUp className="w-4 h-4 mr-1 text-gray-500" />
-                      {project.progress}% hoàn thành
+                    <div className="flex items-center whitespace-nowrap">
+                      <TrendingUp className="w-4 h-4 mr-1 text-gray-500 flex-shrink-0" />
+                      <span>{project.progress}% hoàn thành</span>
                     </div>
                   </div>
                   
-                  <div className="mt-3">
+                  <div className="mt-auto">
                     <div className="progress-bar">
                       <div 
                         className="progress-fill"

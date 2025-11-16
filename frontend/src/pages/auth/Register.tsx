@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useGeneralSettings } from '../../hooks/useGeneralSettings';
 import { GraduationCap, Mail, Lock, User, AlertCircle } from 'lucide-react';
 
 export default function Register() {
   const { register, isLoading } = useAuth();
+  const { data: generalSettings } = useGeneralSettings();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -19,6 +21,9 @@ export default function Register() {
     fullName?: string;
     studentId?: string;
   }>({});
+  
+  const systemName = generalSettings?.systemName || 'Hệ thống Quản lý Tiến độ Nghiên cứu';
+  const logoUrl = generalSettings?.logoUrl;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -72,13 +77,25 @@ export default function Register() {
         {/* Header */}
         <div className="text-center">
           <div className="flex items-center justify-center mx-auto mb-6">
-            <GraduationCap className="w-12 h-12 text-gray-900" />
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt={systemName}
+                className="w-12 h-12 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const icon = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (icon) icon.style.display = 'block';
+                }}
+              />
+            ) : null}
+            <GraduationCap className={`w-12 h-12 text-gray-900 ${logoUrl ? 'hidden' : ''}`} />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
             Tạo tài khoản của bạn
           </h2>
           <p className="mt-2 text-gray-600">
-            Tham gia Hệ thống Quản lý Tiến độ Nghiên cứu
+            Tham gia {systemName}
           </p>
         </div>
 

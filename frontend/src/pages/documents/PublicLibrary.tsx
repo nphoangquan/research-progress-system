@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import SelectDropdown from "../../components/ui/SelectDropdown";
 import Pagination from "../../components/ui/Pagination";
@@ -39,6 +40,7 @@ interface PublicDocument {
 export default function PublicLibrary() {
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
+  const navigate = useNavigate();
 
   // Must call hooks before any conditional returns
   // Allow all authenticated users to access public library
@@ -164,7 +166,7 @@ export default function PublicLibrary() {
   };
 
   const handleView = (doc: PublicDocument) => {
-    window.open(doc.fileUrl, "_blank");
+    navigate(`/documents/${doc.id}`);
   };
 
   if (isLoading) {
@@ -287,17 +289,17 @@ export default function PublicLibrary() {
                   key={document.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
                         <div className="flex-shrink-0 text-2xl">
                           {getCategoryIcon(document.category)}
                         </div>
-                        <h3 className="font-medium text-gray-900 flex-1">
+                        <h3 className="font-medium text-gray-900 flex-1 min-w-0 truncate" title={document.fileName}>
                           {document.fileName}
                         </h3>
                         <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(
+                          className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap flex-shrink-0 ${getCategoryColor(
                             document.category
                           )}`}
                         >
@@ -306,20 +308,20 @@ export default function PublicLibrary() {
                       </div>
 
                       {document.description && (
-                        <div className="text-gray-600 text-sm mb-3 line-clamp-2">
+                        <div className="text-gray-600 text-sm mb-3 line-clamp-2" title={document.description}>
                           {document.description}
                         </div>
                       )}
 
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <div className="flex items-center">
+                      <div className="flex items-center flex-wrap gap-3 text-sm text-gray-500">
+                        <div className="flex items-center whitespace-nowrap">
                           <Calendar className="w-4 h-4 mr-1 flex-shrink-0" />
                           <span>{formatDate(document.createdAt)}</span>
                         </div>
-                        <div className="flex items-center">
+                        <div className="flex items-center whitespace-nowrap">
                           <span>{formatFileSize(document.fileSize)}</span>
                         </div>
-                        <div className="text-gray-400 truncate">
+                        <div className="text-gray-400 truncate max-w-xs" title={document.uploader?.fullName || "Người dùng Không xác định"}>
                           bởi{" "}
                           {document.uploader?.fullName ||
                             "Người dùng Không xác định"}
@@ -327,7 +329,7 @@ export default function PublicLibrary() {
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-1 flex-shrink-0 ml-3">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={() => handleView(document)}
                         className="p-2 text-gray-400 hover:text-gray-600 rounded"

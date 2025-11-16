@@ -11,6 +11,7 @@ interface MaintenanceSettingsData {
   allowedIPs: string[];
   scheduledStart: string | null;
   scheduledEnd: string | null;
+  duration: number | null;
 }
 
 export default function MaintenanceSettings() {
@@ -21,6 +22,7 @@ export default function MaintenanceSettings() {
     allowedIPs: [],
     scheduledStart: null,
     scheduledEnd: null,
+    duration: null,
   });
   const [newIP, setNewIP] = useState('');
 
@@ -176,28 +178,46 @@ export default function MaintenanceSettings() {
       </div>
 
       {/* Scheduled Maintenance */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Thời gian bắt đầu bảo trì (tùy chọn)
-          </label>
-          <input
-            type="datetime-local"
-            value={formData.scheduledStart || ''}
-            onChange={(e) => setFormData((prev) => ({ ...prev, scheduledStart: e.target.value || null }))}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Thời gian bắt đầu bảo trì (tùy chọn)
+            </label>
+            <input
+              type="datetime-local"
+              value={formData.scheduledStart || ''}
+              onChange={(e) => setFormData((prev) => ({ ...prev, scheduledStart: e.target.value || null }))}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Thời gian kết thúc bảo trì (tùy chọn)
+            </label>
+            <input
+              type="datetime-local"
+              value={formData.scheduledEnd || ''}
+              onChange={(e) => setFormData((prev) => ({ ...prev, scheduledEnd: e.target.value || null }))}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Thời gian kết thúc bảo trì (tùy chọn)
+            Thời gian bảo trì (phút) - Thay thế cho thời gian kết thúc
           </label>
           <input
-            type="datetime-local"
-            value={formData.scheduledEnd || ''}
-            onChange={(e) => setFormData((prev) => ({ ...prev, scheduledEnd: e.target.value || null }))}
+            type="number"
+            value={formData.duration || ''}
+            onChange={(e) => setFormData((prev) => ({ ...prev, duration: e.target.value ? parseInt(e.target.value) : null }))}
+            min={1}
+            placeholder="Nhập số phút (ví dụ: 60)"
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
+          <p className="mt-1 text-xs text-gray-500">
+            Nếu đã nhập thời gian bắt đầu và thời gian bảo trì, hệ thống sẽ tự động tính thời gian kết thúc
+          </p>
         </div>
       </div>
 

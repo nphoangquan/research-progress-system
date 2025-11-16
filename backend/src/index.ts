@@ -16,9 +16,11 @@ import searchRoutes from './routes/search.routes';
 import filterRoutes from './routes/filter.routes';
 import taskAttachmentRoutes from './routes/taskAttachment.routes';
 import labelRoutes from './routes/label.routes';
+import settingsRoutes from './routes/settings.routes';
 import adminRoutes from './routes/admin.routes';
 import WebSocketService from './services/websocket.service';
 import { checkMaintenanceMode } from './middleware/maintenance.middleware';
+import { setupPeriodicCleanup } from './services/cleanup.service';
 
 // Load environment variables
 dotenv.config();
@@ -64,7 +66,7 @@ const wsService = new WebSocketService(server);
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   maxAge: 86400 // 24 hours
 }));
@@ -113,6 +115,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/filters', filterRoutes);
 app.use('/api/task-attachments', taskAttachmentRoutes);
 app.use('/api/labels', labelRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/admin', adminRoutes);
 
 // 404 handler (must be before error handler)
@@ -133,6 +136,10 @@ server.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   logger.info(`Health check: http://localhost:${PORT}/health`);
   logger.info(`WebSocket server initialized`);
+  
+  // Setup periodic cleanup tasks (sessions, login attempts)
+  setupPeriodicCleanup();
+  logger.info('Periodic cleanup tasks initialized');
 });
 
 // Export WebSocket service for use in controllers

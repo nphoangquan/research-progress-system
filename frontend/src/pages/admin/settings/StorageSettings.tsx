@@ -64,6 +64,8 @@ export default function StorageSettings() {
     onSuccess: () => {
       toast.success('Cài đặt lưu trữ đã được cập nhật thành công');
       queryClient.invalidateQueries({ queryKey: ['admin-settings-storage'] });
+      // Invalidate public storage settings cache so all users get updated settings
+      queryClient.invalidateQueries({ queryKey: ['storage-settings'] });
     },
     onError: (error: any) => {
       toast.error(getErrorMessage(error, 'Không thể cập nhật cài đặt lưu trữ'));

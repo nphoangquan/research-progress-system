@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { 
   register, 
-  login, 
+  login,
+  logout,
   getProfile, 
   updateProfile,
   verifyEmail,
@@ -22,6 +23,7 @@ const router = Router();
 // Apply rate limiting and validation to authentication endpoints
 router.post('/register', authLimiter, validate(authSchemas.register), register);
 router.post('/login', authLimiter, validate(authSchemas.login), login);
+router.post('/logout', verifyToken, logout);
 router.get('/verify-email/:token', verifyEmail); // No rate limit needed (one-time use token)
 router.post('/resend-verification', emailVerificationLimiter, verifyToken, resendVerificationEmail);
 router.post('/forgot-password', passwordResetLimiter, validate(authSchemas.forgotPassword), forgotPassword);

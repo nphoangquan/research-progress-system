@@ -329,15 +329,15 @@ export default function ProjectList() {
               className="card hover:shadow-medium transition-shadow duration-200"
             >
               <div className="card-body">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-4 gap-3">
                   <div className="flex-1 min-w-0">
                     <Link to={`/projects/${project.id}`} className="block">
-                      <h3 className="text-lg font-semibold text-gray-900 truncate hover:text-primary-600 transition-colors">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate hover:text-primary-600 transition-colors" title={project.title}>
                         {project.title}
                       </h3>
                     </Link>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <span
                       className={`badge whitespace-nowrap ${
                         project.status === "COMPLETED"
@@ -356,6 +356,7 @@ export default function ProjectList() {
                         to={`/projects/${project.id}/edit`}
                         className="btn-ghost p-1"
                         title="Chỉnh sửa dự án"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <Edit className="w-4 h-4" />
                       </Link>
@@ -363,7 +364,7 @@ export default function ProjectList() {
                   </div>
                 </div>
 
-                <p className="text-gray-600 mb-4 line-clamp-3">
+                <p className="text-gray-600 mb-4 line-clamp-3" title={project.description || ''}>
                   {project.description}
                 </p>
 

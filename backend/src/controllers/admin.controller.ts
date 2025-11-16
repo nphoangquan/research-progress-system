@@ -4,6 +4,8 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import emailService from '../services/email.service';
 import logger from '../utils/logger';
+import { validatePassword } from '../utils/passwordValidator';
+import { deleteUserSessions } from '../services/session.service';
 
 const prisma = new PrismaClient();
 
@@ -140,7 +142,7 @@ export const getUsers = async (req: Request, res: Response) => {
  */
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { fullName, email, password, role, studentId, sendWelcomeEmail, requireEmailVerification } = req.body;
+    const { fullName, email, password, role, studentId, requireEmailVerification } = req.body;
     const adminUserId = req.user!.userId;
 
     // Validate required fields
@@ -179,6 +181,15 @@ export const createUser = async (req: Request, res: Response) => {
           error: 'Mã sinh viên đã tồn tại',
         });
       }
+    }
+
+    // Validate password against security settings
+    const passwordValidation = await validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        error: passwordValidation.errors.join('. '),
+        errors: passwordValidation.errors,
+      });
     }
 
     // Hash password
@@ -225,22 +236,18 @@ export const createUser = async (req: Request, res: Response) => {
     }
 
     /**
-     * Send welcome email if requested
-     * If requireEmailVerification is true, send email with token
-     * even if sendWelcomeEmail is false, to ensure user can verify their email
+     * Send verification email if required
+     * Welcome email will be sent automatically after user verifies their email
      */
-    if (sendWelcomeEmail || (requireEmailVerification && verificationToken)) {
+    if (requireEmailVerification && verificationToken) {
       try {
-        await emailService.sendWelcomeEmail(
+        await emailService.sendVerificationEmail(
           { email: user.email, fullName: user.fullName },
           verificationToken
         );
       } catch (emailError) {
-        logger.warn('Failed to send welcome email:', { error: emailError, userId: user.id });
-        // If requireEmailVerification is true but email fails, log warning
-        if (requireEmailVerification) {
-          logger.warn('User created with email verification required but email sending failed. User may need to request resend verification email.');
-        }
+        logger.warn('Failed to send verification email:', { error: emailError, userId: user.id });
+        logger.warn('User created with email verification required but email sending failed. User may need to request resend verification email.');
       }
     }
 
@@ -670,6 +677,17 @@ export const activateUser = async (req: Request, res: Response) => {
       },
     });
 
+    // If deactivating user, delete all their sessions
+    if (!isActive) {
+      try {
+        await deleteUserSessions(id);
+        logger.info(`Deleted all sessions for deactivated user ${id}`);
+      } catch (sessionError) {
+        logger.error('Error deleting user sessions on deactivation:', sessionError);
+        // Continue even if session deletion fails
+      }
+    }
+
     // Log admin action
     await logAdminAction(
       adminUserId,
@@ -721,12 +739,48 @@ export const resetUserPassword = async (req: Request, res: Response) => {
     // Generate or use provided password
     let finalPassword: string;
     if (generatePassword) {
-      // Generate random password (12 characters)
-      finalPassword = crypto.randomBytes(6).toString('hex');
+      // Generate random password that meets security requirements
+      // Generate a secure random password with mixed case, numbers, and special chars
+      const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+      const numbers = '0123456789';
+      const special = '!@#$%^&*';
+      const allChars = uppercase + lowercase + numbers + special;
+      
+      // Get security settings to ensure generated password meets requirements
+      const { getSecuritySettings } = require('../utils/systemSettings');
+      const securitySettings = await getSecuritySettings();
+      const minLength = Math.max(securitySettings.passwordMinLength, 12);
+      
+      // Generate password with at least one of each required type
+      let generated = '';
+      if (securitySettings.passwordRequireUppercase) {
+        generated += uppercase[Math.floor(Math.random() * uppercase.length)];
+      }
+      if (securitySettings.passwordRequireLowercase) {
+        generated += lowercase[Math.floor(Math.random() * lowercase.length)];
+      }
+      if (securitySettings.passwordRequireNumbers) {
+        generated += numbers[Math.floor(Math.random() * numbers.length)];
+      }
+      if (securitySettings.passwordRequireSpecialChars) {
+        generated += special[Math.floor(Math.random() * special.length)];
+      }
+      
+      // Fill the rest randomly
+      for (let i = generated.length; i < minLength; i++) {
+        generated += allChars[Math.floor(Math.random() * allChars.length)];
+      }
+      
+      // Shuffle the password
+      finalPassword = generated.split('').sort(() => Math.random() - 0.5).join('');
     } else {
-      if (!newPassword || newPassword.length < 6) {
+      // Validate provided password against security settings
+      const passwordValidation = await validatePassword(newPassword);
+      if (!passwordValidation.isValid) {
         return res.status(400).json({
-          error: 'Mật khẩu mới phải có ít nhất 6 ký tự',
+          error: passwordValidation.errors.join('. '),
+          errors: passwordValidation.errors,
         });
       }
       finalPassword = newPassword;
@@ -741,6 +795,15 @@ export const resetUserPassword = async (req: Request, res: Response) => {
       where: { id },
       data: { passwordHash },
     });
+
+    // Invalidate all existing sessions for security (user needs to login again)
+    try {
+      await deleteUserSessions(id);
+      logger.info(`Invalidated all sessions for user ${id} after admin password reset`);
+    } catch (sessionError) {
+      logger.error('Error invalidating sessions after admin password reset:', sessionError);
+      // Continue even if session deletion fails
+    }
 
     // Send email if requested
     if (sendEmail) {

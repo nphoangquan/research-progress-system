@@ -19,12 +19,12 @@ import api from "../../lib/axios";
 import type { Label } from "../../types/label";
 import toast from "react-hot-toast";
 import { getErrorMessage } from '../../utils/errorUtils';
-import {
-  ArrowLeft,
-  Edit,
-  Trash2,
+import { 
+  ArrowLeft, 
+  Edit, 
+  Trash2, 
   CheckCircle,
-  User,
+  User, 
   Clock,
 } from "lucide-react";
 
@@ -150,7 +150,7 @@ export default function ProjectTaskDetail() {
       if (!projectId) return [];
       const response = await api.get(`/projects/${projectId}`);
       const project = response.data.project;
-
+      
       // Get lecturer and students
       const members = [];
       if (project.lecturer) {
@@ -267,14 +267,14 @@ export default function ProjectTaskDetail() {
     try {
       const response = await fetch(fileUrl);
       const blob = await response.blob();
-
+      
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = fileName;
       document.body.appendChild(link);
       link.click();
-
+      
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -287,8 +287,8 @@ export default function ProjectTaskDetail() {
   if (isLoading) {
     return (
       <div className="w-full">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
         </div>
       </div>
@@ -298,7 +298,7 @@ export default function ProjectTaskDetail() {
   if (!task) {
     return (
       <div className="w-full">
-        <div className="text-center py-12">
+          <div className="text-center py-12">
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Không tìm thấy nhiệm vụ
           </h3>
@@ -306,12 +306,12 @@ export default function ProjectTaskDetail() {
             Nhiệm vụ bạn đang tìm không tồn tại hoặc bạn không có quyền truy
             cập.
           </p>
-          <button
-            onClick={() => navigate(`/projects/${projectId}/tasks`)}
-            className="btn-primary"
-          >
+            <button
+              onClick={() => navigate(`/projects/${projectId}/tasks`)}
+              className="btn-primary"
+            >
             Quay lại Nhiệm vụ dự án
-          </button>
+            </button>
         </div>
       </div>
     );
@@ -319,154 +319,154 @@ export default function ProjectTaskDetail() {
 
   return (
     <div className="w-full">
-      {/* Header */}
-      <div className="page-header">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigate(`/projects/${projectId}/tasks`)}
-              className="btn-ghost p-2"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="page-title">
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editData.title}
+        {/* Header */}
+        <div className="page-header">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate(`/projects/${projectId}/tasks`)}
+                className="btn-ghost p-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="page-title">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.title}
                     onChange={(e) =>
                       setEditData((prev) => ({
                         ...prev,
                         title: e.target.value,
                       }))
                     }
-                    className="bg-transparent border-b border-gray-300 focus:border-primary-500 outline-none"
-                  />
-                ) : (
-                  task.title
-                )}
-              </h1>
-              <p className="page-subtitle">
+                      className="bg-transparent border-b border-gray-300 focus:border-primary-500 outline-none"
+                    />
+                  ) : (
+                    task.title
+                  )}
+                </h1>
+                <p className="page-subtitle">
                 {task.project?.title} • Tạo {formatDateTime(task.createdAt)}
-              </p>
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+            {(user?.role === "ADMIN" || user?.role === "LECTURER") && (
+                <>
+                  {isEditing ? (
+                    <>
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        className="btn-secondary"
+                      >
+                      Hủy
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        disabled={updateTaskMutation.isPending}
+                        className="btn-primary"
+                      >
+                      Lưu
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                    <button onClick={handleEdit} className="btn-secondary">
+                        <Edit className="w-4 h-4 mr-2" />
+                      Chỉnh sửa
+                      </button>
+                      <button
+                        onClick={() => deleteTaskMutation.mutate()}
+                        disabled={deleteTaskMutation.isPending}
+                        className="btn-danger"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                      Xóa
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </div>
-
-          <div className="flex items-center space-x-3">
-            {(user?.role === "ADMIN" || user?.role === "LECTURER") && (
-              <>
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="btn-secondary"
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      disabled={updateTaskMutation.isPending}
-                      className="btn-primary"
-                    >
-                      Lưu
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button onClick={handleEdit} className="btn-secondary">
-                      <Edit className="w-4 h-4 mr-2" />
-                      Chỉnh sửa
-                    </button>
-                    <button
-                      onClick={() => deleteTaskMutation.mutate()}
-                      disabled={deleteTaskMutation.isPending}
-                      className="btn-danger"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Xóa
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-          </div>
         </div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Task Details */}
-          <div className="card">
-            <div className="card-header">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Task Details */}
+            <div className="card">
+              <div className="card-header">
               <h2 className="text-xl font-semibold text-gray-900">
                 Chi tiết nhiệm vụ
               </h2>
-            </div>
-            <div className="card-body">
-              {/* Description */}
-              <div className="mb-6">
+              </div>
+              <div className="card-body">
+                {/* Description */}
+                <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">
                   Mô tả
                 </h3>
-                {isEditing ? (
-                  <textarea
-                    value={editData.description}
+                  {isEditing ? (
+                    <textarea
+                      value={editData.description}
                     onChange={(e) =>
                       setEditData((prev) => ({
                         ...prev,
                         description: e.target.value,
                       }))
                     }
-                    className="input"
-                    rows={4}
+                      className="input"
+                      rows={4}
                     placeholder="Thêm mô tả..."
-                  />
-                ) : (
-                  <div className="text-gray-600">
-                    {task.description ? (
-                      <p>{task.description}</p>
-                    ) : (
+                    />
+                  ) : (
+                    <div className="text-gray-600">
+                      {task.description ? (
+                        <p>{task.description}</p>
+                      ) : (
                       <p>Chưa có mô tả.</p>
-                    )}
-                  </div>
-                )}
-              </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              {/* Comments */}
+                {/* Comments */}
               <TaskComments
                 taskId={id!}
                 comments={comments}
                 currentUserId={user?.id}
               />
-            </div>
-          </div>
-
-          {/* Submission History */}
-          {task.submissionContent && (
-            <div className="card">
-              <div className="card-header">
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
-                  Lịch sử nộp bài
-                </h2>
               </div>
-              <div className="card-body">
-                <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <User className="w-4 h-4" />
+            </div>
+
+            {/* Submission History */}
+            {task.submissionContent && (
+              <div className="card">
+                <div className="card-header">
+                  <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                    <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+                  Lịch sử nộp bài
+                  </h2>
+                </div>
+                <div className="card-body">
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <User className="w-4 h-4" />
                         <span>
                           Nộp bởi:{" "}
                           <span className="font-medium text-gray-900">
                             {task.submittedByUser?.fullName || "Không xác định"}
                           </span>
                         </span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <Clock className="w-4 h-4" />
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Clock className="w-4 h-4" />
                         <span>
                           Nộp vào:{" "}
                           <span className="font-medium text-gray-900">
@@ -475,39 +475,39 @@ export default function ProjectTaskDetail() {
                               : "Không xác định"}
                           </span>
                         </span>
+                        </div>
                       </div>
-                    </div>
-                    <button
-                      onClick={() => setShowSubmissionModal(true)}
-                      className="btn-secondary text-sm"
-                    >
+                      <button
+                        onClick={() => setShowSubmissionModal(true)}
+                        className="btn-secondary text-sm"
+                      >
                       Xem chi tiết đầy đủ
-                    </button>
-                  </div>
-
-                  <div className="mt-4">
+                      </button>
+                    </div>
+                    
+                    <div className="mt-4">
                     <p className="text-sm font-medium text-gray-700 mb-3">
                       Xem trước nộp bài:
                     </p>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-40 overflow-hidden">
-                      <div
-                        className="text-sm text-gray-700 prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-40 overflow-hidden">
+                        <div 
+                          className="text-sm text-gray-700 prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ 
                           __html:
                             task.submissionContent.substring(0, 300) +
                             (task.submissionContent.length > 300 ? "..." : ""),
-                        }}
-                      />
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Attachments */}
+            {/* Attachments */}
           <TaskAttachments
-            taskId={id!}
+                      taskId={id!} 
             attachments={attachments}
             currentUserId={user?.id}
             userRole={user?.role}
@@ -515,18 +515,18 @@ export default function ProjectTaskDetail() {
             onDownload={handleDownloadFile}
             onDelete={handleDeleteAttachment}
             taskSubmission={{
-              content: task.submissionContent,
-              submittedAt: task.submittedAt,
+                        content: task.submissionContent,
+                        submittedAt: task.submittedAt,
               submittedBy: task.submittedBy,
-            }}
-            taskDueDate={task.dueDate}
+                      }}
+                      taskDueDate={task.dueDate}
             onSubmissionSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ["task", id] });
             }}
           />
-        </div>
+          </div>
 
-        {/* Sidebar */}
+          {/* Sidebar */}
         <TaskInfoSidebar
           task={task}
           isEditing={isEditing}
@@ -541,9 +541,9 @@ export default function ProjectTaskDetail() {
           formatDate={formatDate}
           formatDateTime={formatDateTime}
         />
-      </div>
+        </div>
 
-      {/* Submission Details Modal */}
+        {/* Submission Details Modal */}
       <TaskSubmissionModal
         isOpen={showSubmissionModal && !!task.submissionContent}
         onClose={() => setShowSubmissionModal(false)}
@@ -554,7 +554,7 @@ export default function ProjectTaskDetail() {
         onDownload={handleDownloadFile}
       />
 
-      {/* Upload Attachment Modal */}
+        {/* Upload Attachment Modal */}
       <TaskAttachmentUploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}

@@ -46,6 +46,7 @@ async function getSetting(key: string, defaultValue: any = null): Promise<any> {
 
 /**
  * Get all settings for a category
+ * For email category, filters out sensitive SMTP credentials
  */
 async function getCategorySettings(category: string): Promise<Record<string, any>> {
   try {
@@ -54,11 +55,19 @@ async function getCategorySettings(category: string): Promise<Record<string, any
     });
 
     const result: Record<string, any> = {};
+    const sensitiveEmailKeys = ['smtpHost', 'smtpPort', 'smtpSecure', 'smtpUsername', 'smtpPassword'];
+
     settings.forEach((setting) => {
       // Remove category prefix from key (e.g., "maintenance.enabled" -> "enabled")
       const key = setting.key.startsWith(`${category}.`)
         ? setting.key.replace(`${category}.`, '')
         : setting.key;
+
+      // Filter out sensitive SMTP credentials for email category
+      if (category === 'email' && sensitiveEmailKeys.includes(key)) {
+        return; // Skip sensitive credentials
+      }
+
       result[key] = setting.value;
     });
 
@@ -89,6 +98,7 @@ export async function getMaintenanceSettings(): Promise<{
   allowedIPs: string[];
   scheduledStart: string | null;
   scheduledEnd: string | null;
+  duration: number | null;
 }> {
   const defaults = {
     enabled: false,
@@ -96,6 +106,7 @@ export async function getMaintenanceSettings(): Promise<{
     allowedIPs: [],
     scheduledStart: null,
     scheduledEnd: null,
+    duration: null,
   };
 
   const settings = await getCategorySettings('maintenance');
@@ -106,23 +117,20 @@ export async function getMaintenanceSettings(): Promise<{
     allowedIPs: Array.isArray(settings.allowedIPs) ? settings.allowedIPs : defaults.allowedIPs,
     scheduledStart: settings.scheduledStart ?? defaults.scheduledStart,
     scheduledEnd: settings.scheduledEnd ?? defaults.scheduledEnd,
+    duration: settings.duration ?? defaults.duration,
   };
 }
 
 /**
- * Get general settings (timezone, dateFormat, etc.)
+ * Get general settings
  */
 export async function getGeneralSettings(): Promise<{
-  timezone: string;
-  dateFormat: string;
   systemName: string;
   systemDescription: string;
   logoUrl: string | null;
   faviconUrl: string | null;
 }> {
   const defaults = {
-    timezone: 'Asia/Ho_Chi_Minh',
-    dateFormat: 'DD/MM/YYYY',
     systemName: 'Research Progress Management System',
     systemDescription: 'Hệ thống quản lý tiến độ nghiên cứu',
     logoUrl: null,
@@ -132,8 +140,6 @@ export async function getGeneralSettings(): Promise<{
   const settings = await getCategorySettings('general');
 
   return {
-    timezone: settings.timezone ?? defaults.timezone,
-    dateFormat: settings.dateFormat ?? defaults.dateFormat,
     systemName: settings.systemName ?? defaults.systemName,
     systemDescription: settings.systemDescription ?? defaults.systemDescription,
     logoUrl: settings.logoUrl ?? defaults.logoUrl,
@@ -192,23 +198,14 @@ export async function getStorageSettings(): Promise<{
 }
 
 /**
- * Get email settings
+ * Get email settings (non-sensitive only)
+ * SMTP credentials are stored in environment variables, not database
  */
 export async function getEmailSettings(): Promise<{
-  smtpHost: string;
-  smtpPort: number;
-  smtpSecure: boolean;
-  smtpUsername: string;
-  smtpPassword: string;
   fromEmail: string;
   fromName: string;
 }> {
   const defaults = {
-    smtpHost: '',
-    smtpPort: 587,
-    smtpSecure: false,
-    smtpUsername: '',
-    smtpPassword: '',
     fromEmail: '',
     fromName: 'Research Progress Management System',
   };
@@ -216,11 +213,6 @@ export async function getEmailSettings(): Promise<{
   const settings = await getCategorySettings('email');
 
   return {
-    smtpHost: settings.smtpHost ?? defaults.smtpHost,
-    smtpPort: settings.smtpPort ?? defaults.smtpPort,
-    smtpSecure: settings.smtpSecure ?? defaults.smtpSecure,
-    smtpUsername: settings.smtpUsername ?? defaults.smtpUsername,
-    smtpPassword: settings.smtpPassword ?? defaults.smtpPassword,
     fromEmail: settings.fromEmail ?? defaults.fromEmail,
     fromName: settings.fromName ?? defaults.fromName,
   };

@@ -88,15 +88,15 @@ export const taskSchemas = {
     title: z.string().min(1, 'Tiêu đề nhiệm vụ là bắt buộc').max(200, 'Tiêu đề nhiệm vụ không được vượt quá 200 ký tự'),
     description: z.string().max(2000, 'Mô tả nhiệm vụ không được vượt quá 2000 ký tự').optional(),
     assigneeId: z.string().uuid('ID người được giao không hợp lệ').optional().nullable(),
-    priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
     dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày hết hạn phải có định dạng YYYY-MM-DD').optional().or(z.literal('')),
   }),
 
   update: z.object({
     title: z.string().min(1, 'Tiêu đề nhiệm vụ là bắt buộc').max(200, 'Tiêu đề nhiệm vụ không được vượt quá 200 ký tự').optional(),
     description: z.string().max(2000, 'Mô tả nhiệm vụ không được vượt quá 2000 ký tự').optional().nullable(),
-    status: z.enum(['TODO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
-    priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+    status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'COMPLETED']).optional(),
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
     dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày hết hạn phải có định dạng YYYY-MM-DD').optional().nullable().or(z.literal('')),
     assigneeId: z.string().uuid('ID người được giao không hợp lệ').optional().nullable(),
   }),
@@ -165,7 +165,6 @@ export const adminSchemas = {
       message: 'Vai trò phải là ADMIN, LECTURER hoặc STUDENT',
     }),
     studentId: z.string().optional().or(z.literal('')),
-    sendWelcomeEmail: z.boolean().optional(),
     requireEmailVerification: z.boolean().optional(),
   }),
 
@@ -203,19 +202,12 @@ export const systemSettingsSchemas = {
   general: z.object({
     systemName: z.string().min(1, 'Tên hệ thống là bắt buộc').max(200, 'Tên hệ thống quá dài').optional(),
     systemDescription: z.string().max(1000, 'Mô tả hệ thống quá dài').optional(),
-    logoUrl: z.string().url('URL logo không hợp lệ').optional().or(z.literal('')),
-    faviconUrl: z.string().url('URL favicon không hợp lệ').optional().or(z.literal('')),
-    timezone: z.string().min(1, 'Timezone là bắt buộc').optional(),
+    logoUrl: z.union([z.string().url('URL logo không hợp lệ'), z.literal(''), z.null()]).optional(),
+    faviconUrl: z.union([z.string().url('URL favicon không hợp lệ'), z.literal(''), z.null()]).optional(),
     defaultLanguage: z.string().min(2, 'Ngôn ngữ mặc định là bắt buộc').max(10).optional(),
-    dateFormat: z.string().min(1, 'Định dạng ngày là bắt buộc').optional(),
   }),
 
   email: z.object({
-    smtpHost: z.string().optional().or(z.literal('')),
-    smtpPort: z.number().int().min(1).max(65535, 'Port phải từ 1 đến 65535').optional(),
-    smtpSecure: z.boolean().optional(),
-    smtpUsername: z.string().optional().or(z.literal('')),
-    smtpPassword: z.string().optional().or(z.literal('')),
     fromEmail: z.string().email('Địa chỉ email không hợp lệ').optional().or(z.literal('')),
     fromName: z.string().max(200, 'Tên người gửi quá dài').optional(),
     welcomeEmailTemplate: z.string().optional().nullable(),
@@ -260,6 +252,7 @@ export const systemSettingsSchemas = {
       .optional(),
     scheduledStart: z.string().datetime('Thời gian bắt đầu không hợp lệ').optional().nullable(),
     scheduledEnd: z.string().datetime('Thời gian kết thúc không hợp lệ').optional().nullable(),
+    duration: z.number().int().min(1, 'Thời gian bảo trì tối thiểu là 1 phút').optional().nullable(),
   }),
 
   testEmail: z.object({

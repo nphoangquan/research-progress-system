@@ -6,29 +6,7 @@ import type { UploadDocumentRequest } from '../types/document';
 import toast from 'react-hot-toast';
 import RichTextEditor from './features/RichTextEditor';
 import { getErrorMessage } from '../utils/errorUtils';
-
-const ALLOWED_TYPES = [
-  // Documents
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain',
-  // Images
-  'image/jpeg',
-  'image/jpg', 
-  'image/png',
-  'image/gif',
-  'image/webp',
-  // Excel
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  // Archives
-  'application/zip',
-  'application/x-rar-compressed',
-  'application/x-7z-compressed'
-] as const;
-
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+import { useStorageSettings } from '../hooks/useStorageSettings';
 
 interface DocumentUploadProps {
   projectId: string;
@@ -40,6 +18,7 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
   const [description, setDescription] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const queryClient = useQueryClient();
+  const { data: storageSettings, isLoading: isLoadingSettings } = useStorageSettings();
 
   const uploadMutation = useMutation({
     mutationFn: async (data: UploadDocumentRequest) => {
@@ -79,18 +58,40 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
   }, []);
 
   const handleFileSelect = useCallback((selectedFile: File) => {
-    if (!ALLOWED_TYPES.includes(selectedFile.type as typeof ALLOWED_TYPES[number])) {
-      toast.error('Chỉ cho phép tệp PDF, DOC, DOCX, TXT, ảnh, Excel và tệp nén');
+    if (!storageSettings) {
+      toast.error('Đang tải cài đặt, vui lòng thử lại sau');
       return;
     }
 
-    if (selectedFile.size > MAX_FILE_SIZE) {
-      toast.error(`Kích thước tệp phải nhỏ hơn ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
+    // Check file type
+    if (!storageSettings.allowedFileTypes.includes(selectedFile.type)) {
+      const allowedTypesList = storageSettings.allowedFileTypes
+        .map(type => {
+          if (type.startsWith('image/')) return 'ảnh';
+          if (type.includes('pdf')) return 'PDF';
+          if (type.includes('word') || type.includes('msword')) return 'DOC/DOCX';
+          if (type.includes('excel') || type.includes('spreadsheet')) return 'Excel';
+          if (type.includes('powerpoint') || type.includes('presentation')) return 'PPT/PPTX';
+          if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return 'tệp nén';
+          if (type.includes('text/plain')) return 'TXT';
+          return null;
+        })
+        .filter(Boolean)
+        .join(', ');
+      
+      toast.error(`Loại tệp không được phép. Chỉ cho phép: ${allowedTypesList || 'các loại tệp đã cấu hình'}`);
+      return;
+    }
+
+    // Check file size
+    const maxSizeMB = Math.round(storageSettings.maxFileSize / (1024 * 1024));
+    if (selectedFile.size > storageSettings.maxFileSize) {
+      toast.error(`Kích thước tệp phải nhỏ hơn ${maxSizeMB}MB`);
       return;
     }
 
     setFile(selectedFile);
-  }, []);
+  }, [storageSettings]);
 
   const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -176,7 +177,8 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
                   name="file-upload"
                   type="file"
                   className="sr-only"
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.zip,.rar,.7z"
+                  accept={storageSettings?.allowedFileTypes.join(',') || '*/*'}
+                  disabled={isLoadingSettings || !storageSettings}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     const files = e.target.files;
                     if (files && files.length > 0) {
@@ -186,7 +188,27 @@ export default function DocumentUpload({ projectId, onSuccess }: DocumentUploadP
                 />
               </div>
               <p className="text-xs text-gray-500">
-                PDF, DOC, DOCX, TXT, ảnh, Excel, tệp nén tối đa {MAX_FILE_SIZE / (1024 * 1024)}MB
+                {isLoadingSettings ? (
+                  'Đang tải thông tin...'
+                ) : storageSettings ? (
+                  <>
+                    {storageSettings.allowedFileTypes
+                      .map(type => {
+                        if (type.startsWith('image/')) return 'ảnh';
+                        if (type.includes('pdf')) return 'PDF';
+                        if (type.includes('word') || type.includes('msword')) return 'DOC/DOCX';
+                        if (type.includes('excel') || type.includes('spreadsheet')) return 'Excel';
+                        if (type.includes('powerpoint') || type.includes('presentation')) return 'PPT/PPTX';
+                        if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return 'tệp nén';
+                        if (type.includes('text/plain')) return 'TXT';
+                        return null;
+                      })
+                      .filter(Boolean)
+                      .join(', ')} tối đa {Math.round(storageSettings.maxFileSize / (1024 * 1024))}MB
+                  </>
+                ) : (
+                  'Vui lòng thử lại sau'
+                )}
               </p>
             </div>
           )}

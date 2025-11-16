@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../lib/axios';
 import toast from 'react-hot-toast';
@@ -10,9 +10,7 @@ interface GeneralSettingsData {
   systemDescription: string;
   logoUrl: string | null;
   faviconUrl: string | null;
-  timezone: string;
   defaultLanguage: string;
-  dateFormat: string;
 }
 
 export default function GeneralSettings() {
@@ -22,10 +20,9 @@ export default function GeneralSettings() {
     systemDescription: '',
     logoUrl: null,
     faviconUrl: null,
-    timezone: 'Asia/Ho_Chi_Minh',
     defaultLanguage: 'vi',
-    dateFormat: 'DD/MM/YYYY',
   });
+  const [initialData, setInitialData] = useState<GeneralSettingsData | null>(null);
 
   // Fetch settings
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -34,10 +31,26 @@ export default function GeneralSettings() {
       const response = await api.get('/admin/settings/general');
       return response.data.settings as GeneralSettingsData;
     },
-    onSuccess: (data) => {
-      setFormData(data);
-    },
   });
+
+  useEffect(() => {
+    if (data) {
+      setFormData({
+        systemName: data.systemName || '',
+        systemDescription: data.systemDescription || '',
+        logoUrl: data.logoUrl || null,
+        faviconUrl: data.faviconUrl || null,
+        defaultLanguage: data.defaultLanguage || 'vi',
+      });
+      setInitialData({
+        systemName: data.systemName || '',
+        systemDescription: data.systemDescription || '',
+        logoUrl: data.logoUrl || null,
+        faviconUrl: data.faviconUrl || null,
+        defaultLanguage: data.defaultLanguage || 'vi',
+      });
+    }
+  }, [data]);
 
   // Update mutation
   const updateMutation = useMutation({
@@ -45,9 +58,15 @@ export default function GeneralSettings() {
       const response = await api.put('/admin/settings/general', data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast.success('Cài đặt chung đã được cập nhật thành công');
+      if (variables) {
+        setInitialData((prev) => (prev ? { ...prev, ...variables } : prev));
+        setFormData((prev) => ({ ...prev, ...variables }));
+      }
       queryClient.invalidateQueries({ queryKey: ['admin-settings-general'] });
+      // Invalidate public general settings cache so all users get updated settings
+      queryClient.invalidateQueries({ queryKey: ['general-settings'] });
     },
     onError: (error: any) => {
       toast.error(getErrorMessage(error, 'Không thể cập nhật cài đặt chung'));
@@ -56,7 +75,43 @@ export default function GeneralSettings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate(formData);
+    if (!initialData) {
+      updateMutation.mutate(formData);
+      return;
+    }
+
+    const payload: Partial<GeneralSettingsData> = {};
+    
+    // Compare each field and only include changed ones
+    (Object.keys(formData) as (keyof GeneralSettingsData)[]).forEach((field) => {
+      const currentValue = formData[field];
+      const initialValue = initialData[field];
+      
+      // Normalize empty strings to null for URL fields
+      const normalizedCurrent = (field === 'logoUrl' || field === 'faviconUrl') 
+        ? (currentValue === '' ? null : currentValue)
+        : currentValue;
+      const normalizedInitial = (field === 'logoUrl' || field === 'faviconUrl')
+        ? (initialValue === '' ? null : initialValue)
+        : initialValue;
+      
+      // Only include if value actually changed
+      if (normalizedCurrent !== normalizedInitial) {
+        // For URL fields, if empty string, send null instead
+        if ((field === 'logoUrl' || field === 'faviconUrl') && normalizedCurrent === '') {
+          payload[field] = null;
+        } else {
+          payload[field] = normalizedCurrent as any;
+        }
+      }
+    });
+
+    if (Object.keys(payload).length === 0) {
+      toast('Không có thay đổi nào cần lưu');
+      return;
+    }
+
+    updateMutation.mutate(payload);
   };
 
   const handleChange = (field: keyof GeneralSettingsData, value: string | null) => {
@@ -146,24 +201,6 @@ export default function GeneralSettings() {
           />
         </div>
 
-        {/* Timezone */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Múi giờ
-          </label>
-          <select
-            value={formData.timezone}
-            onChange={(e) => handleChange('timezone', e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (GMT+7)</option>
-            <option value="UTC">UTC (GMT+0)</option>
-            <option value="America/New_York">America/New_York (GMT-5)</option>
-            <option value="Europe/London">Europe/London (GMT+0)</option>
-            <option value="Asia/Tokyo">Asia/Tokyo (GMT+9)</option>
-          </select>
-        </div>
-
         {/* Default Language */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -176,23 +213,6 @@ export default function GeneralSettings() {
           >
             <option value="vi">Tiếng Việt</option>
             <option value="en">English</option>
-          </select>
-        </div>
-
-        {/* Date Format */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Định dạng ngày
-          </label>
-          <select
-            value={formData.dateFormat}
-            onChange={(e) => handleChange('dateFormat', e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-            <option value="DD-MM-YYYY">DD-MM-YYYY</option>
           </select>
         </div>
       </div>

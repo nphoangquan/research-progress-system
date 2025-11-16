@@ -7,7 +7,7 @@ import {
   updateAttachment
 } from '../controllers/taskAttachment.controller';
 import { verifyToken } from '../middleware/auth.middleware';
-import { upload, uploadMultiple } from '../middleware/upload.middleware';
+import { upload, uploadMultiple, handleUploadError } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -20,7 +20,7 @@ router.use(verifyToken);
  * @access  Private (Project member)
  * @body    { file: File, description?: string }
  */
-router.post('/:taskId/upload', upload.single('file'), uploadAttachment);
+router.post('/:taskId/upload', upload.single('file'), handleUploadError, uploadAttachment);
 
 /**
  * @route   POST /api/task-attachments/:taskId/upload-multiple
@@ -28,7 +28,7 @@ router.post('/:taskId/upload', upload.single('file'), uploadAttachment);
  * @access  Private (Project member)
  * @body    { files: File[], descriptions?: string[] }
  */
-router.post('/:taskId/upload-multiple', uploadMultiple.array('files', 10), uploadMultipleAttachments);
+router.post('/:taskId/upload-multiple', uploadMultiple.array('files', 10), handleUploadError, uploadMultipleAttachments);
 
 /**
  * @route   GET /api/task-attachments/:taskId

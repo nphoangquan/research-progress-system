@@ -19,10 +19,10 @@ import api from "../../lib/axios";
 import type { Label } from "../../types/label";
 import toast from "react-hot-toast";
 import { getErrorMessage } from '../../utils/errorUtils';
-import {
-  ArrowLeft,
-  Edit,
-  Trash2,
+import { 
+  ArrowLeft, 
+  Edit, 
+  Trash2, 
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
@@ -255,14 +255,14 @@ export default function TaskDetail() {
     try {
       const response = await fetch(fileUrl);
       const blob = await response.blob();
-
+      
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = fileName;
       document.body.appendChild(link);
       link.click();
-
+      
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -275,8 +275,8 @@ export default function TaskDetail() {
   if (isLoading) {
     return (
       <div className="w-full">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Đang tải nhiệm vụ...</p>
         </div>
       </div>
@@ -303,13 +303,13 @@ export default function TaskDetail() {
             >
               Thử lại
             </button>
-          </div>
+        </div>
       </div>
     );
   }
 
   if (!task) {
-    return (
+  return (
       <div className="w-full">
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -329,8 +329,8 @@ export default function TaskDetail() {
 
   return (
     <div className="w-full">
-      {/* Header */}
-      <div className="page-header">
+        {/* Header */}
+        <div className="page-header">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
@@ -365,7 +365,7 @@ export default function TaskDetail() {
                 </p>
               </div>
             </div>
-
+            
             <div className="flex items-center space-x-3">
               {(user?.role === "ADMIN" || user?.role === "LECTURER") && (
                 <>

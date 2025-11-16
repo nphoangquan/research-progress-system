@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -38,14 +37,19 @@ import AccountSettingsPage from './pages/account/AccountSettingsPage';
 import ArchivedProjects from './pages/projects/ArchivedProjects';
 import UserManagement from './pages/admin/UserManagement';
 import SystemSettings from './pages/admin/SystemSettings';
+import ReportsAndLogs from './pages/admin/ReportsAndLogs';
 
 // Components
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import DocumentTitle from './components/layout/DocumentTitle';
+import DynamicFavicon from './components/layout/DynamicFavicon';
 
 function AppContent() {
   return (
     <Router>
       <WebSocketProvider>
+        <DocumentTitle />
+        <DynamicFavicon />
         <div className="App">
           <Routes>
           {/* Public Routes */}
@@ -166,6 +170,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <SystemSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/admin/reports" 
+            element={
+              <ProtectedRoute>
+                <ReportsAndLogs />
               </ProtectedRoute>
             }
           />

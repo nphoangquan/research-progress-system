@@ -13,7 +13,7 @@ export const useAuth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = async (data: LoginRequest) => {
+  const login = async (data: LoginRequest): Promise<{ success: boolean; error?: any }> => {
     setIsLoading(true);
     try {
       const response = await api.post('/auth/login', data);
@@ -26,8 +26,27 @@ export const useAuth = () => {
       localStorage.setItem('user', JSON.stringify(result.user));
       toast.success('Đăng nhập thành công!');
       navigate('/dashboard');
+      return { success: true };
     } catch (error: any) {
-      toast.error(getErrorMessage(error, 'Đăng nhập thất bại'));
+      // Debug logging
+      console.error('Login error:', error);
+      console.error('Error response:', error?.response?.data);
+      
+      // Check if account is deactivated
+      const errorCode = error?.response?.data?.error?.code;
+      const errorMessage = error?.response?.data?.error?.message;
+      
+      if (errorCode === 'ACCOUNT_DEACTIVATED' || errorMessage?.includes('vô hiệu hóa')) {
+        const message = errorMessage || 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.';
+        toast.error(message, { duration: 6000 });
+      } else {
+        // Don't show toast for INVALID_EMAIL or INVALID_PASSWORD - let Login component handle it
+        if (errorCode !== 'INVALID_EMAIL' && errorCode !== 'INVALID_PASSWORD') {
+          toast.error(getErrorMessage(error, 'Đăng nhập thất bại'));
+        }
+      }
+      
+      return { success: false, error };
     } finally {
       setIsLoading(false);
     }

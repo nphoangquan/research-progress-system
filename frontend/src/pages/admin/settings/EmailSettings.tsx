@@ -6,11 +6,6 @@ import { Save, Loader2, Mail, Send } from 'lucide-react';
 import { getErrorMessage } from '../../../utils/errorUtils';
 
 interface EmailSettingsData {
-  smtpHost: string;
-  smtpPort: number;
-  smtpSecure: boolean;
-  smtpUsername: string;
-  smtpPassword: string;
   fromEmail: string;
   fromName: string;
   welcomeEmailTemplate: string | null;
@@ -21,11 +16,6 @@ interface EmailSettingsData {
 export default function EmailSettings() {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<EmailSettingsData>({
-    smtpHost: '',
-    smtpPort: 587,
-    smtpSecure: false,
-    smtpUsername: '',
-    smtpPassword: '',
     fromEmail: '',
     fromName: 'Research Progress Management System',
     welcomeEmailTemplate: null,
@@ -118,83 +108,17 @@ export default function EmailSettings() {
 
   return (
     <div className="space-y-6">
+      {/* SMTP Credentials Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-sm font-medium text-blue-900 mb-2">Thông tin SMTP Credentials</h3>
+        <p className="text-sm text-blue-700">
+          SMTP credentials (host, port, username, password) được cấu hình trong file <code className="bg-blue-100 px-1 rounded">.env</code> của server.
+          Vui lòng liên hệ quản trị viên hệ thống để thay đổi các thông tin này.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* SMTP Host */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              SMTP Host
-            </label>
-            <input
-              type="text"
-              value={formData.smtpHost}
-              onChange={(e) => handleChange('smtpHost', e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="smtp.gmail.com"
-            />
-          </div>
-
-          {/* SMTP Port */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              SMTP Port
-            </label>
-            <input
-              type="number"
-              value={formData.smtpPort}
-              onChange={(e) => handleChange('smtpPort', parseInt(e.target.value) || 587)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="587"
-            />
-          </div>
-
-          {/* SMTP Secure */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="smtpSecure"
-              checked={formData.smtpSecure}
-              onChange={(e) => handleChange('smtpSecure', e.target.checked)}
-              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-            />
-            <label htmlFor="smtpSecure" className="ml-2 text-sm font-medium text-gray-700">
-              Sử dụng TLS/SSL
-            </label>
-          </div>
-
-          {/* SMTP Username */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              SMTP Username
-            </label>
-            <input
-              type="text"
-              value={formData.smtpUsername}
-              onChange={(e) => handleChange('smtpUsername', e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="your-email@gmail.com"
-            />
-          </div>
-
-          {/* SMTP Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              SMTP Password
-            </label>
-            <input
-              type="password"
-              value={formData.smtpPassword === '***' ? '' : formData.smtpPassword}
-              onChange={(e) => handleChange('smtpPassword', e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder={formData.smtpPassword === '***' ? '••••••••' : 'Nhập mật khẩu mới'}
-            />
-            {formData.smtpPassword === '***' && (
-              <p className="mt-1 text-xs text-gray-500">
-                Mật khẩu hiện tại đã được mã hóa. Nhập mật khẩu mới để thay đổi.
-              </p>
-            )}
-          </div>
-
           {/* From Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -207,6 +131,9 @@ export default function EmailSettings() {
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="noreply@example.com"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              Email này sẽ được hiển thị trong phần "From" của email. Nếu để trống, sẽ sử dụng SMTP_USER từ .env
+            </p>
           </div>
 
           {/* From Name */}
@@ -221,6 +148,9 @@ export default function EmailSettings() {
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               placeholder="Research Progress Management System"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              Tên này sẽ được hiển thị trong phần "From" của email
+            </p>
           </div>
         </div>
 

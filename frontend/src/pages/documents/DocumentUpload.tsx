@@ -7,6 +7,7 @@ import api from "../../lib/axios";
 import toast from "react-hot-toast";
 import { ArrowLeft, Upload, FileText, AlertCircle, Trash2 } from "lucide-react";
 import { getErrorMessage } from '../../utils/errorUtils';
+import { useStorageSettings } from '../../hooks/useStorageSettings';
 
 interface UploadDocumentRequest {
   projectId?: string;
@@ -22,6 +23,7 @@ export default function DocumentUpload() {
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
   const queryClient = useQueryClient();
+  const { data: storageSettings, isLoading: isLoadingSettings } = useStorageSettings();
 
   if (!user) {
     return (
@@ -95,41 +97,35 @@ export default function DocumentUpload() {
   });
 
   const handleFileSelect = (selectedFile: File) => {
-    // Validate file type
-    const allowedTypes = [
-      // Documents
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/plain",
-      // Images
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      // Excel
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      // PowerPoint
-      "application/vnd.ms-powerpoint",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      // Archives
-      "application/zip",
-      "application/x-rar-compressed",
-      "application/x-7z-compressed",
-    ];
-
-    if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error(
-        "Chỉ cho phép tệp PDF, DOC, DOCX, TXT, ảnh, Excel, PowerPoint và tệp nén"
-      );
+    if (!storageSettings) {
+      toast.error('Đang tải cài đặt, vui lòng thử lại sau');
       return;
     }
 
-    // Validate file size (25MB)
-    if (selectedFile.size > 25 * 1024 * 1024) {
-      toast.error("Kích thước tệp phải nhỏ hơn 25MB");
+    // Check file type
+    if (!storageSettings.allowedFileTypes.includes(selectedFile.type)) {
+      const allowedTypesList = storageSettings.allowedFileTypes
+        .map(type => {
+          if (type.startsWith('image/')) return 'ảnh';
+          if (type.includes('pdf')) return 'PDF';
+          if (type.includes('word') || type.includes('msword')) return 'DOC/DOCX';
+          if (type.includes('excel') || type.includes('spreadsheet')) return 'Excel';
+          if (type.includes('powerpoint') || type.includes('presentation')) return 'PPT/PPTX';
+          if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return 'tệp nén';
+          if (type.includes('text/plain')) return 'TXT';
+          return null;
+        })
+        .filter(Boolean)
+        .join(', ');
+      
+      toast.error(`Loại tệp không được phép. Chỉ cho phép: ${allowedTypesList || 'các loại tệp đã cấu hình'}`);
+      return;
+    }
+
+    // Check file size
+    const maxSizeMB = Math.round(storageSettings.maxFileSize / (1024 * 1024));
+    if (selectedFile.size > storageSettings.maxFileSize) {
+      toast.error(`Kích thước tệp phải nhỏ hơn ${maxSizeMB}MB`);
       return;
     }
 
@@ -417,8 +413,27 @@ export default function DocumentUpload() {
                             hoặc kéo và thả
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            PDF, DOC, DOCX, TXT, ảnh, Excel, PowerPoint, Tệp nén
-                            (tối đa 25MB)
+                            {isLoadingSettings ? (
+                              'Đang tải thông tin...'
+                            ) : storageSettings ? (
+                              <>
+                                {storageSettings.allowedFileTypes
+                                  .map(type => {
+                                    if (type.startsWith('image/')) return 'ảnh';
+                                    if (type.includes('pdf')) return 'PDF';
+                                    if (type.includes('word') || type.includes('msword')) return 'DOC/DOCX';
+                                    if (type.includes('excel') || type.includes('spreadsheet')) return 'Excel';
+                                    if (type.includes('powerpoint') || type.includes('presentation')) return 'PPT/PPTX';
+                                    if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return 'tệp nén';
+                                    if (type.includes('text/plain')) return 'TXT';
+                                    return null;
+                                  })
+                                  .filter(Boolean)
+                                  .join(', ')} (tối đa {Math.round(storageSettings.maxFileSize / (1024 * 1024))}MB)
+                              </>
+                            ) : (
+                              'Vui lòng thử lại sau'
+                            )}
                           </p>
                         </div>
                       </div>
@@ -429,7 +444,8 @@ export default function DocumentUpload() {
                           e.target.files?.[0] &&
                           handleFileSelect(e.target.files[0])
                         }
-                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z"
+                        accept={storageSettings?.allowedFileTypes.join(',') || '*/*'}
+                        disabled={isLoadingSettings || !storageSettings}
                         className="hidden"
                         id="file-upload"
                       />
@@ -473,10 +489,23 @@ export default function DocumentUpload() {
                     </h4>
                     <ul className="text-blue-800 space-y-1">
                       <li>
-                        • Định dạng hỗ trợ: PDF, DOC, DOCX, TXT, ảnh, Excel,
-                        PowerPoint, Tệp nén
+                        • Định dạng hỗ trợ: {isLoadingSettings ? 'Đang tải...' : storageSettings ? (
+                          storageSettings.allowedFileTypes
+                            .map(type => {
+                              if (type.startsWith('image/')) return 'ảnh';
+                              if (type.includes('pdf')) return 'PDF';
+                              if (type.includes('word') || type.includes('msword')) return 'DOC/DOCX';
+                              if (type.includes('excel') || type.includes('spreadsheet')) return 'Excel';
+                              if (type.includes('powerpoint') || type.includes('presentation')) return 'PPT/PPTX';
+                              if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return 'tệp nén';
+                              if (type.includes('text/plain')) return 'TXT';
+                              return null;
+                            })
+                            .filter(Boolean)
+                            .join(', ')
+                        ) : 'Không có thông tin'}
                       </li>
-                      <li>• Kích thước tệp tối đa: 25MB</li>
+                      <li>• Kích thước tệp tối đa: {isLoadingSettings ? 'Đang tải...' : storageSettings ? `${Math.round(storageSettings.maxFileSize / (1024 * 1024))}MB` : 'N/A'}</li>
                       <li>• Tài liệu sẽ được lập chỉ mục cho tìm kiếm AI</li>
                       <li>• Xử lý có thể mất vài phút</li>
                     </ul>

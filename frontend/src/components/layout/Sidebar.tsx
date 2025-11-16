@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { filterMenuByRole } from "../../config/menu.config";
 import SidebarItem from "./SidebarItem";
+import { useGeneralSettings } from "../../hooks/useGeneralSettings";
 import { Menu, ChevronLeft, GraduationCap } from "lucide-react";
 
 interface SidebarProps {
@@ -18,11 +19,15 @@ export default function Sidebar({
 }: SidebarProps) {
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
+  const { data } = useGeneralSettings();
 
   const filteredMenu = useMemo(() => {
     if (!user) return [];
     return filterMenuByRole(user.role);
   }, [user]);
+
+  const systemName = (data as any)?.systemName || 'Research';
+  const logoUrl = (data as any)?.logoUrl;
 
   const handleAction = (action: string) => {
     if (action === "logout") onLogout();
@@ -36,6 +41,7 @@ export default function Sidebar({
         fixed left-0 top-0 h-full bg-white border-r border-gray-200
         transition-all duration-300 ease-in-out z-40
         ${isCollapsed ? "w-16" : "w-64"}
+        ${isCollapsed ? "-translate-x-full lg:translate-x-0" : "translate-x-0"}
         flex flex-col
       `}
     >
@@ -46,12 +52,42 @@ export default function Sidebar({
             to="/dashboard"
             className="flex items-center gap-2 flex-shrink-0"
           >
-            <GraduationCap className="w-8 h-8 text-gray-600" />
-            <span className="font-bold text-lg text-gray-900">Research</span>
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt={systemName}
+                className="w-8 h-8 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const icon = e.currentTarget.parentElement?.querySelector('.logo-fallback-icon') as HTMLElement;
+                  if (icon) icon.style.display = 'block';
+                }}
+              />
+            ) : null}
+            <GraduationCap 
+              className={`w-8 h-8 text-gray-600 logo-fallback-icon ${logoUrl ? 'hidden' : ''}`}
+            />
+            <span className="font-bold text-lg text-gray-900 truncate">
+              {systemName.length > 20 ? systemName.substring(0, 20) + '...' : systemName}
+            </span>
           </Link>
         )}
 
-        {isCollapsed && <div className="flex-1" />}
+        {isCollapsed && logoUrl && (
+          <Link
+            to="/dashboard"
+            className="flex items-center justify-center flex-shrink-0"
+            title={systemName}
+          >
+            <img 
+              src={logoUrl} 
+              alt={systemName}
+              className="w-8 h-8 object-contain"
+            />
+          </Link>
+        )}
+
+        <div className="flex-1" />
 
         <button
           onClick={onToggleCollapse}

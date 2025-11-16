@@ -407,23 +407,25 @@ export default function TaskList() {
                     className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => navigate(`/tasks/${task.id}`)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
                           <div className="flex-shrink-0">
                             {getStatusIcon(task.status)}
                           </div>
-                          <h3 className="font-medium text-gray-900 flex-1">{task.title}</h3>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${getStatusColor(task.status)}`}>
+                          <h3 className="font-medium text-gray-900 flex-1 min-w-0 truncate" title={task.title}>
+                            {task.title}
+                          </h3>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap flex-shrink-0 ${getStatusColor(task.status)}`}>
                             {translateStatus(task.status)}
                           </span>
-                          <span className={`text-sm font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${getPriorityColor(task.priority)}`}>
+                          <span className={`text-sm font-medium px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0 ${getPriorityColor(task.priority)}`}>
                             {translatePriority(task.priority)}
                           </span>
                         </div>
                         
                         {task.description && (
-                          <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none">
+                          <div className="text-gray-600 text-sm mb-3 line-clamp-2 prose prose-sm max-w-none" title={task.description}>
                             <div dangerouslySetInnerHTML={{ __html: task.description }} />
                           </div>
                         )}
@@ -437,26 +439,28 @@ export default function TaskList() {
                           </div>
                         )}
                         
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <div className="flex items-center">
+                        <div className="flex items-center flex-wrap gap-3 text-sm text-gray-500">
+                          <div className="flex items-center whitespace-nowrap">
                             <User className="w-4 h-4 mr-1 flex-shrink-0" />
-                            <span className="truncate">{task.assignee.fullName}</span>
+                            <span className="truncate max-w-xs" title={task.assignee.fullName}>
+                              {task.assignee.fullName}
+                            </span>
                           </div>
-                          <div className="flex items-center flex-shrink-0">
+                          <div className="flex items-center whitespace-nowrap flex-shrink-0">
                             <Calendar className="w-4 h-4 mr-1" />
                             <span className={isOverdue(task.dueDate, task.status) ? 'text-red-600' : ''}>
                               {formatDate(task.dueDate)}
                             </span>
                           </div>
                           {!projectId && (
-                            <div className="text-gray-400 truncate">
+                            <div className="text-gray-400 truncate max-w-xs" title={task.project.title}>
                               {task.project.title}
                             </div>
                           )}
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-1 flex-shrink-0 ml-3">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         {(user.role === 'ADMIN' || user.role === 'LECTURER') && (
                           <>
                             <button

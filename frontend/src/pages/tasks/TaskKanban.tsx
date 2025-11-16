@@ -432,13 +432,13 @@ export default function TaskKanban() {
                       )}
                       className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-medium text-gray-900 text-sm line-clamp-2 flex-1 mr-2">
+                      <div className="flex items-start justify-between mb-2 gap-2">
+                        <h4 className="font-medium text-gray-900 text-sm line-clamp-2 flex-1 min-w-0" title={task.title}>
                           {task.title}
                         </h4>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           <span
-                            className={`text-xs font-medium ${getPriorityColor(
+                            className={`text-xs font-medium whitespace-nowrap ${getPriorityColor(
                               task.priority
                             )}`}
                           >
@@ -456,6 +456,7 @@ export default function TaskKanban() {
                                 );
                               }}
                               className="p-1 text-gray-400 hover:text-gray-600"
+                              title="Chỉnh sửa"
                             >
                               <Edit className="w-3 h-3" />
                             </button>
@@ -464,7 +465,7 @@ export default function TaskKanban() {
                       </div>
 
                       {task.description && (
-                        <div className="text-gray-600 text-xs mb-2 line-clamp-2 prose prose-sm max-w-none">
+                        <div className="text-gray-600 text-xs mb-2 line-clamp-2 prose prose-sm max-w-none" title={task.description}>
                           <div dangerouslySetInnerHTML={{ __html: task.description }} />
                         </div>
                       )}
@@ -478,27 +479,29 @@ export default function TaskKanban() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <div className="flex items-center">
-                          <User className="w-3 h-3 mr-1" />
-                          {task.assignee.fullName}
+                      <div className="flex items-center justify-between text-xs text-gray-500 gap-2">
+                        <div className="flex items-center min-w-0">
+                          <User className="w-3 h-3 mr-1 flex-shrink-0" />
+                          <span className="truncate max-w-[100px]" title={task.assignee.fullName}>
+                            {task.assignee.fullName}
+                          </span>
                         </div>
                         {task.dueDate && (
                           <div
-                            className={`flex items-center ${
+                            className={`flex items-center whitespace-nowrap flex-shrink-0 ${
                               isOverdue(task.dueDate, task.status)
                                 ? "text-red-600"
                                 : ""
                             }`}
                           >
                             <Calendar className="w-3 h-3 mr-1" />
-                            {formatDate(task.dueDate)}
+                            <span>{formatDate(task.dueDate)}</span>
                           </div>
                         )}
                       </div>
 
                       {!projectId && (
-                        <div className="mt-2 text-xs text-gray-400">
+                        <div className="mt-2 text-xs text-gray-400 truncate" title={task.project.title}>
                           {task.project.title}
                         </div>
                       )}

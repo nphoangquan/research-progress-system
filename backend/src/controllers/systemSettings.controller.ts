@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
 import emailService from '../services/email.service';
 import { invalidateCache } from '../utils/systemSettings';
+import { invalidateUploadCache } from '../middleware/upload.middleware';
+import { wsService } from '../index';
 
 const prisma = new PrismaClient();
 
@@ -97,9 +99,7 @@ export const getGeneralSettings = async (req: Request, res: Response) => {
       systemDescription: 'Hệ thống quản lý tiến độ nghiên cứu',
       logoUrl: null,
       faviconUrl: null,
-      timezone: 'Asia/Ho_Chi_Minh',
       defaultLanguage: 'vi',
-      dateFormat: 'DD/MM/YYYY',
     };
 
     const result: any = { ...defaults };
@@ -132,9 +132,7 @@ export const updateGeneralSettings = async (req: Request, res: Response) => {
       systemDescription,
       logoUrl,
       faviconUrl,
-      timezone,
       defaultLanguage,
-      dateFormat,
     } = req.body;
 
     const updates = [];
@@ -153,16 +151,10 @@ export const updateGeneralSettings = async (req: Request, res: Response) => {
     if (faviconUrl !== undefined) {
       updates.push(updateSetting('general.faviconUrl', 'general', faviconUrl, userId, req));
     }
-    if (timezone !== undefined) {
-      updates.push(updateSetting('general.timezone', 'general', timezone, userId, req));
-    }
     if (defaultLanguage !== undefined) {
       updates.push(
         updateSetting('general.defaultLanguage', 'general', defaultLanguage, userId, req)
       );
-    }
-    if (dateFormat !== undefined) {
-      updates.push(updateSetting('general.dateFormat', 'general', dateFormat, userId, req));
     }
 
     await Promise.all(updates);
@@ -188,13 +180,8 @@ export const getEmailSettings = async (req: Request, res: Response) => {
       where: { category: 'email' },
     });
 
-    // Default values
+    // Default values - only non-sensitive settings
     const defaults = {
-      smtpHost: '',
-      smtpPort: 587,
-      smtpSecure: false,
-      smtpUsername: '',
-      smtpPassword: '', // Will be masked in response
       fromEmail: '',
       fromName: 'Research Progress Management System',
       welcomeEmailTemplate: null,
@@ -206,10 +193,8 @@ export const getEmailSettings = async (req: Request, res: Response) => {
 
     settings.forEach((setting) => {
       const key = setting.key.replace('email.', '');
-      if (key === 'smtpPassword') {
-        // Mask password for security
-        result[key] = setting.value ? '***' : '';
-      } else {
+      // Only return non-sensitive settings
+      if (['fromEmail', 'fromName', 'welcomeEmailTemplate', 'passwordResetEmailTemplate', 'verificationEmailTemplate'].includes(key)) {
         result[key] = setting.value;
       }
     });
@@ -233,11 +218,6 @@ export const updateEmailSettings = async (req: Request, res: Response) => {
     }
 
     const {
-      smtpHost,
-      smtpPort,
-      smtpSecure,
-      smtpUsername,
-      smtpPassword,
       fromEmail,
       fromName,
       welcomeEmailTemplate,
@@ -245,24 +225,17 @@ export const updateEmailSettings = async (req: Request, res: Response) => {
       verificationEmailTemplate,
     } = req.body;
 
+    // Reject any attempt to update SMTP credentials
+    if (req.body.smtpHost !== undefined || req.body.smtpPort !== undefined || 
+        req.body.smtpSecure !== undefined || req.body.smtpUsername !== undefined || 
+        req.body.smtpPassword !== undefined) {
+      return res.status(400).json({ 
+        error: 'SMTP credentials không thể cập nhật qua API. Vui lòng sử dụng biến môi trường (.env file).' 
+      });
+    }
+
     const updates = [];
 
-    if (smtpHost !== undefined) {
-      updates.push(updateSetting('email.smtpHost', 'email', smtpHost, userId, req));
-    }
-    if (smtpPort !== undefined) {
-      updates.push(updateSetting('email.smtpPort', 'email', smtpPort, userId, req));
-    }
-    if (smtpSecure !== undefined) {
-      updates.push(updateSetting('email.smtpSecure', 'email', smtpSecure, userId, req));
-    }
-    if (smtpUsername !== undefined) {
-      updates.push(updateSetting('email.smtpUsername', 'email', smtpUsername, userId, req));
-    }
-    if (smtpPassword !== undefined && smtpPassword !== '***') {
-      // Only update if password is actually changed (not masked value)
-      updates.push(updateSetting('email.smtpPassword', 'email', smtpPassword, userId, req));
-    }
     if (fromEmail !== undefined) {
       updates.push(updateSetting('email.fromEmail', 'email', fromEmail, userId, req));
     }
@@ -318,28 +291,15 @@ export const testEmail = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email test không được để trống' });
     }
 
-    // Get current email settings from database
-    const settings = await prisma.systemSetting.findMany({
-      where: { category: 'email' },
-    });
-
-    const emailConfig: any = {};
-    settings.forEach((setting) => {
-      const key = setting.key.replace('email.', '');
-      emailConfig[key] = setting.value;
-    });
-
-    // Check if SMTP is configured in database
-    if (!emailConfig.smtpHost || !emailConfig.smtpUsername || !emailConfig.smtpPassword) {
+    // Check if SMTP is configured in environment variables
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
       return res.status(400).json({
-        error: 'SMTP chưa được cấu hình. Vui lòng cấu hình SMTP trong tab Email trước khi test.',
+        error: 'SMTP chưa được cấu hình. Vui lòng cấu hình SMTP_HOST, SMTP_USER, SMTP_PASS trong file .env.',
       });
     }
 
     /**
-     * Send test email using database settings
-     * emailService currently uses env vars, but we validate database settings first
-     * In production, consider creating a dynamic transporter from database settings
+     * Send test email using environment variables for SMTP credentials
      */
     try {
       const testEmailHtml = `
@@ -350,7 +310,7 @@ export const testEmail = async (req: Request, res: Response) => {
             <style>
               body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
               .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .header { background: #F3F4F6; color: #1F2937; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; border-bottom: 2px solid #E5E7EB; }
               .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
               .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
             </style>
@@ -496,6 +456,10 @@ export const updateStorageSettings = async (req: Request, res: Response) => {
     }
 
     await Promise.all(updates);
+
+    // Invalidate caches to ensure new settings are used immediately
+    invalidateCache();
+    invalidateUploadCache();
 
     res.json({ message: 'Cài đặt lưu trữ đã được cập nhật thành công' });
   } catch (error) {
@@ -689,6 +653,7 @@ export const getMaintenanceSettings = async (req: Request, res: Response) => {
       allowedIPs: [],
       scheduledStart: null,
       scheduledEnd: null,
+      duration: null,
     };
 
     const result: any = { ...defaults };
@@ -721,7 +686,7 @@ export const updateMaintenanceSettings = async (req: Request, res: Response) => 
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { enabled, message, allowedIPs, scheduledStart, scheduledEnd } = req.body;
+    const { enabled, message, allowedIPs, scheduledStart, scheduledEnd, duration } = req.body;
 
     const updates = [];
 
@@ -744,6 +709,11 @@ export const updateMaintenanceSettings = async (req: Request, res: Response) => 
     if (scheduledEnd !== undefined) {
       updates.push(
         updateSetting('maintenance.scheduledEnd', 'maintenance', scheduledEnd, userId, req)
+      );
+    }
+    if (duration !== undefined) {
+      updates.push(
+        updateSetting('maintenance.duration', 'maintenance', duration, userId, req)
       );
     }
 
@@ -795,15 +765,8 @@ export const getSystemHealth = async (req: Request, res: Response) => {
 
     // Check email service
     try {
-      // Check if email service is configured
-      const emailSettings = await prisma.systemSetting.findMany({
-        where: { category: 'email' },
-      });
-
-      const hasSmtpConfig = emailSettings.some((s) => {
-        const key = s.key.replace('email.', '');
-        return key === 'smtpHost' && s.value;
-      });
+      // Check if email service is configured via environment variables
+      const hasSmtpConfig = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
       health.email.status = hasSmtpConfig ? 'ok' : 'not_configured';
     } catch (error) {
@@ -811,22 +774,14 @@ export const getSystemHealth = async (req: Request, res: Response) => {
     }
 
     /**
-     * Get active users (approximation based on recent activity)
-     * For accurate tracking, implement session management
+     * Get real-time active users (connected via WebSocket)
+     * Fallback to 0 if WebSocket service is unavailable
      */
     try {
-      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-      health.activeUsers = await prisma.user.count({
-        where: {
-          isActive: true,
-          updatedAt: {
-            gte: thirtyMinutesAgo,
-          },
-        },
-      });
+      health.activeUsers = wsService?.getConnectedUsersCount() ?? 0;
     } catch (error) {
-      logger.error('Error counting active users:', error);
-      // Don't fail health check if counting users fails
+      logger.error('Error getting active users from WebSocket service:', error);
+      health.activeUsers = 0;
     }
 
     // Get recent errors from audit logs

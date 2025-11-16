@@ -12,7 +12,7 @@ interface AuthenticatedSocket extends Socket {
 
 export class WebSocketService {
   private io: SocketIOServer;
-  private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
+  private connectedUsers: Map<string, Set<string>> = new Map(); // userId -> Set of socketIds
 
   constructor(httpServer: HTTPServer) {
     this.io = new SocketIOServer(httpServer, {
@@ -20,7 +20,8 @@ export class WebSocketService {
         origin: process.env.FRONTEND_URL || 'http://localhost:5173',
         methods: ['GET', 'POST'],
         credentials: true
-      }
+      },
+      allowEIO3: true
     });
 
     this.setupMiddleware();
@@ -63,9 +64,12 @@ export class WebSocketService {
     this.io.on('connection', (socket: AuthenticatedSocket) => {
       console.log(`User ${socket.userId} connected (${socket.id})`);
       
-      // Track connected user
+      // Track connected user (support multiple sockets per user for multiple tabs)
       if (socket.userId) {
-        this.connectedUsers.set(socket.userId, socket.id);
+        if (!this.connectedUsers.has(socket.userId)) {
+          this.connectedUsers.set(socket.userId, new Set());
+        }
+        this.connectedUsers.get(socket.userId)!.add(socket.id);
         
         // Join user to their personal room
         socket.join(`user:${socket.userId}`);
@@ -75,10 +79,17 @@ export class WebSocketService {
       }
 
       // Handle disconnection
-      socket.on('disconnect', () => {
-        console.log(`User ${socket.userId} disconnected (${socket.id})`);
+      socket.on('disconnect', (reason) => {
+        console.log(`User ${socket.userId} disconnected (${socket.id}), reason: ${reason}`);
         if (socket.userId) {
-          this.connectedUsers.delete(socket.userId);
+          const userSockets = this.connectedUsers.get(socket.userId);
+          if (userSockets) {
+            userSockets.delete(socket.id);
+            // Only remove user from map if no more sockets
+            if (userSockets.size === 0) {
+              this.connectedUsers.delete(socket.userId);
+            }
+          }
         }
       });
 
@@ -216,9 +227,16 @@ export class WebSocketService {
     return this.connectedUsers.size;
   }
 
-  // Get user's socket ID
+  // Get user's socket IDs (user may have multiple sockets from multiple tabs)
+  public getUserSocketIds(userId: string): string[] {
+    const socketSet = this.connectedUsers.get(userId);
+    return socketSet ? Array.from(socketSet) : [];
+  }
+
+  // Get user's first socket ID (for backward compatibility)
   public getUserSocketId(userId: string): string | undefined {
-    return this.connectedUsers.get(userId);
+    const socketIds = this.getUserSocketIds(userId);
+    return socketIds.length > 0 ? socketIds[0] : undefined;
   }
 }
 
