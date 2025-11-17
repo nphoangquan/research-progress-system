@@ -39,6 +39,9 @@ import UserManagement from './pages/admin/UserManagement';
 import SystemSettings from './pages/admin/SystemSettings';
 import ReportsAndLogs from './pages/admin/ReportsAndLogs';
 import LabelManagement from './pages/admin/LabelManagement';
+import HelpManagement from './pages/admin/HelpManagement';
+import Notifications from './pages/Notifications';
+import Help from './pages/Help';
 
 // Components
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -89,6 +92,22 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/notifications" 
+            element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/help" 
+            element={
+              <ProtectedRoute>
+                <Help />
               </ProtectedRoute>
             } 
           />
@@ -187,6 +206,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <LabelManagement />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/help" 
+            element={
+              <ProtectedRoute>
+                <HelpManagement />
               </ProtectedRoute>
             } 
           />

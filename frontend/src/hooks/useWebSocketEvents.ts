@@ -8,13 +8,17 @@ interface UseWebSocketEventsProps {
   taskId?: string;
   enableTaskEvents?: boolean;
   enableCommentEvents?: boolean;
+  onNotification?: (notification: any) => void;
+  onNotificationCount?: (count: number) => void;
 }
 
 export const useWebSocketEvents = ({
   projectId,
   taskId,
   enableTaskEvents = true,
-  enableCommentEvents = true
+  enableCommentEvents = true,
+  onNotification,
+  onNotificationCount,
 }: UseWebSocketEventsProps) => {
   const { socket, isConnected, joinProject, leaveProject } = useWebSocket();
   const queryClient = useQueryClient();
@@ -161,6 +165,33 @@ export const useWebSocketEvents = ({
       socket.off('comment-deleted', handleCommentDeleted);
     };
   }, [socket, enableCommentEvents, isConnected, queryClient, taskId]);
+
+  // Notification events handler
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleNotification = (data: any) => {
+      console.log('Notification received:', data);
+      if (onNotification) {
+        onNotification(data.notification);
+      }
+    };
+
+    const handleNotificationCount = (data: any) => {
+      console.log('Notification count updated:', data);
+      if (onNotificationCount) {
+        onNotificationCount(data.count);
+      }
+    };
+
+    socket.on('notification', handleNotification);
+    socket.on('notification-count', handleNotificationCount);
+
+    return () => {
+      socket.off('notification', handleNotification);
+      socket.off('notification-count', handleNotificationCount);
+    };
+  }, [socket, isConnected, onNotification, onNotificationCount]);
 
   return {
     socket,

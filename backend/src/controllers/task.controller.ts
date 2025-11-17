@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { wsService } from '../index';
 import ActivityService from '../services/activity.service';
+import { createNotification, createNotificationsForUsers } from '../services/notification.service';
 
 const prisma = new PrismaClient();
 
@@ -157,6 +158,22 @@ export const createTask = async (req: Request, res: Response) => {
       where: { id: projectId },
       data: { progress: newProgress }
     });
+
+    // Create notification for assignee (if different from creator)
+    if (finalAssigneeId !== currentUserId) {
+      const creator = await prisma.user.findUnique({
+        where: { id: currentUserId },
+        select: { fullName: true },
+      });
+
+      await createNotification({
+        userId: finalAssigneeId,
+        projectId,
+        type: 'TASK_ASSIGNED',
+        title: 'Task mới được giao',
+        message: `${creator?.fullName || 'Ai đó'} đã giao task "${title}" cho bạn`,
+      });
+    }
 
     // Emit WebSocket event for task creation
     wsService.emitTaskCreated(task, projectId);
@@ -782,8 +799,65 @@ export const updateTask = async (req: Request, res: Response) => {
         data: { progress: newProgress }
       });
 
+      // Create notification when task is completed
+      if (status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
+        const project = await prisma.project.findUnique({
+          where: { id: existingTask.projectId },
+          include: {
+            lecturer: { select: { id: true, fullName: true } },
+            students: { select: { studentId: true } },
+          },
+        });
+
+        if (project) {
+          const userIdsToNotify: string[] = [];
+          
+          // Notify lecturer
+          if (project.lecturerId !== currentUserId) {
+            userIdsToNotify.push(project.lecturerId);
+          }
+
+          // Notify other students in project
+          project.students.forEach((ps) => {
+            if (ps.studentId !== currentUserId && ps.studentId !== existingTask.assigneeId) {
+              userIdsToNotify.push(ps.studentId);
+            }
+          });
+
+          if (userIdsToNotify.length > 0) {
+            const assignee = await prisma.user.findUnique({
+              where: { id: existingTask.assigneeId },
+              select: { fullName: true },
+            });
+
+            await createNotificationsForUsers(userIdsToNotify, {
+              projectId: existingTask.projectId,
+              type: 'TASK_COMPLETED',
+              title: 'Task đã hoàn thành',
+              message: `${assignee?.fullName || 'Ai đó'} đã hoàn thành task "${existingTask.title}"`,
+            });
+          }
+        }
+      }
+
       // Emit WebSocket event for status change
       wsService.emitTaskStatusChanged(updatedTask, existingTask.projectId, existingTask.status, status);
+    }
+
+    // Create notification if assignee changed
+    if (assigneeId && assigneeId !== existingTask.assigneeId) {
+      const creator = await prisma.user.findUnique({
+        where: { id: currentUserId },
+        select: { fullName: true },
+      });
+
+      await createNotification({
+        userId: assigneeId,
+        projectId: existingTask.projectId,
+        type: 'TASK_ASSIGNED',
+        title: 'Task được giao lại',
+        message: `${creator?.fullName || 'Ai đó'} đã giao lại task "${existingTask.title}" cho bạn`,
+      });
     }
 
     // Emit WebSocket event for task update
@@ -917,6 +991,13 @@ export const submitTask = async (req: Request, res: Response) => {
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
+        assignee: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        },
         project: {
           include: {
             students: {
@@ -980,11 +1061,43 @@ export const submitTask = async (req: Request, res: Response) => {
         project: {
           select: {
             id: true,
-            title: true
+            title: true,
+            lecturerId: true,
+            students: {
+              select: {
+                studentId: true,
+              },
+            },
           }
         }
       }
     });
+
+    // Create notifications for task completion
+    if (task.status !== 'COMPLETED') {
+      const userIdsToNotify: string[] = [];
+      
+      // Notify lecturer
+      if (updatedTask.project.lecturerId !== currentUserId) {
+        userIdsToNotify.push(updatedTask.project.lecturerId);
+      }
+
+      // Notify other students in project
+      updatedTask.project.students.forEach((ps) => {
+        if (ps.studentId !== currentUserId && ps.studentId !== task.assigneeId) {
+          userIdsToNotify.push(ps.studentId);
+        }
+      });
+
+      if (userIdsToNotify.length > 0) {
+        await createNotificationsForUsers(userIdsToNotify, {
+          projectId: task.projectId,
+          type: 'TASK_COMPLETED',
+          title: 'Task đã hoàn thành',
+          message: `${task.assignee?.fullName || updatedTask.assignee?.fullName || 'Ai đó'} đã hoàn thành task "${task.title}"`,
+        });
+      }
+    }
 
     // Log activity
     await ActivityService.logActivity({
@@ -1014,3 +1127,4 @@ export const submitTask = async (req: Request, res: Response) => {
     });
   }
 };
+

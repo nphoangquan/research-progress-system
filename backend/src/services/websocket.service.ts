@@ -238,6 +238,31 @@ export class WebSocketService {
     const socketIds = this.getUserSocketIds(userId);
     return socketIds.length > 0 ? socketIds[0] : undefined;
   }
+
+  // Notification Events
+  public emitNotification(userId: string, notification: any) {
+    const userSockets = this.connectedUsers.get(userId);
+    if (userSockets) {
+      userSockets.forEach((socketId) => {
+        this.io.to(socketId).emit('notification', {
+          notification,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    }
+  }
+
+  public emitNotificationCount(userId: string, count: number) {
+    const userSockets = this.connectedUsers.get(userId);
+    if (userSockets) {
+      userSockets.forEach((socketId) => {
+        this.io.to(socketId).emit('notification-count', {
+          count,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    }
+  }
 }
 
 export default WebSocketService;

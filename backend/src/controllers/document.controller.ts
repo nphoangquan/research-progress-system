@@ -4,6 +4,7 @@ import { uploadFile, deleteFile } from '../utils/cloudinary';
 import { cleanupLocalFile } from '../middleware/upload.middleware';
 import { getStorageSettings } from '../utils/systemSettings';
 import ActivityService from '../services/activity.service';
+import { createNotificationsForUsers } from '../services/notification.service';
 
 const prisma = new PrismaClient();
 
@@ -163,6 +164,45 @@ export const uploadDocument = async (req: Request, res: Response) => {
          * - Handle errors and set status to 'FAILED' if needed
          */
         // For now, keep as PENDING until AI service is integrated
+      }
+
+      // Create notifications for project members
+      const project = await prisma.project.findUnique({
+        where: { id: finalProjectId },
+        include: {
+          lecturer: { select: { id: true } },
+          students: { select: { studentId: true } },
+        },
+      });
+
+      if (project) {
+        const userIdsToNotify: string[] = [];
+        
+        // Notify lecturer
+        if (project.lecturerId !== userId) {
+          userIdsToNotify.push(project.lecturerId);
+        }
+
+        // Notify students
+        project.students.forEach((ps) => {
+          if (ps.studentId !== userId) {
+            userIdsToNotify.push(ps.studentId);
+          }
+        });
+
+        if (userIdsToNotify.length > 0) {
+          const uploader = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { fullName: true },
+          });
+
+          await createNotificationsForUsers(userIdsToNotify, {
+            projectId: finalProjectId,
+            type: 'DOCUMENT_UPLOADED',
+            title: 'Tài liệu mới được tải lên',
+            message: `${uploader?.fullName || 'Ai đó'} đã tải lên tài liệu "${req.file.originalname}"`,
+          });
+        }
       }
 
       // Log activity

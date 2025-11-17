@@ -1,5 +1,6 @@
 import { cleanupExpiredSessions } from './session.service';
 import { cleanupOldAttempts } from './loginAttempt.service';
+import { checkApproachingDeadlines } from './deadlineNotification.service';
 import logger from '../utils/logger';
 
 /**
@@ -31,9 +32,18 @@ export function setupPeriodicCleanup(): NodeJS.Timeout {
     await runCleanupTasks();
   }, 60 * 60 * 1000); // 1 hour
 
+  // Run deadline notifications every hour
+  const deadlineInterval = setInterval(async () => {
+    await checkApproachingDeadlines();
+  }, 60 * 60 * 1000); // 1 hour
+
   // Run immediately on startup
-  runCleanupTasks().catch(err => {
+  runCleanupTasks().catch((err: any) => {
     logger.error('Error running initial cleanup:', err);
+  });
+
+  checkApproachingDeadlines().catch((err: any) => {
+    logger.error('Error running initial deadline notifications:', err);
   });
 
   return cleanupInterval;

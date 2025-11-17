@@ -67,6 +67,13 @@ export const menuConfig: MenuSection[] = [
         icon: <Activity className="w-5 h-5" />,
         path: '/user-activity',
         roles: ['ADMIN', 'LECTURER', 'STUDENT']
+      },
+      {
+        id: 'notifications',
+        label: 'Thông báo',
+        icon: <Bell className="w-5 h-5" />,
+        path: '/notifications',
+        roles: ['ADMIN', 'LECTURER', 'STUDENT']
       }
     ]
   },
@@ -192,6 +199,13 @@ export const menuConfig: MenuSection[] = [
         icon: <Tag className="w-5 h-5" />,
         path: '/admin/labels',
         roles: ['ADMIN']
+      },
+      {
+        id: 'help-management',
+        label: 'Quản lý Trợ giúp',
+        icon: <HelpCircle className="w-5 h-5" />,
+        path: '/admin/help',
+        roles: ['ADMIN']
       }
     ]
   },
@@ -205,14 +219,6 @@ export const menuConfig: MenuSection[] = [
         icon: <User className="w-5 h-5" />,
         path: '/profile',
         roles: ['ADMIN', 'LECTURER', 'STUDENT']
-      },
-      {
-        id: 'notifications',
-        label: 'Thông báo',
-        icon: <Bell className="w-5 h-5" />,
-        path: '/notifications',
-        roles: ['ADMIN', 'LECTURER', 'STUDENT'],
-        badge: 0 // Will be dynamic from API
       },
       {
         id: 'help',

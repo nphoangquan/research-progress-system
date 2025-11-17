@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { createNotificationsForUsers } from '../services/notification.service';
 
 const prisma = new PrismaClient();
 
@@ -461,7 +462,9 @@ export const updateProject = async (req: Request, res: Response) => {
     const existingProject = await prisma.project.findUnique({
       where: { id },
       select: { 
-        id: true, 
+        id: true,
+        title: true,
+        status: true,
         lecturerId: true,
         startDate: true,
         students: {
@@ -553,6 +556,50 @@ export const updateProject = async (req: Request, res: Response) => {
         }
       }
     });
+
+    // Create notifications if project status changed
+    if (status && status !== existingProject.status) {
+      const userIdsToNotify: string[] = [];
+      
+      // Notify lecturer
+      if (existingProject.lecturerId !== currentUserId) {
+        userIdsToNotify.push(existingProject.lecturerId);
+      }
+
+      // Notify students
+      const projectWithStudents = await prisma.project.findUnique({
+        where: { id },
+        include: {
+          students: {
+            select: {
+              studentId: true,
+            },
+          },
+        },
+      });
+
+      if (projectWithStudents) {
+        projectWithStudents.students.forEach((ps) => {
+          if (ps.studentId !== currentUserId) {
+            userIdsToNotify.push(ps.studentId);
+          }
+        });
+      }
+
+      if (userIdsToNotify.length > 0) {
+        const updater = await prisma.user.findUnique({
+          where: { id: currentUserId },
+          select: { fullName: true },
+        });
+
+        await createNotificationsForUsers(userIdsToNotify, {
+          projectId: id,
+          type: 'PROJECT_STATUS_CHANGED',
+          title: 'Trạng thái dự án đã thay đổi',
+          message: `${updater?.fullName || 'Ai đó'} đã thay đổi trạng thái dự án "${existingProject.title}" thành ${status}`,
+        });
+      }
+    }
 
     res.json({
       message: 'Project updated successfully',

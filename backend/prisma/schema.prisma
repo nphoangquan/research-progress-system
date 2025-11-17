@@ -7,9 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================================
 // USERS & AUTHENTICATION
-// ============================================================================
 
 model User {
   id            String   @id @default(uuid())
@@ -42,7 +40,9 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   sessions                Session[]
   auditLogs               AuditLog[]
-  systemSettingsUpdated   SystemSetting[]         @relation("SystemSettingUpdates")
+  systemSettingsUpdated   SystemSetting[]          @relation("SystemSettingUpdates")
+  createdHelpArticles     HelpArticle[]            @relation("CreatedHelpArticles")
+  updatedHelpArticles     HelpArticle[]            @relation("UpdatedHelpArticles")
 
   @@map("users")
 }
@@ -111,9 +111,7 @@ enum ProjectStatus {
   ARCHIVED
 }
 
-// ============================================================================
 // TASKS & MILESTONES
-// ============================================================================
 
 model Task {
   id                String     @id @default(uuid())
@@ -159,9 +157,8 @@ enum Priority {
   URGENT
 }
 
-// ============================================================================
+
 // LABELS & TAGS
-// ============================================================================
 
 model Label {
   id        String   @id @default(uuid())
@@ -199,9 +196,7 @@ model TaskLabel {
   @@map("task_labels")
 }
 
-// ============================================================================
 // DOCUMENTS & FILES
-// ============================================================================
 
 model Document {
   id          String         @id @default(uuid())
@@ -270,9 +265,7 @@ enum AccessLevel {
   PUBLIC
 }
 
-// ============================================================================
 // DOCUMENT CHUNKS (For RAG)
-// ============================================================================
 
 model DocumentChunk {
   id         String   @id @default(uuid())
@@ -291,9 +284,7 @@ model DocumentChunk {
   @@map("document_chunks")
 }
 
-// ============================================================================
 // AI QUERIES & RESPONSES
-// ============================================================================
 
 model AIQuery {
   id              String    @id @default(uuid())
@@ -321,9 +312,7 @@ enum Feedback {
   NOT_HELPFUL
 }
 
-// ============================================================================
 // NOTIFICATIONS
-// ============================================================================
 
 model Notification {
   id        String           @id @default(uuid())
@@ -343,9 +332,7 @@ model Notification {
   @@map("notifications")
 }
 
-// ============================================================================
 // COMMENTS
-// ============================================================================
 
 model Comment {
   id        String   @id @default(uuid())
@@ -364,9 +351,7 @@ model Comment {
   @@map("comments")
 }
 
-// ============================================================================
 // TASK ATTACHMENTS
-// ============================================================================
 
 model TaskAttachment {
   id          String   @id @default(uuid())
@@ -389,9 +374,7 @@ model TaskAttachment {
   @@map("task_attachments")
 }
 
-// ============================================================================
 // FILTER PRESETS
-// ============================================================================
 
 model FilterPreset {
   id          String   @id @default(uuid())
@@ -414,9 +397,7 @@ model FilterPreset {
   @@map("filter_presets")
 }
 
-// ============================================================================
 // USER ACTIVITY TRACKING
-// ============================================================================
 
 model Activity {
   id          String       @id @default(uuid())
@@ -467,9 +448,7 @@ enum NotificationType {
   PROJECT_STATUS_CHANGED
 }
 
-// ============================================================================
 // EMAIL VERIFICATION & PASSWORD RESET
-// ============================================================================
 
 model EmailVerificationToken {
   id        String   @id @default(uuid())
@@ -506,13 +485,13 @@ model PasswordResetToken {
 }
 
 model Session {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  token     String   @unique
-  ipAddress String?  @map("ip_address")
-  userAgent String?  @map("user_agent")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  token          String   @unique
+  ipAddress      String?  @map("ip_address")
+  userAgent      String?  @map("user_agent")
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
   lastActivityAt DateTime @default(now()) @map("last_activity_at")
 
   // Relations
@@ -526,12 +505,12 @@ model Session {
 }
 
 model LoginAttempt {
-  id        String   @id @default(uuid())
-  email     String
-  ipAddress String?  @map("ip_address")
-  userAgent String?  @map("user_agent")
-  success   Boolean  @default(false)
-  failedAt  DateTime @default(now()) @map("failed_at")
+  id           String    @id @default(uuid())
+  email        String
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @map("user_agent")
+  success      Boolean   @default(false)
+  failedAt     DateTime  @default(now()) @map("failed_at")
   lockoutUntil DateTime? @map("lockout_until")
 
   @@index([email])
@@ -541,17 +520,15 @@ model LoginAttempt {
   @@map("login_attempts")
 }
 
-// ============================================================================
 // AUDIT LOGS (Admin Actions Tracking)
-// ============================================================================
 
 model AuditLog {
   id         String   @id @default(uuid())
   userId     String?  @map("user_id")
-  action     String   // 'CREATE', 'UPDATE', 'DELETE', 'ACTIVATE', 'DEACTIVATE', 'RESET_PASSWORD', etc.
-  entityType String   // 'User', 'Project', 'Task', 'Document', 'SystemSetting', etc.
+  action     String // 'CREATE', 'UPDATE', 'DELETE', 'ACTIVATE', 'DEACTIVATE', 'RESET_PASSWORD', etc.
+  entityType String // 'User', 'Project', 'Task', 'Document', 'SystemSetting', etc.
   entityId   String?
-  changes    Json?    // { field: { old: value, new: value } }
+  changes    Json? // { field: { old: value, new: value } }
   ipAddress  String?  @map("ip_address")
   userAgent  String?  @map("user_agent")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -566,15 +543,13 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-// ============================================================================
 // SYSTEM SETTINGS (Admin Configuration)
-// ============================================================================
 
 model SystemSetting {
   id        String   @id @default(uuid())
   key       String   @unique
   value     Json
-  category  String   // 'general', 'email', 'storage', 'security', 'maintenance'
+  category  String // 'general', 'email', 'storage', 'security', 'maintenance'
   updatedBy String?  @map("updated_by")
   updatedAt DateTime @updatedAt @map("updated_at")
   createdAt DateTime @default(now()) @map("created_at")
@@ -585,4 +560,28 @@ model SystemSetting {
   @@index([category])
   @@index([key])
   @@map("system_settings")
+}
+
+// HELP ARTICLES
+
+model HelpArticle {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  category    String
+  order       Int      @default(0)
+  isPublished Boolean  @default(true) @map("is_published")
+  createdBy   String   @map("created_by")
+  updatedBy   String?  @map("updated_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  creator User  @relation("CreatedHelpArticles", fields: [createdBy], references: [id], onDelete: Cascade)
+  updater User? @relation("UpdatedHelpArticles", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@index([isPublished])
+  @@index([order])
+  @@map("help_articles")
 }

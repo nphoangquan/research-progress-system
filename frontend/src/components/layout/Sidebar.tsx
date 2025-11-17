@@ -4,6 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { filterMenuByRole } from "../../config/menu.config";
 import SidebarItem from "./SidebarItem";
 import { useGeneralSettings } from "../../hooks/useGeneralSettings";
+import { useNotificationCount } from "../../hooks/useNotificationCount";
 import { Menu, ChevronLeft, GraduationCap } from "lucide-react";
 
 interface SidebarProps {
@@ -20,11 +21,23 @@ export default function Sidebar({
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
   const { data } = useGeneralSettings();
+  const { data: unreadCount = 0 } = useNotificationCount();
 
   const filteredMenu = useMemo(() => {
     if (!user) return [];
-    return filterMenuByRole(user.role);
-  }, [user]);
+    const menu = filterMenuByRole(user.role);
+    
+    // Update notification badge
+    return menu.map((section) => ({
+      ...section,
+      items: section.items.map((item) => {
+        if (item.id === 'notifications') {
+          return { ...item, badge: unreadCount > 0 ? unreadCount : undefined };
+        }
+        return item;
+      }),
+    }));
+  }, [user, unreadCount]);
 
   const systemName = (data as any)?.systemName || 'Research';
   const logoUrl = (data as any)?.logoUrl;

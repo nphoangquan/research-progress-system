@@ -13,7 +13,8 @@ const NAV_ITEMS: Array<{
 }> = [
   { key: 'profile', label: 'Thông tin Hồ sơ', icon: User },
   { key: 'security', label: 'Bảo mật & Mật khẩu', icon: Shield },
-  { key: 'preferences', label: 'Tùy chọn', icon: Settings }
+  // TODO: Re-enable when preferences feature is ready
+  // { key: 'preferences', label: 'Tùy chọn', icon: Settings }
 ];
 
 export function SettingsSidebar({ activeTab, onTabChange }: SettingsSidebarProps) {

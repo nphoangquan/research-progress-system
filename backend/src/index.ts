@@ -18,6 +18,8 @@ import taskAttachmentRoutes from './routes/taskAttachment.routes';
 import labelRoutes from './routes/label.routes';
 import settingsRoutes from './routes/settings.routes';
 import adminRoutes from './routes/admin.routes';
+import notificationRoutes from './routes/notification.routes';
+import helpRoutes from './routes/help.routes';
 import WebSocketService from './services/websocket.service';
 import { checkMaintenanceMode } from './middleware/maintenance.middleware';
 import { setupPeriodicCleanup } from './services/cleanup.service';
@@ -107,6 +109,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/help', helpRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/comments', commentRoutes);

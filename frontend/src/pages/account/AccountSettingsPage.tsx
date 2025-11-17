@@ -2,7 +2,8 @@ import { useAccountSettings } from "../../features/account/hooks/useAccountSetti
 import { SettingsSidebar } from "../../features/account/components/SettingsSidebar";
 import { ProfileSettings } from "../../features/account/components/ProfileSettings";
 import { SecuritySettings } from "../../features/account/components/SecuritySettings";
-import { PreferencesSettings } from "../../features/account/components/PreferencesSettings";
+// TODO: Re-enable when preferences feature is ready
+// import { PreferencesSettings } from "../../features/account/components/PreferencesSettings";
 import { useEffect } from "react";
 
 export default function AccountSettingsPage() {
@@ -104,6 +105,7 @@ export default function AccountSettingsPage() {
             />
           )}
 
+          {/* TODO: Re-enable when preferences feature is ready
           {activeTab === "preferences" && (
             <PreferencesSettings
               form={preferencesForm}
@@ -112,6 +114,7 @@ export default function AccountSettingsPage() {
               isSaving={isSavingPreferences}
             />
           )}
+          */}
         </div>
       </div>
     </div>
