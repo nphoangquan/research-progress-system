@@ -59,12 +59,6 @@ cp .env.example .env
 npm run dev
 ```
 
-Chi tiết cấu hình môi trường xem tại `docs/environment-variables.md`.
-
-## Tài liệu
-
-- Tạm thời chưa commit docs
-
 ## License
 
 MIT License
