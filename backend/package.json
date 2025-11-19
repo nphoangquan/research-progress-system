@@ -30,6 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
+    "openai": "^6.9.1",
     "prisma": "^6.17.0",
     "recharts": "^3.2.1",
     "socket.io": "^4.8.1",

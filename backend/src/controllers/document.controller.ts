@@ -5,6 +5,8 @@ import { cleanupLocalFile } from '../middleware/upload.middleware';
 import { getStorageSettings } from '../utils/systemSettings';
 import ActivityService from '../services/activity.service';
 import { createNotificationsForUsers } from '../services/notification.service';
+import embeddingService from '../services/embedding.service';
+import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -220,6 +222,27 @@ export const uploadDocument = async (req: Request, res: Response) => {
           accessLevel: finalAccessLevel
         }
       });
+
+      // Generate and update embedding asynchronously
+      if (document) {
+        (async () => {
+          try {
+            const text = embeddingService.combineTextFields(document.fileName, document.description);
+            const embedding = await embeddingService.generateEmbedding(text);
+            
+            if (embedding) {
+              await prisma.$executeRaw`
+                UPDATE documents 
+                SET embedding = ${JSON.stringify(embedding)}::vector 
+                WHERE id = ${document.id}
+              `;
+              logger.debug(`Generated embedding for new document: ${document.id}`);
+            }
+          } catch (error) {
+            logger.error(`Failed to generate embedding for document ${document.id}:`, error);
+          }
+        })();
+      }
 
       res.status(201).json({
         message: 'Document uploaded successfully',
@@ -682,6 +705,30 @@ export const updateDocument = async (req: Request, res: Response) => {
         }
       }
     });
+
+    // Regenerate embedding if description changed
+    if (description !== undefined) {
+      (async () => {
+        try {
+          const text = embeddingService.combineTextFields(
+            updatedDocument.fileName,
+            updatedDocument.description
+          );
+          const embedding = await embeddingService.generateEmbedding(text);
+          
+          if (embedding) {
+            await prisma.$executeRaw`
+              UPDATE documents 
+              SET embedding = ${JSON.stringify(embedding)}::vector 
+              WHERE id = ${id}
+            `;
+            logger.debug(`Regenerated embedding for updated document: ${id}`);
+          }
+        } catch (error) {
+          logger.error(`Failed to regenerate embedding for document ${id}:`, error);
+        }
+      })();
+    }
 
     res.json({
       message: 'Document updated successfully',

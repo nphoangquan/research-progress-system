@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { createNotificationsForUsers } from '../services/notification.service';
+import embeddingService from '../services/embedding.service';
+import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -171,6 +173,27 @@ export const createProject = async (req: Request, res: Response) => {
         }
       });
     });
+
+    // Generate and update embedding asynchronously
+    if (project) {
+      (async () => {
+        try {
+          const text = embeddingService.combineTextFields(project.title, project.description);
+          const embedding = await embeddingService.generateEmbedding(text);
+          
+          if (embedding) {
+            await prisma.$executeRaw`
+              UPDATE projects 
+              SET embedding = ${JSON.stringify(embedding)}::vector 
+              WHERE id = ${project.id}
+            `;
+            logger.debug(`Generated embedding for new project: ${project.id}`);
+          }
+        } catch (error) {
+          logger.error(`Failed to generate embedding for project ${project.id}:`, error);
+        }
+      })();
+    }
 
     res.status(201).json({
       message: 'Project created successfully',
@@ -599,6 +622,30 @@ export const updateProject = async (req: Request, res: Response) => {
           message: `${updater?.fullName || 'Ai đó'} đã thay đổi trạng thái dự án "${existingProject.title}" thành ${status}`,
         });
       }
+    }
+
+    // Regenerate embedding if title or description changed
+    if (title || description) {
+      (async () => {
+        try {
+          const text = embeddingService.combineTextFields(
+            updatedProject.title,
+            updatedProject.description
+          );
+          const embedding = await embeddingService.generateEmbedding(text);
+          
+          if (embedding) {
+            await prisma.$executeRaw`
+              UPDATE projects 
+              SET embedding = ${JSON.stringify(embedding)}::vector 
+              WHERE id = ${id}
+            `;
+            logger.debug(`Regenerated embedding for updated project: ${id}`);
+          }
+        } catch (error) {
+          logger.error(`Failed to regenerate embedding for project ${id}:`, error);
+        }
+      })();
     }
 
     res.json({

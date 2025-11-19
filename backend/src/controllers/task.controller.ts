@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import { wsService } from '../index';
 import ActivityService from '../services/activity.service';
 import { createNotification, createNotificationsForUsers } from '../services/notification.service';
+import embeddingService from '../services/embedding.service';
+import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -191,6 +193,27 @@ export const createTask = async (req: Request, res: Response) => {
         priority: priority
       }
     });
+
+    // Generate and update embedding asynchronously
+    if (task) {
+      (async () => {
+        try {
+          const text = embeddingService.combineTextFields(task.title, task.description);
+          const embedding = await embeddingService.generateEmbedding(text);
+          
+          if (embedding) {
+            await prisma.$executeRaw`
+              UPDATE tasks 
+              SET embedding = ${JSON.stringify(embedding)}::vector 
+              WHERE id = ${task.id}
+            `;
+            logger.debug(`Generated embedding for new task: ${task.id}`);
+          }
+        } catch (error) {
+          logger.error(`Failed to generate embedding for task ${task.id}:`, error);
+        }
+      })();
+    }
 
     res.status(201).json({
       message: 'Task created successfully',
@@ -885,6 +908,30 @@ export const updateTask = async (req: Request, res: Response) => {
         newStatus: updatedTask.status
       }
     });
+
+    // Regenerate embedding if title or description changed
+    if (title || description !== undefined) {
+      (async () => {
+        try {
+          const text = embeddingService.combineTextFields(
+            updatedTask.title,
+            updatedTask.description
+          );
+          const embedding = await embeddingService.generateEmbedding(text);
+          
+          if (embedding) {
+            await prisma.$executeRaw`
+              UPDATE tasks 
+              SET embedding = ${JSON.stringify(embedding)}::vector 
+              WHERE id = ${id}
+            `;
+            logger.debug(`Regenerated embedding for updated task: ${id}`);
+          }
+        } catch (error) {
+          logger.error(`Failed to regenerate embedding for task ${id}:`, error);
+        }
+      })();
+    }
 
     res.json({
       message: 'Task updated successfully',

@@ -10,6 +10,8 @@ import {
   getUserStats,
   exportUsers,
   bulkImportUsers,
+  syncEmbeddings,
+  getEmbeddingSyncStatus,
 } from '../controllers/admin.controller';
 import {
   getGeneralSettings,
@@ -269,6 +271,24 @@ router.get('/logs/system', getSystemLogs);
  * @query   type (activities|audit|login-attempts), ...filters
  */
 router.get('/logs/export', exportLogs);
+
+// ============================================================================
+// AI / SEMANTIC SEARCH
+// ============================================================================
+
+/**
+ * @route   POST /api/admin/sync-embeddings
+ * @desc    Sync embeddings for all projects, tasks, and documents
+ * @access  Private (Admin only)
+ */
+router.post('/sync-embeddings', syncEmbeddings);
+
+/**
+ * @route   GET /api/admin/sync-embeddings/status
+ * @desc    Get embedding sync status
+ * @access  Private (Admin only)
+ */
+router.get('/sync-embeddings/status', getEmbeddingSyncStatus);
 
 export default router;
 

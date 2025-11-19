@@ -70,6 +70,9 @@ model Project {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
+  // AI / Semantic Search
+  embedding Unsupported("vector(1536)")? @map("embedding")
+
   // Relations
   lecturer      User             @relation("LecturerProjects", fields: [lecturerId], references: [id], onDelete: Restrict)
   students      ProjectStudent[]
@@ -128,6 +131,9 @@ model Task {
   submittedBy       String?    @map("submitted_by")
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  // AI / Semantic Search
+  embedding Unsupported("vector(1536)")? @map("embedding")
 
   // Relations
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -219,6 +225,9 @@ model Document {
   indexedAt    DateTime?   @map("indexed_at")
   chunkCount   Int?        @map("chunk_count")
   errorMessage String?     @map("error_message") @db.Text
+
+  // AI / Semantic Search
+  embedding Unsupported("vector(1536)")? @map("embedding")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

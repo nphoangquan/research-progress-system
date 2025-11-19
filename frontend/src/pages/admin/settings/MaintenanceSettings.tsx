@@ -137,8 +137,8 @@ export default function MaintenanceSettings() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Enable Maintenance Mode */}
-      <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        {/* Enable Maintenance Mode */}
+        <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
         <div>
           <label className="flex items-center cursor-pointer">
             <input

@@ -26,6 +26,9 @@ interface SearchResult {
   priority?: string;
   createdAt: string;
   updatedAt: string;
+  relevanceScore?: number;
+  keywordScore?: number;
+  semanticScore?: number;
 }
 
 interface SearchSuggestion {
@@ -47,6 +50,7 @@ export default function GlobalSearch() {
     priority: '',
     dateRange: ''
   });
+  const [useKeywordSearch, setUseKeywordSearch] = useState(false);
   
   // Debounce query để tránh spam API calls
   const [debouncedQuery] = useDebounce(query, 400);
@@ -56,7 +60,7 @@ export default function GlobalSearch() {
 
   // Search results query
   const { data: searchResults, isLoading: isSearching } = useQuery<SearchResult[]>({
-    queryKey: ['globalSearch', debouncedQuery, filters],
+    queryKey: ['globalSearch', debouncedQuery, filters, useKeywordSearch],
     queryFn: async () => {
       if (!debouncedQuery.trim()) return [];
       
@@ -67,6 +71,7 @@ export default function GlobalSearch() {
         if (filters.status) params.append('status', filters.status);
         if (filters.priority) params.append('priority', filters.priority);
         if (filters.dateRange) params.append('dateRange', filters.dateRange);
+        params.append('keyword', useKeywordSearch ? 'true' : 'false');
 
         const response = await api.get(`/search?${params.toString()}`);
         return response.data.results;
@@ -76,7 +81,7 @@ export default function GlobalSearch() {
       }
     },
     enabled: !!debouncedQuery.trim() && isOpen,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
   });
 
   // Search suggestions query
@@ -335,7 +340,7 @@ export default function GlobalSearch() {
 
             {/* Search Filters */}
             <div className="px-4 py-2 border-b border-gray-100">
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4 flex-wrap">
                 <div className="flex items-center space-x-2">
                   <Filter className="w-4 h-4 text-gray-400" />
                   <span className="text-sm text-gray-600">Bộ lọc:</span>
@@ -366,6 +371,15 @@ export default function GlobalSearch() {
                       </span>
                     </label>
                   ))}
+                  <label className="flex items-center space-x-1.5 ml-3 pl-3 border-l border-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={useKeywordSearch}
+                      onChange={(e) => setUseKeywordSearch(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-700">Từ khóa</span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -408,8 +422,10 @@ export default function GlobalSearch() {
                     </div>
                   ) : (
                     <>
-                      <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        Kết quả ({searchResults.length})
+                      <div className="px-4 py-2">
+                        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          Kết quả ({searchResults.length})
+                        </div>
                       </div>
                       {searchResults.map((result, index) => (
                         <button
@@ -421,7 +437,7 @@ export default function GlobalSearch() {
                         >
                           {getResultIcon(result.type)}
                           <div className="flex-1 text-left">
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 flex-wrap">
                               <span className="font-medium text-gray-900">{result.title}</span>
                               <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full capitalize">
                                 {result.type === 'project' ? 'Dự án' : result.type === 'task' ? 'Nhiệm vụ' : 'Tài liệu'}

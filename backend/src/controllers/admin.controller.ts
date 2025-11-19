@@ -6,6 +6,7 @@ import emailService from '../services/email.service';
 import logger from '../utils/logger';
 import { validatePassword } from '../utils/passwordValidator';
 import { deleteUserSessions } from '../services/session.service';
+import embeddingSyncService from '../services/embeddingSync.service';
 
 const prisma = new PrismaClient();
 
@@ -1320,6 +1321,74 @@ export const bulkImportUsers = async (req: Request, res: Response) => {
     logger.error('Bulk import users error:', error);
     res.status(500).json({
       error: error.message || 'Không thể nhập danh sách người dùng',
+    });
+  }
+};
+
+/**
+ * Sync embeddings for all entities (Admin only)
+ * @route POST /api/admin/sync-embeddings
+ */
+export const syncEmbeddings = async (req: Request, res: Response) => {
+  try {
+    const adminUserId = req.user!.userId;
+
+    // Check if sync is already running
+    const status = embeddingSyncService.getStatus();
+    if (status.isRunning) {
+      return res.status(409).json({
+        error: 'Embedding sync đã đang chạy. Vui lòng đợi hoàn tất.',
+      });
+    }
+
+    // Start sync in background
+    embeddingSyncService.syncAll()
+      .then((stats) => {
+        logger.info('Embedding sync completed:', stats);
+      })
+      .catch((error) => {
+        logger.error('Embedding sync failed:', error);
+      });
+
+    // Log admin action
+    await logAdminAction(
+      adminUserId,
+      'SYNC_EMBEDDINGS',
+      'System',
+      undefined,
+      { action: 'start_embedding_sync' },
+      req
+    );
+
+    res.json({
+      message: 'Embedding sync đã bắt đầu. Quá trình sẽ chạy trong nền.',
+      status: 'started',
+    });
+  } catch (error) {
+    logger.error('Sync embeddings error:', error);
+    res.status(500).json({
+      error: 'Không thể bắt đầu sync embeddings',
+    });
+  }
+};
+
+/**
+ * Get embedding sync status (Admin only)
+ * @route GET /api/admin/sync-embeddings/status
+ */
+export const getEmbeddingSyncStatus = async (req: Request, res: Response) => {
+  try {
+    const status = embeddingSyncService.getStatus();
+    
+    res.json({
+      message: 'Embedding sync status retrieved successfully',
+      status: status.isRunning ? 'running' : 'idle',
+      isRunning: status.isRunning,
+    });
+  } catch (error) {
+    logger.error('Get embedding sync status error:', error);
+    res.status(500).json({
+      error: 'Không thể lấy trạng thái sync embeddings',
     });
   }
 };
