@@ -55,3 +55,6 @@ htmlcov/
 # Documentation files (except README.md)
 docs/
 *.txt
+
+# Backup files
+backups/

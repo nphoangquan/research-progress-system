@@ -2,7 +2,8 @@ version: '3.9'
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: research_db
     environment:
       POSTGRES_USER: postgres
