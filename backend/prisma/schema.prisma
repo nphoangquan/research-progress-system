@@ -43,6 +43,7 @@ model User {
   systemSettingsUpdated   SystemSetting[]          @relation("SystemSettingUpdates")
   createdHelpArticles     HelpArticle[]            @relation("CreatedHelpArticles")
   updatedHelpArticles     HelpArticle[]            @relation("UpdatedHelpArticles")
+  taskGrades              TaskGrade[]              @relation("TaskGrades")
 
   @@map("users")
 }
@@ -143,10 +144,29 @@ model Task {
   attachments     TaskAttachment[]
   activities      Activity[]
   labels          TaskLabel[]
+  grade           TaskGrade?
 
   @@index([projectId])
   @@index([assigneeId])
   @@map("tasks")
+}
+
+model TaskGrade {
+  id        String   @id @default(uuid())
+  taskId    String   @map("task_id")
+  score     Decimal  @db.Decimal(4, 2)
+  feedback  String?  @db.Text
+  gradedBy  String   @map("graded_by")
+  gradedAt  DateTime @default(now()) @map("graded_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  grader User @relation("TaskGrades", fields: [gradedBy], references: [id], onDelete: Restrict)
+
+  @@unique([taskId])
+  @@index([taskId])
+  @@index([gradedBy])
+  @@map("task_grades")
 }
 
 enum TaskStatus {
@@ -438,6 +458,9 @@ enum ActivityType {
   TASK_COMPLETED
   TASK_SUBMITTED
   TASK_ASSIGNED
+  TASK_GRADED
+  TASK_GRADE_UPDATED
+  TASK_GRADE_DELETED
   DOCUMENT_UPLOADED
   DOCUMENT_UPDATED
   COMMENT_ADDED
@@ -455,6 +478,8 @@ enum NotificationType {
   COMMENT_ADDED
   DEADLINE_APPROACHING
   PROJECT_STATUS_CHANGED
+  TASK_GRADED
+  TASK_GRADE_UPDATED
 }
 
 // EMAIL VERIFICATION & PASSWORD RESET

@@ -24,6 +24,7 @@ import {
   Edit,
   Trash2,
   ArrowLeft,
+  Award,
 } from "lucide-react";
 
 interface Task {
@@ -46,6 +47,15 @@ interface Task {
   labels?: Label[];
   createdAt: string;
   updatedAt: string;
+  grade?: {
+    score: number;
+    gradedAt: string;
+    grader?: {
+      id: string;
+      fullName: string;
+      email: string;
+    } | null;
+  } | null;
 }
 
 export default function ProjectTaskList() {
@@ -69,6 +79,7 @@ export default function ProjectTaskList() {
     dueDate: "",
     search: "",
     labelIds: [] as string[],
+    gradeStatus: "",
   });
 
   // Pagination state
@@ -94,6 +105,9 @@ export default function ProjectTaskList() {
           params.append("labelIds", labelId)
         );
       }
+      if (filters.gradeStatus) {
+        params.append("gradeStatus", filters.gradeStatus);
+      }
 
       // Pagination parameters
       params.append("page", currentPage.toString());
@@ -117,6 +131,7 @@ export default function ProjectTaskList() {
     filters.dueDate,
     filters.search,
     filters.labelIds.length,
+    filters.gradeStatus,
   ]);
 
 
@@ -205,6 +220,14 @@ export default function ProjectTaskList() {
     return new Date(dueDate) < new Date();
   };
 
+  const canViewGrades = user?.role === "ADMIN" || user?.role === "LECTURER";
+
+  const formatGradeScore = (score?: number) => {
+    if (score === undefined || score === null) return "";
+    const formatted = Number(score).toFixed(2);
+    return formatted.replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center">
@@ -287,6 +310,7 @@ export default function ProjectTaskList() {
                     dueDate: "",
                     search: "",
                     labelIds: [],
+                    gradeStatus: "",
                   });
                   setCurrentPage(1);
                 }}
@@ -366,6 +390,22 @@ export default function ProjectTaskList() {
                 onSelectionChange={(labelIds) =>
                   setFilters((prev) => ({ ...prev, labelIds }))
                 }
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <SelectDropdown
+                label="Trạng thái chấm điểm"
+                options={[
+                  { id: "", fullName: "Tất cả" },
+                  { id: "graded", fullName: "Đã chấm điểm" },
+                  { id: "ungraded", fullName: "Chưa chấm điểm" },
+                ]}
+                value={filters.gradeStatus}
+                onChange={(gradeStatus) =>
+                  setFilters((prev) => ({ ...prev, gradeStatus }))
+                }
+                placeholder="Tất cả trạng thái chấm"
               />
             </div>
           </div>
@@ -465,6 +505,25 @@ export default function ProjectTaskList() {
                           <span>Tạo {formatDate(task.createdAt)}</span>
                         </div>
                       </div>
+
+                      {canViewGrades && (
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="flex items-center justify-between text-sm text-gray-600">
+                            <span className="flex items-center gap-1 font-medium text-gray-900">
+                              <Award className="w-4 h-4 text-primary-600" />
+                              {task.grade ? `${formatGradeScore(task.grade.score)}/10` : "Chưa chấm"}
+                            </span>
+                            {task.grade?.grader?.fullName && (
+                              <span
+                                className="truncate max-w-[150px]"
+                                title={`Chấm bởi ${task.grade.grader.fullName}`}
+                              >
+                                {task.grade.grader.fullName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1 flex-shrink-0">

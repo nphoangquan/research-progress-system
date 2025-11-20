@@ -233,7 +233,18 @@ export const createTask = async (req: Request, res: Response) => {
  */
 export const getTasks = async (req: Request, res: Response) => {
   try {
-    const { projectId, status, priority, assignee, dueDate, search, labelIds, page = '1', limit = '20' } = req.query;
+    const {
+      projectId,
+      status,
+      priority,
+      assignee,
+      dueDate,
+      search,
+      labelIds,
+      gradeStatus,
+      page = '1',
+      limit = '20'
+    } = req.query;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
@@ -267,7 +278,7 @@ export const getTasks = async (req: Request, res: Response) => {
 
       // Due date filter
       if (dueDate) {
-        // Check if it's a custom date range (format: "custom:startDate|endDate")
+        
         if (typeof dueDate === 'string' && dueDate.startsWith('custom:')) {
           const dateRangeStr = dueDate.replace('custom:', '');
           const [startDateStr, endDateStr] = dateRangeStr.split('|');
@@ -332,6 +343,12 @@ export const getTasks = async (req: Request, res: Response) => {
         ];
       }
 
+      if (gradeStatus === 'graded') {
+        filters.grade = { isNot: null };
+      } else if (gradeStatus === 'ungraded') {
+        filters.grade = { is: null };
+      }
+
       return filters;
     };
 
@@ -390,6 +407,17 @@ export const getTasks = async (req: Request, res: Response) => {
                 id: true,
                 fullName: true,
                 email: true
+              }
+            },
+            grade: {
+              include: {
+                grader: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true
+                  }
+                }
               }
             },
             labels: {
@@ -512,6 +540,17 @@ export const getTasks = async (req: Request, res: Response) => {
               email: true
             }
           },
+          grade: {
+            include: {
+              grader: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true
+                }
+              }
+            }
+          },
           labels: {
             include: {
               label: {
@@ -608,6 +647,17 @@ export const getTaskById = async (req: Request, res: Response) => {
             id: true,
             fullName: true,
             email: true
+          }
+        },
+        grade: {
+          include: {
+            grader: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true
+              }
+            }
           }
         },
         labels: {

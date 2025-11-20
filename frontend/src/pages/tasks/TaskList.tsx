@@ -24,7 +24,8 @@ import {
   AlertCircle,
   Edit,
   Trash2,
-  ArrowLeft
+  ArrowLeft,
+  Award
 } from 'lucide-react';
 
 interface Task {
@@ -47,6 +48,15 @@ interface Task {
   labels?: Label[];
   createdAt: string;
   updatedAt: string;
+  grade?: {
+    score: number;
+    gradedAt: string;
+    grader?: {
+      id: string;
+      fullName: string;
+      email: string;
+    } | null;
+  } | null;
 }
 
 export default function TaskList() {
@@ -69,7 +79,8 @@ export default function TaskList() {
     assignees: [] as string[], // Changed to array for multi-select
     dueDate: '',
     search: '',
-    labelIds: [] as string[]
+    labelIds: [] as string[],
+    gradeStatus: ''
   });
 
   // State for advanced filters
@@ -98,6 +109,9 @@ export default function TaskList() {
       if (filters.labelIds.length > 0) {
         filters.labelIds.forEach(labelId => params.append('labelIds', labelId));
       }
+      if (filters.gradeStatus) {
+        params.append('gradeStatus', filters.gradeStatus);
+      }
       
       // Advanced filters
       Object.keys(advancedFilters).forEach(key => {
@@ -121,7 +135,15 @@ export default function TaskList() {
   // Reset to page 1 when filters change (exclude search to keep input focus)
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.status, filters.priority, filters.assignees.length, filters.dueDate, filters.labelIds.length, advancedFilters]);
+  }, [
+    filters.status,
+    filters.priority,
+    filters.assignees.length,
+    filters.dueDate,
+    filters.labelIds.length,
+    filters.gradeStatus,
+    advancedFilters
+  ]);
 
 
   // Delete task mutation
@@ -217,6 +239,14 @@ export default function TaskList() {
     return new Date(dueDate) < new Date();
   };
 
+  const canViewGrades = user?.role === 'ADMIN' || user?.role === 'LECTURER';
+
+  const formatGradeScore = (score?: number) => {
+    if (score === undefined || score === null) return '';
+    const formatted = Number(score).toFixed(2);
+    return formatted.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center">
@@ -299,7 +329,7 @@ export default function TaskList() {
                 </div>
                 <button
                   onClick={() => {
-                    setFilters({ status: '', priority: '', assignees: [], dueDate: '', search: '', labelIds: [] });
+                    setFilters({ status: '', priority: '', assignees: [], dueDate: '', search: '', labelIds: [], gradeStatus: '' });
                     setCurrentPage(1);
                   }}
                   className="btn-ghost whitespace-nowrap"
@@ -370,6 +400,20 @@ export default function TaskList() {
                   projectId={projectId}
                   selectedLabelIds={filters.labelIds}
                   onSelectionChange={(labelIds) => setFilters(prev => ({ ...prev, labelIds }))}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <SelectDropdown
+                  label="Trạng thái chấm điểm"
+                  options={[
+                    { id: '', fullName: 'Tất cả' },
+                    { id: 'graded', fullName: 'Đã chấm điểm' },
+                    { id: 'ungraded', fullName: 'Chưa chấm điểm' }
+                  ]}
+                  value={filters.gradeStatus}
+                  onChange={(gradeStatus) => setFilters(prev => ({ ...prev, gradeStatus }))}
+                  placeholder="Tất cả trạng thái chấm"
                 />
               </div>
             </div>
@@ -458,6 +502,25 @@ export default function TaskList() {
                             </div>
                           )}
                         </div>
+
+                        {canViewGrades && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <div className="flex items-center justify-between text-sm text-gray-600">
+                              <span className="flex items-center gap-1 font-medium text-gray-900">
+                                <Award className="w-4 h-4 text-primary-600" />
+                                {task.grade ? `${formatGradeScore(task.grade.score)}/10` : 'Chưa chấm'}
+                              </span>
+                              {task.grade?.grader?.fullName && (
+                                <span
+                                  className="truncate max-w-[150px]"
+                                  title={`Chấm bởi ${task.grade.grader.fullName}`}
+                                >
+                                  {task.grade.grader.fullName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="flex items-center gap-1 flex-shrink-0">

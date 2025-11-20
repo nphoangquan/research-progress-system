@@ -105,6 +105,14 @@ export const taskSchemas = {
     taskId: z.string().uuid('ID nhiệm vụ không hợp lệ'),
     content: z.string().min(1, 'Nội dung nộp bài là bắt buộc').max(10000, 'Nội dung nộp bài không được vượt quá 10000 ký tự'),
   }),
+
+  grade: z.object({
+    score: z.coerce.number()
+      .refine((value) => !Number.isNaN(value), { message: 'Điểm phải là số' })
+      .min(0, 'Điểm phải từ 0 đến 10')
+      .max(10, 'Điểm phải từ 0 đến 10'),
+    feedback: z.string().max(2000, 'Nhận xét không được vượt quá 2000 ký tự').optional().or(z.literal(''))
+  }),
 };
 
 /**

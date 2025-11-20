@@ -8,6 +8,11 @@ import {
   submitTask
 } from '../controllers/task.controller';
 import {
+  createTaskGrade,
+  getTaskGrade,
+  updateTaskGrade
+} from '../controllers/taskGrade.controller';
+import {
   getTaskLabels,
   addLabelToTask,
   removeLabelFromTask
@@ -44,6 +49,27 @@ router.get('/', getTasks);
  * @body    { taskId, content, files? }
  */
 router.post('/submit', uploadMultiple.array('files', 10), handleUploadError, validate(taskSchemas.submit), submitTask);
+
+/**
+ * @route   GET /api/tasks/:taskId/grade
+ * @desc    Get grade info for a task
+ * @access  Private (Project member)
+ */
+router.get('/:taskId/grade', getTaskGrade);
+
+/**
+ * @route   POST /api/tasks/:taskId/grade
+ * @desc    Create grade for a task
+ * @access  Private (Lecturer/Admin)
+ */
+router.post('/:taskId/grade', validate(taskSchemas.grade), createTaskGrade);
+
+/**
+ * @route   PUT /api/tasks/:taskId/grade
+ * @desc    Update grade for a task
+ * @access  Private (Lecturer/Admin)
+ */
+router.put('/:taskId/grade', validate(taskSchemas.grade), updateTaskGrade);
 
 /**
  * @route   GET /api/tasks/:taskId/labels

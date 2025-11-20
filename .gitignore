@@ -58,3 +58,8 @@ docs/
 
 # Backup files
 backups/
+
+# Seed files
+
+backend/prisma/seed.ts
+

@@ -8,6 +8,8 @@ import TaskAttachments from "../../components/features/TaskAttachments";
 import TaskInfoSidebar from "../../components/features/TaskInfoSidebar";
 import TaskSubmissionModal from "../../components/features/TaskSubmissionModal";
 import TaskAttachmentUploadModal from "../../components/features/TaskAttachmentUploadModal";
+import TaskGradeSummary from "../../components/features/TaskGradeSummary";
+import TaskGradeModal from "../../components/features/TaskGradeModal";
 import {
   getStatusColor,
   getPriorityColor,
@@ -17,6 +19,7 @@ import {
 } from "../../utils/taskUtils";
 import api from "../../lib/axios";
 import type { Label } from "../../types/label";
+import type { TaskGrade } from "../../types/task";
 import toast from "react-hot-toast";
 import { getErrorMessage } from '../../utils/errorUtils';
 import { 
@@ -52,10 +55,12 @@ interface TaskData {
   project: {
     id: string;
     title: string;
+    lecturerId?: string;
   };
   labels?: Label[];
   createdAt: string;
   updatedAt: string;
+  grade?: TaskGrade | null;
 }
 
 interface Comment {
@@ -104,6 +109,7 @@ export default function ProjectTaskDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+  const [showGradeModal, setShowGradeModal] = useState(false);
   const [editData, setEditData] = useState({
     title: "",
     description: "",
@@ -114,7 +120,7 @@ export default function ProjectTaskDetail() {
   });
 
   // Fetch task data
-  const { data: task, isLoading } = useQuery<TaskData>({
+  const { data: task, isLoading, refetch } = useQuery<TaskData>({
     queryKey: ["task", id],
     queryFn: async () => {
       const response = await api.get(`/tasks/${id}`);
@@ -317,6 +323,10 @@ export default function ProjectTaskDetail() {
     );
   }
 
+  const canManageGrade =
+    user?.role === "ADMIN" ||
+    (user?.role === "LECTURER" && task.project?.lecturerId === user.id);
+
   return (
     <div className="w-full">
         {/* Header */}
@@ -397,6 +407,13 @@ export default function ProjectTaskDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            <TaskGradeSummary
+              grade={task.grade}
+              canManage={Boolean(canManageGrade)}
+              onManage={() => setShowGradeModal(true)}
+              formatDateTime={formatDateTime}
+            />
+
             {/* Task Details */}
             <div className="card">
               <div className="card-header">
@@ -561,6 +578,17 @@ export default function ProjectTaskDetail() {
         taskId={id!}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["task-attachments", id] });
+        }}
+      />
+
+      <TaskGradeModal
+        open={showGradeModal}
+        onClose={() => setShowGradeModal(false)}
+        taskId={id!}
+        grade={task.grade}
+        onSuccess={() => {
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ["task", id] });
         }}
       />
     </div>

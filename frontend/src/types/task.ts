@@ -1,6 +1,15 @@
-import React from 'react';
 import { User } from './auth';
 import { Label } from './label';
+
+export interface TaskGrade {
+  id: string;
+  score: number | string;
+  feedback: string | null;
+  gradedAt: string;
+  gradedBy: string;
+  updatedAt: string;
+  grader?: Pick<User, 'id' | 'fullName' | 'email'>;
+}
 
 export interface Task {
   id: string;
@@ -18,8 +27,10 @@ export interface Task {
   project: {
     id: string;
     title: string;
+    lecturerId?: string;
   };
   labels?: Label[];
+  grade?: TaskGrade | null;
 }
 
 export interface CreateTaskRequest {

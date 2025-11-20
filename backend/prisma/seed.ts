@@ -33,12 +33,12 @@ type SeededProjects = {
 
 async function cleanupDatabase(shouldReset: boolean) {
   if (!shouldReset) {
-    console.log('ℹ️  Skipping data cleanup (set RESET_DATA=true to clean before seeding)');
-    console.log('ℹ️  Existing data will be preserved. Duplicate entries may be skipped.');
+    console.log('Skipping data cleanup (set RESET_DATA=true to clean before seeding)');
+    console.log('Existing data will be preserved. Duplicate entries may be skipped.');
     return;
   }
 
-  console.log('🧹 Cleaning existing data (RESET_DATA=true)...');
+  console.log('Cleaning existing data (RESET_DATA=true)...');
   await prisma.taskLabel.deleteMany();
   await prisma.label.deleteMany();
   await prisma.notification.deleteMany();
@@ -55,7 +55,7 @@ async function cleanupDatabase(shouldReset: boolean) {
   await prisma.emailVerificationToken.deleteMany();
   await prisma.passwordResetToken.deleteMany();
   await prisma.user.deleteMany();
-  console.log('✅ Data cleaned');
+  console.log('Data cleaned');
 }
 
 async function ensureUser(info: {
@@ -95,7 +95,7 @@ async function ensureUser(info: {
 }
 
 async function seedUsers(): Promise<SeededUsers> {
-  console.log('👥 Seeding users...');
+  console.log('Seeding users...');
 
   const admin = await ensureUser({
     email: 'admin@gmail.com',
@@ -156,7 +156,7 @@ async function seedUsers(): Promise<SeededUsers> {
     })
   ]);
 
-  console.log('✅ Users ready');
+  console.log('Users ready');
 
   return {
     admin,
@@ -189,7 +189,7 @@ async function ensureProject(data: Prisma.ProjectCreateInput) {
 }
 
 async function seedProjects(users: SeededUsers): Promise<SeededProjects> {
-  console.log('🏗️  Seeding projects...');
+  console.log('Seeding projects...');
 
   const [lecturer1, lecturer2] = users.lecturers;
   const [student1, student2, student3, student4, student5] = users.students;
@@ -262,7 +262,7 @@ async function seedProjects(users: SeededUsers): Promise<SeededProjects> {
     });
   }
 
-  console.log('✅ Projects ready');
+  console.log('Projects ready');
 
   return { systemProject, project1, project2, project3 };
 }
@@ -319,7 +319,7 @@ async function ensureTask(input: SeedTaskInput) {
 }
 
 async function seedTasks(projects: SeededProjects, users: SeededUsers) {
-  console.log('🗒️  Seeding tasks...');
+  console.log('Seeding tasks...');
   const [student1, student2, student3, , student5] = users.students;
 
   await Promise.all([
@@ -442,11 +442,11 @@ async function seedTasks(projects: SeededProjects, users: SeededUsers) {
     })
   ]);
 
-  console.log('✅ Tasks ready');
+  console.log('Tasks ready');
 }
 
 async function seedLabels(projects: SeededProjects, users: SeededUsers) {
-  console.log('🏷️  Seeding labels...');
+  console.log('Seeding labels...');
   const [lecturer1, lecturer2] = users.lecturers;
 
   const globalLabels = [
@@ -499,7 +499,7 @@ async function seedLabels(projects: SeededProjects, users: SeededUsers) {
     });
   }
 
-  console.log('✅ Labels ready');
+  console.log('Labels ready');
 }
 
 async function ensureTaskLabels(projectId: string, taskTitle: string, labelNames: string[]) {
@@ -535,7 +535,7 @@ async function ensureTaskLabels(projectId: string, taskTitle: string, labelNames
 }
 
 async function seedTaskLabels(projects: SeededProjects) {
-  console.log('🔖 Assigning labels to tasks...');
+  console.log('Assigning labels to tasks...');
 
   await Promise.all([
     ensureTaskLabels(projects.project1.id, 'Nghiên cứu tài liệu tham khảo', ['Research', 'Important', 'AI/ML']),
@@ -553,7 +553,7 @@ async function seedTaskLabels(projects: SeededProjects) {
     ensureTaskLabels(projects.project3.id, 'Đánh giá và tối ưu', ['Model Training', 'Documentation'])
   ]);
 
-  console.log('✅ Task labels ready');
+  console.log('Task labels ready');
 }
 
 type SeedDocumentInput = {
@@ -616,7 +616,7 @@ async function ensureDocument(input: SeedDocumentInput) {
 }
 
 async function seedDocuments(projects: SeededProjects, users: SeededUsers) {
-  console.log('📄 Seeding documents...');
+  console.log('Seeding documents...');
   const [student1, student2, , , student5] = users.students;
   const [lecturer1] = users.lecturers;
 
@@ -702,7 +702,7 @@ async function seedDocuments(projects: SeededProjects, users: SeededUsers) {
     })
   ]);
 
-  console.log('✅ Documents ready');
+  console.log('Documents ready');
 }
 
 async function ensureNotification(data: Prisma.NotificationCreateManyInput) {
@@ -713,7 +713,7 @@ async function ensureNotification(data: Prisma.NotificationCreateManyInput) {
 }
 
 async function seedNotifications(projects: SeededProjects, users: SeededUsers) {
-  console.log('🔔 Seeding notifications...');
+  console.log('Seeding notifications...');
   const [student1, student2, student3, , student5] = users.students;
   const [lecturer1, lecturer2] = users.lecturers;
 
@@ -778,11 +778,11 @@ async function seedNotifications(projects: SeededProjects, users: SeededUsers) {
 
   await prisma.notification.createMany({ data: notificationData, skipDuplicates: true });
 
-  console.log('✅ Notifications ready');
+  console.log('Notifications ready');
 }
 
 async function main() {
-  console.log('🌱 Starting seed...');
+  console.log('Starting seed...');
   const RESET_DATA = process.env.RESET_DATA === 'true' || process.env.RESET_DATA === '1';
 
   await cleanupDatabase(RESET_DATA);
@@ -795,8 +795,8 @@ async function main() {
   await seedDocuments(projects, users);
   await seedNotifications(projects, users);
 
-  console.log('\n🎉 Seed completed successfully!');
-  console.log('\n📋 Demo accounts:');
+  console.log('\nSeed completed successfully!');
+  console.log('\nDemo accounts:');
   console.log('Admin:     admin@gmail.com / admin123');
   console.log('Lecturer:  lecturer1@gmail.com / lecturer123');
   console.log('Lecturer:  lecturer2@gmail.com / lecturer123');
@@ -809,7 +809,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error('❌ Seed error:', e);
+    console.error('Seed error:', e);
     process.exit(1);
   })
   .finally(async () => {
