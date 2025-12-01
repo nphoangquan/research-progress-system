@@ -35,7 +35,6 @@ const logAdminAction = async (
     });
   } catch (error) {
     logger.error('Failed to create audit log:', { error, userId, action });
-    // Don't throw - audit logging failure shouldn't break the main operation
   }
 };
 

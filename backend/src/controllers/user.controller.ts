@@ -314,7 +314,6 @@ export const changePassword = async (req: Request, res: Response) => {
       logger.info(`Invalidated all sessions for user ${id} after password change`);
     } catch (sessionError) {
       logger.error('Error invalidating sessions after password change:', sessionError);
-      // Continue even if session deletion fails
     }
 
     res.json({
@@ -492,7 +491,6 @@ export const uploadAvatar = async (req: Request, res: Response) => {
           await deleteFile(oldPublicId);
         } catch (deleteError) {
           console.error('Failed to delete old avatar:', deleteError);
-          // Don't fail the request if old avatar deletion fails
         }
       }
 
@@ -513,7 +511,7 @@ export const uploadAvatar = async (req: Request, res: Response) => {
       // Clean up local file
       cleanupLocalFile(req.file.path);
       
-      throw dbError; // Re-throw to be caught by outer catch
+      throw dbError;
     }
 
   } catch (error) {

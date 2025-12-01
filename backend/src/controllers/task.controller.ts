@@ -40,7 +40,6 @@ export const createTask = async (req: Request, res: Response) => {
     // Assignee ID is optional - if not provided, assign to lecturer
     let finalAssigneeId = assigneeId;
     if (!assigneeId || assigneeId.trim() === '') {
-      // Get project lecturer as default assignee
       const projectForLecturer = await prisma.project.findUnique({
         where: { id: projectId },
         select: { lecturerId: true }
@@ -257,7 +256,6 @@ export const getTasks = async (req: Request, res: Response) => {
     const buildFilters = (baseWhere: any) => {
       let filters = { ...baseWhere };
 
-      // Status filter
       if (status) {
         filters.status = status;
       }

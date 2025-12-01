@@ -24,7 +24,7 @@ export const uploadMultipleAttachments = async (req: Request, res: Response) => 
     // No need to validate again here
 
     const { taskId } = req.params;
-    const { descriptions } = req.body; // Array of descriptions
+    const { descriptions } = req.body;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
 
@@ -269,7 +269,7 @@ export const uploadAttachment = async (req: Request, res: Response) => {
       // Clean up local file
       cleanupLocalFile(req.file.path);
       
-      throw dbError; // Re-throw to be caught by outer catch
+      throw dbError;
     }
 
   } catch (error) {
