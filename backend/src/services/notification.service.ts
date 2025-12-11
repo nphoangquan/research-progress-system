@@ -49,7 +49,6 @@ export async function createNotification(params: CreateNotificationParams): Prom
     wsService.emitNotificationCount(params.userId, unreadCount);
   } catch (error) {
     logger.error('Error creating notification:', error);
-    // Don't throw - notifications are not critical
   }
 }
 
