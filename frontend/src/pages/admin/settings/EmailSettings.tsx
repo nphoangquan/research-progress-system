@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../lib/axios';
 import toast from 'react-hot-toast';
@@ -24,17 +24,17 @@ export default function EmailSettings() {
   });
   const [testEmail, setTestEmail] = useState('');
 
-  // Fetch settings
-  const { isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery<EmailSettingsData>({
     queryKey: ['admin-settings-email'],
     queryFn: async () => {
       const response = await api.get('/admin/settings/email');
       return response.data.settings as EmailSettingsData;
     },
-    onSuccess: (data) => {
-      setFormData(data);
-    },
   });
+
+  useEffect(() => {
+    if (data) setFormData(data);
+  }, [data]);
 
   // Update mutation
   const updateMutation = useMutation({

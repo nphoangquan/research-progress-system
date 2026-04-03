@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../lib/axios';
 import toast from 'react-hot-toast';
@@ -43,17 +43,17 @@ export default function StorageSettings() {
     allowedAvatarTypes: commonAvatarTypes,
   });
 
-  // Fetch settings
-  const { isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery<StorageSettingsData>({
     queryKey: ['admin-settings-storage'],
     queryFn: async () => {
       const response = await api.get('/admin/settings/storage');
       return response.data.settings as StorageSettingsData;
     },
-    onSuccess: (data) => {
-      setFormData(data);
-    },
   });
+
+  useEffect(() => {
+    if (data) setFormData(data);
+  }, [data]);
 
   // Update mutation
   const updateMutation = useMutation({

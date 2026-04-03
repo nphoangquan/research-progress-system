@@ -337,7 +337,7 @@ export default function DateRangePicker({
                           ? 'opacity-50 cursor-not-allowed'
                           : 'hover:bg-gray-100 text-gray-900'
                       }`}
-                      disabled={!selectingStart && startDate && day < startDate}
+                      disabled={Boolean(!selectingStart && startDate && day < startDate)}
                       title={
                         isStartDate(day) ? 'Ngày bắt đầu' :
                         isEndDate(day) ? 'Ngày kết thúc' :

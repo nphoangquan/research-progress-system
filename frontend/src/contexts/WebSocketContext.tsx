@@ -38,8 +38,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     console.log('Initializing WebSocket connection...');
     isInitializing.current = true;
-    
-    const newSocket = io(import.meta.env.VITE_WS_URL || 'http://localhost:3000', {
+
+    const rawWs = import.meta.env.VITE_WS_URL as string | undefined;
+    const wsBase =
+      rawWs != null && String(rawWs).trim() !== ''
+        ? String(rawWs).trim()
+        : window.location.origin;
+
+    const newSocket = io(wsBase, {
       auth: {
         token: token
       },

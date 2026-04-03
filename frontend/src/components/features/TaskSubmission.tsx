@@ -268,7 +268,7 @@ export default function TaskSubmission({ taskId, onSubmissionSuccess, currentSub
             <h4 className="text-sm font-medium text-blue-900">Bài nộp trước đó</h4>
           </div>
           <div className="text-sm text-blue-800 mb-2">
-            Đã nộp vào: {currentSubmission.submittedAt ? new Date(currentSubmission.submittedAt).toLocaleString('vi-VN') : 'Không xác định'}
+            Đã nộp vào: {currentSubmission?.submittedAt ? new Date(currentSubmission.submittedAt).toLocaleString('vi-VN') : 'Không xác định'}
           </div>
           <div className="bg-white border border-blue-200 rounded p-3 max-h-32 overflow-hidden">
             <div 

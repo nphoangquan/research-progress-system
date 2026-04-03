@@ -3,8 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import { getStorageSettings } from '../utils/systemSettings';
 
-// Ensure uploads directory exists
-const uploadsDir = './uploads';
+// Ensure uploads directory exists (UPLOAD_DIR: relative to process.cwd(), mountable in Docker)
+const uploadsDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
