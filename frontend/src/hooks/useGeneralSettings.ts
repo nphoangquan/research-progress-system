@@ -20,7 +20,7 @@ export const useGeneralSettings = () => {
       return response.data.settings as GeneralSettings;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - settings don't change often
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (React Query v5)
   });
 };
 

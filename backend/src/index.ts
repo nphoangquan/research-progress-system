@@ -59,7 +59,8 @@ logger.info(`   - Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME ? 'OK - Đã c
 
 const app = express();
 const server = createServer(app);
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST ?? '0.0.0.0';
 
 // Initialize WebSocket service
 const wsService = new WebSocketService(server);
@@ -135,10 +136,10 @@ app.use((req, res) => {
 // Global error handler (must be last, after all routes)
 app.use(errorHandler);
 
-// Start server
-server.listen(PORT, () => {
-  logger.info(`Server running on http://localhost:${PORT}`);
-  logger.info(`Health check: http://localhost:${PORT}/health`);
+// Bind HOST (mặc định 0.0.0.0) để container/host khác gọi được API
+server.listen(PORT, HOST, () => {
+  logger.info(`Server running on http://${HOST}:${PORT}`);
+  logger.info(`Health check: http://${HOST}:${PORT}/health`);
   logger.info(`WebSocket server initialized`);
   
   // Setup periodic cleanup tasks (sessions, login attempts)

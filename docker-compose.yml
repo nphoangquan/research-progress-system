@@ -1,25 +1,68 @@
-version: '3.9'
+# Local / dev — docker compose up --build -d
+# Biến: copy .env.docker.example -> .env.docker (db + backend). Postgres :5432 publish ra host.
+# pgAdmin / DBeaver (cài trên Windows): Host localhost, Port 5432 — user/pass/db = POSTGRES_* trong .env.docker
+# Adminer (trong Docker): http://localhost:8080 — Server: db (cùng network container)
+#
+# Production dùng riêng docker-compose.prod.yml (không merge file này — xem comment đầu file prod).
 
 services:
-  postgres:
-    # image: postgres:16-alpine
+  db:
     image: pgvector/pgvector:pg16
-    container_name: research_db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 181004
-      POSTGRES_DB: mydb
+    env_file:
+      - .env.docker
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\""]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
+
+  # Web UI quản lý Postgres trong cùng network Docker (chỉ dev — không bật ra internet công khai).
+  adminer:
+    image: adminer:4
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: nphoangquan/research-progress-backend:latest
+    env_file:
+      - .env.docker
+    ports:
+      - "3000:3000"
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    image: nphoangquan/research-progress-web:latest
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   postgres_data:
-    driver: local
+  backend_uploads:
+  backend_logs:

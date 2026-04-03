@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dist/src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sync-embeddings": "ts-node src/scripts/sync-embeddings.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -15,6 +16,9 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "overrides": {
+    "ws": "^8.18.0"
+  },
   "dependencies": {
     "@prisma/client": "^6.17.0",
     "@types/nodemailer": "^7.0.3",
@@ -32,10 +36,10 @@
     "nodemailer": "^7.0.10",
     "openai": "^6.9.1",
     "prisma": "^6.17.0",
-    "recharts": "^3.2.1",
     "socket.io": "^4.8.1",
     "validator": "^13.15.15",
     "winston": "^3.18.3",
+    "ws": "^8.18.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {

@@ -1,15 +1,14 @@
 import OpenAI from 'openai';
 import logger from '../utils/logger';
 import { createError } from '../utils/errors';
+import { EMBEDDING_DIMENSIONS } from '../utils/vectorSql';
 
 /**
- * EmbeddingService
- * Handles generation of text embeddings using OpenAI API
- * Used for semantic search functionality across projects, tasks, and documents
+ * Gọi OpenAI để sinh embedding 1536 chiều (khớp `vectorSql.EMBEDDING_DIMENSIONS` và cột pgvector).
  */
 class EmbeddingService {
   private openai: OpenAI | null = null;
-  private readonly MODEL = 'text-embedding-3-small';
+  private readonly MODEL = 'text-embedding-3-small' as const;
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY_MS = 1000;
   private readonly BATCH_SIZE = 100;
@@ -70,9 +69,15 @@ class EmbeddingService {
         const response = await this.openai!.embeddings.create({
           model: this.MODEL,
           input: cleanText,
+          dimensions: EMBEDDING_DIMENSIONS,
         });
 
         const embedding = response.data[0].embedding;
+        if (!embedding || embedding.length !== EMBEDDING_DIMENSIONS) {
+          throw new Error(
+            `OpenAI embedding length ${embedding?.length ?? 0} !== ${EMBEDDING_DIMENSIONS}`
+          );
+        }
         logger.debug(`Generated embedding for text (length: ${cleanText.length})`);
         return embedding;
       } catch (error: any) {
@@ -148,9 +153,17 @@ class EmbeddingService {
         const response = await this.openai!.embeddings.create({
           model: this.MODEL,
           input: validTexts,
+          dimensions: EMBEDDING_DIMENSIONS,
         });
 
         const embeddings = response.data.map((item) => item.embedding);
+        for (const emb of embeddings) {
+          if (!emb || emb.length !== EMBEDDING_DIMENSIONS) {
+            throw new Error(
+              `OpenAI batch embedding invalid length (expected ${EMBEDDING_DIMENSIONS})`
+            );
+          }
+        }
         logger.debug(`Generated batch embeddings: ${embeddings.length} items (starting at index ${startIndex})`);
 
         const results: (number[] | null)[] = [];
