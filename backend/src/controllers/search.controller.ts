@@ -1,7 +1,17 @@
+/**
+ * API tìm kiếm toàn cục: semantic (pgvector L2 khi không bật keyword), hybrid (cosine + keyword), hoặc chỉ keyword.
+ * @see docs/guides/semantic-search.md
+ */
 import { Request, Response } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client';
 import embeddingService from '../services/embedding.service';
+import {
+  rankProjectIdsByEmbedding,
+  rankTaskIdsByEmbedding,
+  rankDocumentIdsByEmbedding,
+} from '../services/searchVector.service';
 import logger from '../utils/logger';
+import { l2DistanceToSemanticScore } from '../utils/vectorSql';
 
 const prisma = new PrismaClient();
 
@@ -68,7 +78,7 @@ function calculateKeywordScore(text: string, query: string): number {
 }
 
 /**
- * Global search with hybrid (semantic + keyword) ranking
+ * GET /api/search — tìm project, task, document theo query; semantic nếu có OpenAI và không ép keyword.
  */
 export const globalSearch = async (req: Request, res: Response) => {
   try {
@@ -194,6 +204,59 @@ async function searchProjects(
   dateFilter?: any,
   keywordEnabled: boolean = false
 ): Promise<SearchResult[]> {
+  if (queryEmbedding && !keywordEnabled) {
+    try {
+      const ranked = await rankProjectIdsByEmbedding(prisma, queryEmbedding, userId, userRole, {
+        status,
+        dateFilter,
+      });
+      if (ranked.length === 0) {
+        return [];
+      }
+      const distMap = new Map(ranked.map((r) => [r.id, r.distance]));
+      const ids = ranked.map((r) => r.id);
+      const order = new Map(ids.map((id, i) => [id, i]));
+      const projects = await prisma.project.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          lecturer: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      });
+      projects.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+      return projects
+        .map((project) => {
+          const distance = distMap.get(project.id) ?? 0;
+          const semanticScore = l2DistanceToSemanticScore(distance);
+          return {
+            id: project.id,
+            type: 'project' as const,
+            title: project.title,
+            description: project.description,
+            status: project.status,
+            createdAt: project.createdAt,
+            updatedAt: project.updatedAt,
+            lecturer: project.lecturer.fullName,
+            relevanceScore: semanticScore,
+            keywordScore: 0,
+            semanticScore,
+          };
+        })
+        .filter((r) => r.relevanceScore > 0.1);
+    } catch (error) {
+      logger.error('pgvector project search failed; falling back to Prisma fetch:', error);
+    }
+  }
+
   let baseWhere: any = {};
   
   if (userRole === 'STUDENT') {
@@ -328,6 +391,69 @@ async function searchTasks(
   dateFilter?: any,
   keywordEnabled: boolean = false
 ): Promise<SearchResult[]> {
+  if (queryEmbedding && !keywordEnabled) {
+    try {
+      const ranked = await rankTaskIdsByEmbedding(prisma, queryEmbedding, userId, userRole, {
+        status,
+        priority,
+        dateFilter,
+      });
+      if (ranked.length === 0) {
+        return [];
+      }
+      const distMap = new Map(ranked.map((r) => [r.id, r.distance]));
+      const ids = ranked.map((r) => r.id);
+      const order = new Map(ids.map((id, i) => [id, i]));
+      const tasks = await prisma.task.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          priority: true,
+          createdAt: true,
+          updatedAt: true,
+          project: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+          assignee: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      });
+      tasks.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+      return tasks
+        .map((task) => {
+          const distance = distMap.get(task.id) ?? 0;
+          const semanticScore = l2DistanceToSemanticScore(distance);
+          return {
+            id: task.id,
+            type: 'task' as const,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+            projectTitle: task.project.title,
+            assignee: task.assignee?.fullName,
+            relevanceScore: semanticScore,
+            keywordScore: 0,
+            semanticScore,
+          };
+        })
+        .filter((r) => r.relevanceScore > 0.1);
+    } catch (error) {
+      logger.error('pgvector task search failed; falling back to Prisma fetch:', error);
+    }
+  }
+
   let where: any = {};
 
   if (userRole === 'STUDENT') {
@@ -466,6 +592,66 @@ async function searchDocuments(
   dateFilter?: any,
   keywordEnabled: boolean = false
 ): Promise<SearchResult[]> {
+  if (queryEmbedding && !keywordEnabled) {
+    try {
+      const ranked = await rankDocumentIdsByEmbedding(prisma, queryEmbedding, userId, userRole, {
+        status,
+        dateFilter,
+      });
+      if (ranked.length === 0) {
+        return [];
+      }
+      const distMap = new Map(ranked.map((r) => [r.id, r.distance]));
+      const ids = ranked.map((r) => r.id);
+      const order = new Map(ids.map((id, i) => [id, i]));
+      const documents = await prisma.document.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          fileName: true,
+          description: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          project: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+          uploader: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      });
+      documents.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+      return documents
+        .map((document) => {
+          const distance = distMap.get(document.id) ?? 0;
+          const semanticScore = l2DistanceToSemanticScore(distance);
+          return {
+            id: document.id,
+            type: 'document' as const,
+            title: document.fileName,
+            description: document.description,
+            status: document.status,
+            createdAt: document.createdAt,
+            updatedAt: document.updatedAt,
+            projectTitle: document.project.title,
+            uploader: document.uploader?.fullName,
+            relevanceScore: semanticScore,
+            keywordScore: 0,
+            semanticScore,
+          };
+        })
+        .filter((r) => r.relevanceScore > 0.1);
+    } catch (error) {
+      logger.error('pgvector document search failed; falling back to Prisma fetch:', error);
+    }
+  }
+
   let where: any = {};
 
   if (userRole === 'STUDENT') {
@@ -616,7 +802,7 @@ function buildDateFilter(dateRange?: string): any {
 }
 
 /**
- * Get search suggestions
+ * GET /api/search/suggestions — gợi ý nhanh từ tiêu đề project gần đây (theo quyền user).
  */
 export const getSearchSuggestions = async (req: Request, res: Response) => {
   try {

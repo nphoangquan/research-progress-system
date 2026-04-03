@@ -11,6 +11,8 @@ __pycache__/
 .env
 .env.local
 .env.*.local
+.env.docker
+.env.production
 *.env
 
 # Build outputs
@@ -56,10 +58,12 @@ htmlcov/
 docs/
 *.txt
 
+
 # Backup files
 backups/
 
 # Seed files
 
 backend/prisma/seed.ts
+
 

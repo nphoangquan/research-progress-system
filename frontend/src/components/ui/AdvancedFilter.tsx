@@ -36,7 +36,7 @@ export default function AdvancedFilter({
   }, [filters]);
 
   const handleFilterChange = useCallback((key: string, value: any) => {
-    setPendingFilters(prev => ({ ...prev, [key]: value }));
+    setPendingFilters((prev: AdvancedFilterProps['filters']) => ({ ...prev, [key]: value }));
     // Don't apply immediately - wait for Apply button or Enter
   }, []);
 

@@ -2,8 +2,8 @@ import winston from 'winston';
 import path from 'path';
 import fs from 'fs';
 
-// Create logs directory if it doesn't exist
-const logsDir = path.join(process.cwd(), 'logs');
+// Create logs directory if it doesn't exist (LOG_DIR: relative to cwd, mountable in Docker)
+const logsDir = path.join(process.cwd(), process.env.LOG_DIR || 'logs');
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
