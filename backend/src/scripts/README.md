@@ -91,6 +91,33 @@ Rate limiting từ OpenAI:
 
 ---
 
+### evaluate-semantic-search.ts — đo P@K, R@K, MRR, nDCG
+
+**Chuẩn bị**
+
+1. `backend/.env`: `DATABASE_URL` (với Docker DB trên máy dùng `127.0.0.1:5432`), `OPENAI_API_KEY`.
+2. Dữ liệu đã có embedding: `npm run sync-embeddings` (nếu chưa).
+3. **Lấy **UUID admin****
+   - `npm run eval-list-ids` — in sẵn `defaultUserId` + bảng `id` + tiêu đề (project / task / document) để copy vào JSON.
+   - hoặc `npm run eval-starter-qrels` — tạo `prisma/eval/semantic-search-qrels.starter.json` (mỗi project một case, `query` tạm = title; nên sửa `query` để đo semantic). Copy file đó thành `semantic-search-qrels.json` rồi chỉnh. (Không dùng `eval-list-ids -- --starter`: npm có thể nuốt cờ `--starter`.)
+4. Hoặc copy từ `semantic-search-qrels.example.json` → `semantic-search-qrels.json` và sửa tay như hướng dẫn cũ.
+
+5. Lấy **UUID admin** (bảng `users`, role ADMIN) — dùng cho `defaultUserId`.
+6. Copy `prisma/eval/semantic-search-qrels.example.json` → `prisma/eval/semantic-search-qrels.json`, sửa:
+   - `defaultUserId`
+   - Mỗi `case`: `query` + `relevant.project` / `task` / `document` (id **đúng** bạn chọn làm đáp án).
+**Chạy**
+
+```bash
+cd backend
+npm run eval-search -- ./prisma/eval/semantic-search-qrels.json
+npm run eval-search -- ./prisma/eval/semantic-search-qrels.json --verbose
+```
+
+Script in ra **P@K, R@K, nDCG@K** theo từng loại (project/task/document) và **MRR**. Thứ tự xếp hạng lấy **thật** từ Postgres (cùng SQL semantic như production).
+
+---
+
 ## Thêm Scripts Mới
 
 Khi tạo script mới, tuân theo template:

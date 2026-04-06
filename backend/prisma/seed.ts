@@ -297,11 +297,10 @@ async function ensureTask(input: SeedTaskInput) {
   };
 
   if (existing) {
-    await prisma.task.update({
+    return prisma.task.update({
       where: { id: existing.id },
       data: updateData
     });
-    return existing;
   }
 
   return prisma.task.create({
@@ -591,11 +590,10 @@ async function ensureDocument(input: SeedDocumentInput) {
   };
 
   if (existing) {
-    await prisma.document.update({
+    return prisma.document.update({
       where: { id: existing.id },
       data: updateData
     });
-    return existing;
   }
 
   return prisma.document.create({

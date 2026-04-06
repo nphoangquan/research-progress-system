@@ -1,6 +1,9 @@
 node_modules
 # Keep environment variables out of version control
 .env
+# Qrels set đánh giá search (copy từ *.example.json)
+prisma/eval/semantic-search-qrels.json
+prisma/eval/semantic-search-qrels.starter.json
 
 # Logs
 logs/
