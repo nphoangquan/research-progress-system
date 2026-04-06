@@ -1,6 +1,7 @@
 # Production — chỉ chạy file này (không thêm -f docker-compose.yml).
 #
-# docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+# docker compose -f docker-compose.prod.yml up -d --build
+# Container đọc env từ .env.docker (hoặc đổi env_file bên dưới thành file prod riêng). ${VITE_API_URL} lấy từ .env cùng thư mục nếu có.
 #
 # Build/tag version trước khi push registry, ví dụ:
 #   docker compose -f docker-compose.prod.yml build backend web

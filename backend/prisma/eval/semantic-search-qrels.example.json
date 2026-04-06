@@ -1,0 +1,26 @@
+{
+  "$comment": "Copy → semantic-search-qrels.json. Lấy id: npm run eval-list-ids | Tạo file mẫu: npm run eval-starter-qrels → copy semantic-search-qrels.starter.json. Sau đó: npm run eval-search",
+  "defaultUserId": "THAY_BẰNG_UUID_ADMIN_TỪ_BẢNG_users",
+  "defaultRole": "ADMIN",
+  "kValues": [5, 10, 20],
+  "cases": [
+    {
+      "id": "lib-public",
+      "query": "thư viện tài liệu công khai mẫu báo cáo",
+      "relevant": {
+        "project": ["system-library-project"],
+        "task": [],
+        "document": []
+      }
+    },
+    {
+      "id": "ai-edu",
+      "query": "ứng dụng trí tuệ nhân tạo trong giảng dạy đại học",
+      "relevant": {
+        "project": [],
+        "task": [],
+        "document": []
+      }
+    }
+  ]
+}

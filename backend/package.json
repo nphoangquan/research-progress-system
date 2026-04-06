@@ -7,7 +7,11 @@
     "build": "tsc",
     "start": "node dist/src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "sync-embeddings": "ts-node src/scripts/sync-embeddings.ts"
+    "sync-embeddings": "ts-node src/scripts/sync-embeddings.ts",
+    "seed-bulk": "ts-node src/scripts/seed-bulk.ts",
+    "eval-search": "ts-node src/scripts/evaluate-semantic-search.ts",
+    "eval-list-ids": "ts-node src/scripts/list-ids-for-eval.ts",
+    "eval-starter-qrels": "ts-node src/scripts/list-ids-for-eval.ts --starter"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
