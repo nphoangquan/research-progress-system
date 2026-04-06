@@ -7,6 +7,9 @@
 #   docker compose -f docker-compose.prod.yml build backend web
 #   docker tag nphoangquan/research-progress-backend:latest nphoangquan/research-progress-backend:1.0.0
 #   docker tag nphoangquan/research-progress-web:latest nphoangquan/research-progress-web:1.0.0
+#
+# GitHub Actions: .github/workflows/build-and-publish.yml (job docker-publish) đẩy :latest và :sha-<commit> lên Docker Hub
+# (DOCKERHUB_* secrets). Đổi `image:` bên dưới cho khớp USER/research-progress-*:tag.
 
 services:
   db:
