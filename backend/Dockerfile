@@ -2,6 +2,10 @@ FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
+# Prisma generate chỉ cần URL hợp lệ; runtime thật ghi đè trong docker-compose / env.
+ARG DATABASE_URL=postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
+ENV DATABASE_URL=$DATABASE_URL
+
 RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
@@ -17,6 +21,9 @@ RUN npm run build
 FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
+
+ARG DATABASE_URL=postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
+ENV DATABASE_URL=$DATABASE_URL
 
 RUN apt-get update && apt-get install -y \
     openssl \
