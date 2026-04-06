@@ -2,6 +2,8 @@
 #
 # Secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN (hub.docker.com → Security).
 # Variable (tuỳ chọn): VITE_API_URL — build frontend image; mặc định /api.
+#
+# DATABASE_URL: job backend cần biến giả (Prisma validate/generate không kết nối DB trên runner).
 
 name: Build & publish
 on:
@@ -24,6 +26,8 @@ jobs:
   backend:
     name: Backend (Prisma + tsc)
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
     defaults:
       run:
         working-directory: backend
